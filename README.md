@@ -2,7 +2,7 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-500x%20faster-orange.svg)](OPTIMIZATION_GUIDE.md)
 [![Async](https://img.shields.io/badge/async-native-brightgreen.svg)](ASYNC_GUIDE.md)
@@ -382,6 +382,36 @@ bulk:
 ---
 
 ## 🆕 更新日志
+
+### v2.4.0 (2026-03-03) - 语音交互系统（讯飞 + 国际引擎）🎤
+
+**🎤 语音交互系统**
+- ✅ voice_manager.py - 多引擎语音管理器
+- ✅ 科大讯飞（国内）- 中文识别 98%，50+ 音色
+- ✅ Google Cloud（国外）- 125+ 语言，220+ 声音
+- ✅ Amazon Polly（国外）- 60+ 语言，400+ 声音
+- ✅ Microsoft Azure（国外）- 100+ 语言，400+ 声音
+
+**🌍 多语言支持**
+- 亚洲：中文、英文、日文、韩文、泰文、越南文、印尼文、印地文
+- 欧洲：法文、德文、西班牙文、葡萄牙文、意大利文、俄文
+- 中东：阿拉伯文、希伯来文、土耳其文
+- **总计：125+ 语言**
+
+**🎵 推荐音色**
+- 中文：讯飞 - 小燕（温柔知性）⭐
+- 英文：Azure - Jenny（温柔女声）⭐
+- 日文：Azure - Nanami（温柔女声）⭐
+- 韩文：Azure - SunHi（温柔女声）⭐
+
+**📁 新增文件**
+- `scripts/voice/voice_manager.py` - 语音引擎管理器
+- `scripts/voice/README.md` - 语音系统使用文档
+- `voice-config.example.json` - 配置示例
+
+**详细文档：** [scripts/voice/README.md](scripts/voice/README.md)
+
+---
 
 ### v2.3.0 (2026-03-03) - 智能学习系统 + 配置迁移 + QQ Bot 自动启用 🧠
 
