@@ -2,7 +2,7 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-500x%20faster-orange.svg)](OPTIMIZATION_GUIDE.md)
 [![Async](https://img.shields.io/badge/async-native-brightgreen.svg)](ASYNC_GUIDE.md)
