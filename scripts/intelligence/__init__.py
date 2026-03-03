@@ -34,6 +34,8 @@ from .task_logger import TaskLogger, get_logger
 from .pattern_learner import PatternLearner, get_learner
 from .optimizer import Optimizer, get_optimizer
 from .predictor import Predictor, get_predictor
+from .config_migrator import ConfigMigrator, get_migrator
+from .qqbot_auto_enable import QQBotAutoEnable, get_auto_enable
 
 
 class IntelligenceEngine:
@@ -44,16 +46,28 @@ class IntelligenceEngine:
         self.learner = get_learner()
         self.optimizer = get_optimizer()
         self.predictor = get_predictor()
+        self.migrator = get_migrator()
+        self.qqbot_auto_enable = get_auto_enable()
         self._initialized = False
     
-    def initialize(self, analyze_days: int = 7):
+    def initialize(self, analyze_days: int = 7, auto_migrate: bool = True, auto_enable_qqbot: bool = True):
         """
         初始化智能学习系统
         
         Args:
             analyze_days: 分析最近 N 天的数据
+            auto_migrate: 是否自动迁移配置
+            auto_enable_qqbot: 是否自动启用 QQ Bot
         """
-        # 分析历史模式
+        # 1. 配置迁移（保留旧配置）
+        if auto_migrate:
+            self.migrator.migrate(target_version="v2.3.0")
+        
+        # 2. QQ Bot 自动启用
+        if auto_enable_qqbot:
+            self.qqbot_auto_enable.enable_qqbot()
+        
+        # 3. 分析历史模式
         self.learner.analyze_patterns(days=analyze_days)
         self._initialized = True
     
