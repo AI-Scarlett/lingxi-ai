@@ -2,7 +2,7 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-500x%20faster-orange.svg)](OPTIMIZATION_GUIDE.md)
 [![Async](https://img.shields.io/badge/async-native-brightgreen.svg)](ASYNC_GUIDE.md)
@@ -382,6 +382,44 @@ bulk:
 ---
 
 ## 🆕 更新日志
+
+### v2.3.0 (2026-03-03) - 智能学习系统 + 配置迁移 + QQ Bot 自动启用 🧠
+
+**🧠 智能学习系统**
+- ✅ task_logger.py - 任务日志记录（结构化存储，按日期分文件）
+- ✅ pattern_learner.py - 模式学习（频率分析，时间模式，偏好学习）
+- ✅ optimizer.py - 自动优化（模型推荐，成本预估，并行/缓存建议）
+- ✅ predictor.py - 预测调度（时间预测，资源预加载，智能提醒）
+- ✅ IntelligenceEngine - 统一入口
+
+**📦 配置迁移系统**
+- ✅ config_migrator.py - 版本升级保留所有配置
+- ✅ 自动检测旧版本（v1.0.0 - v2.2.0）
+- ✅ 迁移到 v2.3.0
+- ✅ 备份旧配置（可回滚）
+- ✅ 保留所有用户设置（角色/模型偏好/异步配置/QQ Bot 等）
+
+**🤖 QQ Bot 自动启用**
+- ✅ qqbot_auto_enable.py - 解决默认不启用问题
+- ✅ 自动检测 QQ Bot 安装
+- ✅ 自动启用 QQ Bot 集成
+- ✅ 创建桥接脚本（如果不存在）
+- ✅ 默认启用，无需手动配置
+
+**📊 性能提升（100 次基准测试）**
+- ⚡ **速度提升 85.8%** (1680ms → 238ms)
+- 💰 **成本降低 79.3%** (1808 → 375 token)
+- 🎯 **缓存命中率 81.0%**
+- 🔧 **平均优化 3.3 项/任务**
+
+**📁 新增文件**
+- `scripts/intelligence/` - 智能学习系统（8 个文件）
+- `scripts/tests/performance_benchmark.py` - 性能测试脚本
+- `scripts/PERFORMANCE_BENCHMARK.md` - 性能测试报告
+
+**详细报告：** [PERFORMANCE_BENCHMARK.md](scripts/PERFORMANCE_BENCHMARK.md)
+
+---
 
 ### v2.2.0 (2026-03-03 下午) - S0→S3 复杂任务三步法
 
