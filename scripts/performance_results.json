@@ -1,24 +1,24 @@
 {
   "v2.2.0": {
-    "avg_duration_ms": 1679.851647263847,
-    "avg_token_cost": 1808.0,
-    "total_duration_s": 167.9851647263847,
-    "total_token": 180800
+    "avg_duration_ms": 1687.898337596757,
+    "avg_token_cost": 1812.8,
+    "total_duration_s": 168.7898337596757,
+    "total_token": 181280
   },
   "v2.3.0": {
-    "avg_duration_ms": 237.8084857005407,
-    "avg_token_cost": 374.75,
-    "total_duration_s": 23.78084857005407,
-    "total_token": 37475,
-    "cache_hit_rate": 0.81,
-    "avg_optimizations": 3.27
+    "avg_duration_ms": 269.1336957703626,
+    "avg_token_cost": 434.95,
+    "total_duration_s": 26.913369577036256,
+    "total_token": 43495,
+    "cache_hit_rate": 0.84,
+    "avg_optimizations": 3.32
   },
   "improvements": {
-    "duration": 0.8584348289994032,
-    "duration_percent": "85.8%",
-    "token": 0.7927267699115044,
-    "token_percent": "79.3%",
-    "cache_hit_rate": 0.81,
-    "avg_optimizations": 3.27
+    "duration": 0.8405510037094074,
+    "duration_percent": "84.1%",
+    "token": 0.7600672992056487,
+    "token_percent": "76.0%",
+    "cache_hit_rate": 0.84,
+    "avg_optimizations": 3.32
   }
 }
