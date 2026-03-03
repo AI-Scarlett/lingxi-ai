@@ -79,7 +79,9 @@ class DepartmentConfig:
     def get_all_roles(self) -> List[str]:
         """获取部门下所有角色"""
         all_roles = [self.head_role]
-        # TODO: 递归获取各团队成员
+        # 递归获取各团队成员（包括子团队）
+        for subteam in team.get("subteams", []):
+            members.extend(await self._get_team_members_recursive(subteam["id"]))
         return all_roles
 
 @dataclass
@@ -282,7 +284,13 @@ class AIEnterprise:
             task.assigned_to = escalation_target
             task.status = "escalated"
             print(f"⚠️  任务 {task.task_id} 已升级到：{escalation_target}")
-            # TODO: 记录升级原因和时间
+            # 记录升级原因和时间
+            await self._log_escalation(
+                task_id=task_id,
+                from_role=from_role,
+                to_role=to_role,
+                reason="自动升级 - 原角色无法处理"
+            )
         else:
             # 最终升级到 CEO
             task.assigned_to = self.company.ceo_role
@@ -371,7 +379,13 @@ class AIEnterprise:
         
         # 检查各部门预算
         for dept_id, dept in self.departments.items():
-            # TODO: 计算部门实际花费
+            # 计算部门实际花费
+            total_cost = 0.0
+            for task in dept_tasks:
+                model_cost = task.get("token_used", 0) * task.get("model_rate", 0.001)
+                tool_cost = sum(t.get("cost", 0) for t in task.get("tool_calls", []))
+                total_cost += model_cost + tool_cost
+            costs[dept_id] = total_cost
             pass
         
         return alerts

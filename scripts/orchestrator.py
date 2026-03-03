@@ -283,19 +283,46 @@ async def execute_subtask(subtask: SubTask) -> SubTask:
     return subtask
 
 async def call_role_agent(subtask: SubTask) -> Dict[str, Any]:
-    """调用角色Agent执行任务"""
-    # TODO: 实际调用 OpenClaw sessions_spawn 或技能
-    # 这里返回模拟结果
-    await asyncio.sleep(1)  # 模拟执行时间
+    """调用角色 Agent 执行任务 - 使用 sessions_spawn 调用子 Agent"""
+    try:
+        from sessions_spawn import sessions_spawn
+        
+        role_agent_map = {
+            RoleType.COPYWRITER: "copywriting-expert",
+            RoleType.IMAGE_EXPERT: "image-generation",
+            RoleType.CODE_EXPERT: "coding-expert",
+            RoleType.DATA_EXPERT: "data-analysis",
+            RoleType.WRITER: "writing-expert",
+            RoleType.OPERATIONS: "social-media-ops",
+            RoleType.SEARCH: "search-expert",
+            RoleType.TRANSLATOR: "translation-expert"
+        }
+        
+        agent_id = role_agent_map.get(subtask.role, "general-assistant")
+        
+        result = await sessions_spawn(
+            agentId=agent_id,
+            task=subtask.description,
+            mode="run",
+            cleanup="delete",
+            timeoutSeconds=300
+        )
+        
+        return {
+            "role": subtask.role.value,
+            "output": result.get("message", f"[{subtask.role.value}] 任务完成"),
+            "timestamp": datetime.now().isoformat(),
+            "agent_id": agent_id
+        }
     
-    return {
-        "role": subtask.role.value,
-        "output": f"[{subtask.role.value}] 已完成任务: {subtask.description}",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ==================== 评分系统 ====================
-
+    except Exception as e:
+        print(f"❌ 调用角色 Agent 失败：{e}")
+        return {
+            "role": subtask.role.value,
+            "output": f"执行出错：{str(e)}",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e)
+        }
 def score_subtask(subtask: SubTask) -> Tuple[float, str]:
     """对子任务结果进行评分"""
     if subtask.status == TaskStatus.FAILED:

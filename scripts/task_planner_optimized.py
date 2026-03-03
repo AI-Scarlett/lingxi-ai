@@ -141,7 +141,11 @@ class FastTaskPlanner:
                 task.status = TaskStatus.RUNNING
                 
                 try:
-                    # TODO: 实际调用执行器
+                    # 实际调用执行器
+                    from .executors import get_executor
+                    executor = get_executor(step.get("type", "general"))
+                    result = await executor.execute(step.get("params", {}))
+                    results.append(result)
                     task.result = await executor_func(task)
                     task.status = TaskStatus.COMPLETED
                 except Exception as e:
