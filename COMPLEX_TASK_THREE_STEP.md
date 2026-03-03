@@ -7,7 +7,8 @@
 - **副标题：** 复杂任务三步法 — S0→S3 立体评估与执行方法论
 - **英文：** Complex Task Three-Step Methodology — A Layered Assessment & Execution Framework
 - **作者：** 四十学蒙
-- **来源：** 微信公众号文章
+- **来源：** 微信公众号
+- **链接：** https://mp.weixin.qq.com/s/jnipYTffY_KSfWjqXbyqPQ
 
 **灵犀实现：**
 - `scripts/complex_task_methodology.py` - 完整 Python 实现

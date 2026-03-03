@@ -16,7 +16,11 @@
 
 **🎯 复杂任务三步法 S0→S1→S2→S3**
 
-📚 **参考文档：** "这是我迄今为止开发的最满意的一个技能" - 复杂任务三步法方法论
+📚 **参考文档：** 
+- **标题：** "这是我迄今为止开发的最满意的一个技能"
+- **作者：** 四十学蒙
+- **来源：** 微信公众号
+- **链接：** https://mp.weixin.qq.com/s/jnipYTffY_KSfWjqXbyqPQ
 
 **S0 零成本预筛选**
 - ✅ 规则匹配，0 token
@@ -465,9 +469,11 @@ MIT License
 
 **特别感谢：**
 
-本文档的复杂任务三步法（S0→S1→S2→S3）参考了优秀文档：
-- **原文档：** "这是我迄今为止开发的最满意的一个技能"
+本文档的复杂任务三步法（S0→S1→S2→S3）参考了优秀文章：
+- **标题：** "这是我迄今为止开发的最满意的一个技能"
 - **作者：** 四十学蒙
+- **来源：** 微信公众号
+- **链接：** https://mp.weixin.qq.com/s/jnipYTffY_KSfWjqXbyqPQ
 - **核心理念：** Complex Task Three-Step Methodology — A Layered Assessment & Execution Framework
 
 **灵犀在原文档基础上的优化：**
