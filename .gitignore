@@ -1,1 +1,7 @@
-__pycache__/\n*.pyc\n.env\n*.log
+__pycache__/
+*.pyc
+.env
+*.log
+authorized_users.json
+companies/
+task-state.json

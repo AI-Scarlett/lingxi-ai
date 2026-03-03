@@ -137,23 +137,38 @@ INTENT_PATTERNS = {
     "translation": ["翻译", "translate", "中英", "英文"]
 }
 
-def parse_intent(user_input: str) -> Dict[str, Any]:
+def parse_intent(user_input: str, user_id: str = None) -> Dict[str, Any]:
     """解析用户意图，返回任务类型和关键信息"""
     intent = {
         "types": [],
         "keywords": [],
         "platform": None,
         "content_type": None,
-        "bypass_orchestrator": False,  # 是否跳过灵犀调度
-        "direct_contact": None          # 直接联系方式
+        "user_id": user_id,
+        "companion_authorized": False,
     }
     
-    # 检查是否匹配特殊角色（直接联系，不经过灵犀）
-    special_keywords = ["情感", "伴侣", "拍照", "自拍", "安慰", "陪伴"]
-    if any(kw in user_input for kw in special_keywords):
-        # 注意：自拍相关的图像生成任务仍由灵犀调度
-        # 只有纯情感陪伴才跳过
-        pass  # 暂时不跳过，所有任务都通过灵犀
+    # 检查情感伴侣权限
+    if "emotional_support" in intent["types"]:
+        auth_file = "authorized_users.json"
+        authorized_users = []
+        try:
+            import json
+            with open(auth_file, 'r', encoding='utf-8') as f:
+                auth_data = json.load(f)
+                companion_users = auth_data.get("companion", {}).get("users", [])
+                for user in companion_users:
+                    authorized_users.append(user.get("qq", ""))
+                    authorized_users.append(user.get("openid", ""))
+        except:
+            pass
+        
+        if user_id and user_id in authorized_users:
+            intent["companion_authorized"] = True
+            print(f"💕 情感伴侣权限验证通过：用户 {user_id}")
+        else:
+            if user_id:
+                print(f"⚠️ 情感伴侣权限验证失败：用户 {user_id} 未授权")
     
     # 识别意图类型
     for intent_type, keywords in INTENT_PATTERNS.items():
@@ -357,12 +372,19 @@ class SmartOrchestrator:
         self.role = "指挥家"
         self.task_history: List[TaskResult] = []
     
-    async def execute(self, user_input: str) -> TaskResult:
-        """执行用户任务"""
+    async def execute(self, user_input: str, user_id: str = None) -> TaskResult:
+        """执行用户任务
+        
+        Args:
+            user_input: 用户输入
+            user_id: 用户 ID（用于权限验证，如 QQ 号）
+        """
         print(f"\n🎭 {self.name}（{self.role}）: 收到任务，开始分析...\n")
+        if user_id:
+            print(f"👤 用户 ID: {user_id}")
         
         # 1. 解析意图
-        intent = parse_intent(user_input)
+        intent = parse_intent(user_input, user_id)
         print(f"📋 意图识别: {intent['types']}")
         
         # 2. 拆解任务
