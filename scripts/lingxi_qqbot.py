@@ -91,12 +91,16 @@ async def _handle_background_task(
     
     立即返回接收确认，实际任务在后台执行
     """
-    reply = await orch.execute_async(
+    # 立即返回接收确认
+    reply = "已经收到请求，任务可能比较复杂，已转交给灵犀进行处理"
+    
+    # 后台异步执行实际任务
+    asyncio.create_task(orch.execute_async(
         user_input=message,
         user_id=user_id,
         channel=channel,
         is_background=True
-    )
+    ))
     
     return reply
 
