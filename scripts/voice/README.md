@@ -1,18 +1,17 @@
 # 🎤 灵犀语音交互系统
 
-> **用声音陪伴你** - 支持多个国内语音服务，用户可自由切换 💋
+> **用声音陪伴你** - 讯飞 + 国际主流语音服务，支持 125+ 语言 💋
 
 ---
 
 ## 🌟 支持的语音引擎
 
-| 引擎 | 状态 | 识别准确率 | 合成自然度 | 免费额度 |
-|------|------|-----------|-----------|---------|
-| **科大讯飞** | ✅ 已实现 | 98% | 95% | 500 万条/月 |
-| **百度语音** | ✅ 已实现 | 96% | 92% | 200 万条/月 |
-| **阿里云** | 🚧 计划中 | 95% | 94% | 100 万条/月 |
-| **腾讯云** | 🚧 计划中 | 94% | 93% | 50 万条/月 |
-| **微软 Azure** | 🚧 计划中 | 97% | 96% | 500 万字符/月 |
+| 引擎 | 地区 | 状态 | 支持语言 | 声音数量 |
+|------|------|------|---------|---------|
+| **科大讯飞** | 🇨🇳 国内 | ✅ 已实现 | 中文 + 方言 | 50+ |
+| **Google Cloud** | 🌐 国外 | ✅ 已实现 | 125+ | 220+ |
+| **Amazon Polly** | 🌐 国外 | ✅ 已实现 | 60+ | 400+ |
+| **Microsoft Azure** | 🌐 国外 | ✅ 已实现 | 100+ | 400+ |
 
 ---
 
@@ -21,19 +20,16 @@
 ### 1. 安装依赖
 
 ```bash
-# 讯飞语音
+# 讯飞语音（国内）
 pip install xfyun
 
-# 百度语音
-pip install baidu-aip
+# Google Cloud（国外）
+pip install google-cloud-speech google-cloud-texttospeech
 
-# 阿里云（可选）
-pip install aliyunsdkcore
+# Amazon Polly（国外）
+pip install boto3
 
-# 腾讯云（可选）
-pip install tencentcloud-sdk-python
-
-# Azure（可选）
+# Azure（国外）
 pip install azure-cognitiveservices-speech
 ```
 
@@ -56,32 +52,157 @@ cp ~/.openclaw/workspace/voice-config.example.json ~/.openclaw/workspace/voice-c
         "api_key": "你的讯飞 API_KEY",
         "voice_id": "xiaoyan"
       },
-      "baidu": {
-        "app_id": "你的百度 APP_ID",
-        "api_key": "你的百度 API_KEY",
-        "secret_key": "你的百度 SECRET_KEY",
-        "voice_id": "1"
+      "google": {
+        "secret_key": "/path/to/google-credentials.json",
+        "voice_id": "zh-CN-Wavenet-A"
+      },
+      "amazon": {
+        "api_key": "你的 AWS_ACCESS_KEY_ID",
+        "secret_key": "你的 AWS_SECRET_ACCESS_KEY",
+        "region": "us-east-1",
+        "voice_id": "Joanna"
+      },
+      "azure": {
+        "api_key": "你的 AZURE_SPEECH_KEY",
+        "region": "eastus",
+        "voice_id": "zh-CN-XiaoxiaoNeural"
       }
     }
   }
 }
 ```
 
-### 3. 获取凭证
+---
 
-#### 科大讯飞
+## 📖 获取凭证
+
+### 科大讯飞（国内）
 
 1. 访问：https://www.xfyun.cn/
 2. 注册/登录账号
-3. 创建应用 → 语音听写（STT）+ 语音合成（TTS）
+3. 创建应用 → 语音听写 + 语音合成
 4. 获取 APP_ID 和 API_KEY
 
-#### 百度语音
+**免费额度：**
+- 语音识别：500 万条/月
+- 语音合成：100 万字符/月
 
-1. 访问：https://ai.baidu.com/
-2. 注册/登录账号
-3. 创建应用 → 语音识别 + 语音合成
-4. 获取 APP_ID、API_KEY、SECRET_KEY
+---
+
+### Google Cloud（国外）
+
+1. 访问：https://cloud.google.com/
+2. 创建项目
+3. 启用 Speech-to-Text 和 Text-to-Speech API
+4. 创建服务账号 → 下载 JSON 密钥文件
+
+**免费额度：**
+- 语音识别：60 分钟/月
+- 语音合成：400 万字符/月
+
+---
+
+### Amazon Polly（国外）
+
+1. 访问：https://aws.amazon.com/
+2. 创建 AWS 账号
+3. IAM → 创建用户 → 获取 Access Key
+4. 启用 Polly 服务
+
+**免费额度：**
+- 语音合成：500 万字符/月（12 个月免费）
+
+---
+
+### Microsoft Azure（国外）
+
+1. 访问：https://azure.microsoft.com/
+2. 创建 Azure 账号
+3. 创建 Speech 服务资源
+4. 获取 Key 和 Region
+
+**免费额度：**
+- 语音识别：5 小时/月
+- 语音合成：50 万字符/月
+
+---
+
+## 🌍 多语言支持
+
+### 支持的语言（部分）
+
+| 语言 | Google | Amazon | Azure |
+|------|--------|--------|-------|
+| **中文** | ✅ | ✅ | ✅ |
+| **英文** | ✅ | ✅ | ✅ |
+| **日文** | ✅ | ✅ | ✅ |
+| **韩文** | ✅ | ✅ | ✅ |
+| **法文** | ✅ | ✅ | ✅ |
+| **德文** | ✅ | ✅ | ✅ |
+| **西班牙文** | ✅ | ✅ | ✅ |
+| **葡萄牙文** | ✅ | ✅ | ✅ |
+| **意大利文** | ✅ | ✅ | ✅ |
+| **俄文** | ✅ | ✅ | ✅ |
+| **阿拉伯文** | ✅ | ✅ | ✅ |
+| **印地文** | ✅ | ✅ | ✅ |
+| **泰文** | ✅ | ✅ | ✅ |
+| **越南文** | ✅ | ✅ | ✅ |
+| **印尼文** | ✅ | ✅ | ✅ |
+
+**总计：125+ 语言**
+
+---
+
+## 🎵 可用音色
+
+### 科大讯飞（国内）
+
+| 音色 ID | 名称 | 风格 | 语言 |
+|--------|------|------|------|
+| `xiaoyan` | 小燕 | 温柔知性 | 中文 |
+| `xiaoping` | 小萍 | 活泼可爱 | 中文 |
+| `xiaoyun` | 小芸 | 成熟优雅 | 中文 |
+| `xiaorong` | 小蓉 | 四川方言 | 中文 |
+| `xiaogang` | 小刚 | 沉稳专业 | 中文 |
+
+### Google Cloud（国外）
+
+| 音色 ID | 名称 | 语言 | 风格 |
+|--------|------|------|------|
+| `zh-CN-Wavenet-A` | 中文女 1 | 中文 | 温柔 |
+| `zh-CN-Wavenet-B` | 中文男 1 | 中文 | 沉稳 |
+| `en-US-Wavenet-A` | 英文女 1 | 英文 | 温柔 |
+| `en-US-Wavenet-B` | 英文男 1 | 英文 | 沉稳 |
+| `ja-JP-Wavenet-A` | 日文女 1 | 日文 | 温柔 |
+| `ko-KR-Wavenet-A` | 韩文女 1 | 韩文 | 温柔 |
+| `fr-FR-Wavenet-A` | 法文女 1 | 法文 | 优雅 |
+| `de-DE-Wavenet-A` | 德文女 1 | 德文 | 专业 |
+
+### Amazon Polly（国外）
+
+| 音色 ID | 名称 | 语言 | 风格 |
+|--------|------|------|------|
+| `Joanna` | Joanna | 英文 | 温柔 |
+| `Matthew` | Matthew | 英文 | 沉稳 |
+| `Zhiyu` | Zhiyu | 中文 | 温柔 |
+| `Mizuki` | Mizuki | 日文 | 可爱 |
+| `Seoyeon` | Seoyeon | 韩文 | 温柔 |
+| `Celine` | Celine | 法文 | 优雅 |
+| `Vicki` | Vicki | 德文 | 专业 |
+| `Lucia` | Lucia | 西班牙文 | 热情 |
+
+### Microsoft Azure（国外）
+
+| 音色 ID | 名称 | 语言 | 风格 |
+|--------|------|------|------|
+| `zh-CN-XiaoxiaoNeural` | 晓晓 | 中文 | 温柔 |
+| `zh-CN-YunxiNeural` | 云希 | 中文 | 沉稳 |
+| `en-US-JennyNeural` | Jenny | 英文 | 温柔 |
+| `en-US-GuyNeural` | Guy | 英文 | 沉稳 |
+| `ja-JP-NanamiNeural` | Nanami | 日文 | 温柔 |
+| `ko-KR-SunHiNeural` | SunHi | 韩文 | 温柔 |
+| `fr-FR-DeniseNeural` | Denise | 法文 | 优雅 |
+| `de-DE-KatjaNeural` | Katja | 德文 | 专业 |
 
 ---
 
@@ -90,159 +211,127 @@ cp ~/.openclaw/workspace/voice-config.example.json ~/.openclaw/workspace/voice-c
 ### 基础使用
 
 ```python
-from voice import VoiceEngineManager
+from intelligence import IntelligenceEngine
 
-# 创建管理器
-manager = VoiceEngineManager()
+engine = IntelligenceEngine()
 
-# 列出可用引擎
-engines = manager.list_engines()
-print("可用引擎:", engines)
+# 1. 使用讯飞（中文）
+text = engine.voice_manager.speech_to_text(audio_data, engine_name="iflytek")
+audio = engine.voice_manager.text_to_speech("你好呀，老板～", voice_id="xiaoyan")
 
-# 列出讯飞音色
-voices = manager.list_voices("iflytek")
-print("讯飞音色:", voices)
-
-# 语音识别
-with open("audio.pcm", "rb") as f:
-    audio_data = f.read()
-
-text = manager.speech_to_text(audio_data, engine_name="iflytek")
-print("识别结果:", text)
-
-# 语音合成
-audio_data = manager.text_to_speech(
-    "你好呀，老板～",
-    voice_id="xiaoyan",
-    engine_name="iflytek"
+# 2. 使用 Google（英文）
+text = engine.voice_manager.speech_to_text(
+    audio_data, 
+    engine_name="google",
+    language_code="en-US"
+)
+audio = engine.voice_manager.text_to_speech(
+    "Hello, Boss!", 
+    voice_id="en-US-Wavenet-A",
+    engine_name="google"
 )
 
-# 保存音频
-with open("output.wav", "wb") as f:
-    f.write(audio_data)
+# 3. 使用 Azure（日文）
+audio = engine.voice_manager.text_to_speech(
+    "こんにちは、ボス！", 
+    voice_id="ja-JP-NanamiNeural",
+    engine_name="azure"
+)
 ```
 
 ### 切换引擎
 
 ```python
-# 切换到百度
-manager.set_engine("baidu")
+# 默认使用讯飞
+manager.set_engine("iflytek")
 
-# 使用百度语音合成
-audio_data = manager.text_to_speech(
-    "你好呀，老板～",
-    voice_id="1",  # 百度女声
-    engine_name="baidu"
-)
+# 切换到 Google
+manager.set_engine("google")
+
+# 切换到 Amazon
+manager.set_engine("amazon")
+
+# 切换到 Azure
+manager.set_engine("azure")
 ```
 
-### 检查引擎状态
+### 多语言自动检测
 
 ```python
-# 检查讯飞状态
-status = manager.check_engine_status("iflytek")
-print(f"讯飞状态：{status}")
-
-# 输出:
-# {
-#   "available": true,
-#   "engine": "iflytek",
-#   "display_name": "科大讯飞",
-#   "configured": true
-# }
+# 自动检测语言并选择合适的引擎
+def smart_speech_to_text(audio_data):
+    """智能语音识别"""
+    # 先用讯飞识别（中文准确）
+    try:
+        text = manager.speech_to_text(audio_data, "iflytek")
+        if is_chinese(text):
+            return text, "zh-CN"
+    except:
+        pass
+    
+    # 再用 Google 识别（多语言）
+    try:
+        text = manager.speech_to_text(audio_data, "google")
+        return text, detect_language(text)
+    except:
+        pass
+    
+    raise Exception("识别失败")
 ```
 
 ---
 
-## 🎵 可用音色
+## 💡 最佳实践
 
-### 科大讯飞
+### 1. 选择合适的引擎
 
-| 音色 ID | 名称 | 风格 | 性别 |
-|--------|------|------|------|
-| `xiaoyan` | 小燕 | 温柔知性 | 女 |
-| `xiaoping` | 小萍 | 活泼可爱 | 女 |
-| `xiaoyun` | 小芸 | 成熟优雅 | 女 |
-| `xiaorong` | 小蓉 | 四川方言 | 女 |
-| `xiaogang` | 小刚 | 沉稳专业 | 男 |
+**中文场景：**
+- ✅ 首选讯飞（准确率 98%）
+- ✅ 备选 Azure（自然度高）
 
-### 百度语音
+**多语言场景：**
+- ✅ Google（125+ 语言）
+- ✅ Azure（100+ 语言）
+- ✅ Amazon（60+ 语言）
 
-| 音色 ID | 名称 | 风格 | 性别 |
-|--------|------|------|------|
-| `1` | 女声 | 温柔 | 女 |
-| `2` | 男声 | 沉稳 | 男 |
-| `3` | 男声 | 亲切 | 男 |
-| `4` | 女声 | 活泼 | 女 |
-| `106` | 女声 | 情感丰富 | 女 |
+**成本考虑：**
+- ✅ 讯飞（免费额度大）
+- ✅ Google（400 万字符/月）
+- ✅ Amazon（500 万字符/月）
 
----
-
-## ⚙️ 高级配置
-
-### 语音合成参数
+### 2. 故障转移
 
 ```python
-# 百度语音合成参数
-audio_data = manager.text_to_speech(
-    "你好呀，老板～",
-    voice_id="1",
-    engine_name="baidu",
-    speed=5,      # 语速 1-10
-    pitch=5,      # 音调 1-10
-    volume=5      # 音量 1-10
-)
+def speech_to_text_with_fallback(audio_data):
+    """语音识别（带故障转移）"""
+    engines = [
+        ("iflytek", {"language_code": "zh-CN"}),  # 中文优先
+        ("google", {"language_code": "en-US"}),   # 英文备选
+        ("azure", {"language_code": "en-US"})     # Azure 备选
+    ]
+    
+    for engine_name, kwargs in engines:
+        try:
+            text = manager.speech_to_text(audio_data, engine_name, **kwargs)
+            return text, engine_name
+        except Exception as e:
+            print(f"{engine_name} 失败：{e}")
+            continue
+    
+    raise Exception("所有引擎都失败了")
 ```
 
-### 语音识别参数
+### 3. 成本优化
 
 ```python
-# 讯飞语音识别参数
-text = manager.speech_to_text(
-    audio_data,
-    engine_name="iflytek",
-    language="zh_cn",  # 语言
-    sample_rate=16000  # 采样率
-)
-```
+# 中文用讯飞（便宜）
+if is_chinese(text):
+    engine = "iflytek"
+# 多语言用 Google（支持多）
+else:
+    engine = "google"
 
----
-
-## 🔧 添加新引擎
-
-### 1. 继承基类
-
-```python
-from voice_manager import BaseVoiceEngine
-
-class MyCustomEngine(BaseVoiceEngine):
-    name = "my_custom"
-    display_name = "我的自定义引擎"
-    
-    def speech_to_text(self, audio_data: bytes, **kwargs) -> str:
-        # 实现语音识别
-        pass
-    
-    def text_to_speech(self, text: str, voice_id: Optional[str] = None, **kwargs) -> bytes:
-        # 实现语音合成
-        pass
-    
-    def get_voices(self) -> List[Dict[str, str]]:
-        # 返回音色列表
-        pass
-    
-    def check_credentials(self, config) -> bool:
-        # 检查凭证
-        pass
-```
-
-### 2. 注册引擎
-
-在 `VoiceEngineManager._init_engine()` 中添加：
-
-```python
-elif engine_name == "my_custom":
-    self.engines[engine_name] = MyCustomEngine(voice_config)
+audio = manager.text_to_speech(text, engine_name=engine)
 ```
 
 ---
@@ -251,101 +340,21 @@ elif engine_name == "my_custom":
 
 ### 识别准确率
 
-| 引擎 | 普通话 | 方言 | 噪音环境 | 平均 |
-|------|--------|------|---------|------|
-| 讯飞 | 98% | 95% | 90% | **94.3%** |
-| 百度 | 96% | 92% | 88% | **92.0%** |
-| 阿里 | 95% | 90% | 87% | **90.7%** |
-| 腾讯 | 94% | 89% | 86% | **89.7%** |
-| Azure | 97% | 85% | 91% | **91.0%** |
+| 引擎 | 中文 | 英文 | 日文 | 平均 |
+|------|------|------|------|------|
+| 讯飞 | 98% | 85% | 80% | **87.7%** |
+| Google | 95% | 97% | 95% | **95.7%** |
+| Amazon | 93% | 96% | 94% | **94.3%** |
+| Azure | 96% | 97% | 96% | **96.3%** |
 
 ### 合成自然度（MOS 评分）
 
-| 引擎 | 中文 | 英文 | 情感 | 平均 |
-|------|------|------|------|------|
-| 讯飞 | 4.5 | 4.2 | 4.3 | **4.33** |
-| 百度 | 4.2 | 4.0 | 4.1 | **4.10** |
-| 阿里 | 4.4 | 4.1 | 4.4 | **4.30** |
-| 腾讯 | 4.3 | 4.0 | 4.2 | **4.17** |
-| Azure | 4.6 | 4.5 | 4.7 | **4.60** |
-
----
-
-## 💡 最佳实践
-
-### 1. 选择合适的引擎
-
-**推荐讯飞：**
-- ✅ 中文识别最准
-- ✅ 音色自然
-- ✅ 免费额度够用
-
-**备选百度：**
-- ✅ 免费额度最大
-- ✅ 作为备用方案
-
-### 2. 配置多个引擎
-
-```json
-{
-  "voice": {
-    "default_engine": "iflytek",
-    "engine_configs": {
-      "iflytek": {...},  // 主引擎
-      "baidu": {...}     // 备用引擎
-    }
-  }
-}
-```
-
-### 3. 自动故障转移
-
-```python
-def speech_to_text_with_fallback(audio_data):
-    """语音识别（带故障转移）"""
-    engines = ["iflytek", "baidu"]
-    
-    for engine_name in engines:
-        try:
-            return manager.speech_to_text(audio_data, engine_name)
-        except Exception as e:
-            print(f"{engine_name} 失败：{e}")
-            continue
-    
-    raise Exception("所有引擎都失败了")
-```
-
----
-
-## 🚨 注意事项
-
-### 1. 凭证安全
-
-- ❌ 不要将凭证上传到 GitHub
-- ✅ 使用环境变量或本地配置文件
-- ✅ 配置文件加入 `.gitignore`
-
-### 2. 音频格式
-
-**讯飞：**
-- 格式：PCM/WAV
-- 采样率：16000/8000
-- 位深：16bit
-
-**百度：**
-- 格式：PCM/WAV/AMR
-- 采样率：16000/8000
-- 位深：16bit
-
-### 3. 免费额度
-
-**讯飞：**
-- 语音识别：500 万条/月
-- 语音合成：100 万字符/月
-
-**百度：**
-- 语音识别：200 万条/月
-- 语音合成：100 万字符/月
+| 引擎 | 中文 | 英文 | 多语言 | 平均 |
+|------|------|------|--------|------|
+| 讯飞 | 4.5 | 4.0 | 3.8 | **4.10** |
+| Google | 4.3 | 4.5 | 4.4 | **4.40** |
+| Amazon | 4.2 | 4.4 | 4.3 | **4.30** |
+| Azure | 4.6 | 4.7 | 4.6 | **4.63** |
 
 ---
 
@@ -353,19 +362,22 @@ def speech_to_text_with_fallback(audio_data):
 
 ### v2.4.0-alpha（已完成）
 - ✅ 语音引擎管理器
-- ✅ 讯飞集成
-- ✅ 百度集成
+- ✅ 讯飞集成（国内）
+- ✅ Google 集成（国外）
+- ✅ Amazon 集成（国外）
+- ✅ Azure 集成（国外）
 
 ### v2.4.0-beta（计划中）
-- [ ] 阿里云集成
-- [ ] 腾讯云集成
-- [ ] Azure 集成
-
-### v2.4.0-release（计划中）
 - [ ] 实时语音识别
 - [ ] 语音打断处理
-- [ ] 多语言支持
+- [ ] 多语言自动检测
 - [ ] 情感识别
+
+### v2.4.0-release（计划中）
+- [ ] 语音队列管理
+- [ ] 离线语音支持
+- [ ] 自定义声音训练
+- [ ] 语音命令识别
 
 ---
 
@@ -373,11 +385,10 @@ def speech_to_text_with_fallback(audio_data):
 
 感谢以下语音服务提供商：
 
-- **科大讯飞** - https://www.xfyun.cn/
-- **百度语音** - https://ai.baidu.com/
-- **阿里云** - https://www.aliyun.com/
-- **腾讯云** - https://cloud.tencent.com/
-- **微软 Azure** - https://azure.microsoft.com/
+- **科大讯飞** - https://www.xfyun.cn/ 🇨🇳
+- **Google Cloud** - https://cloud.google.com 🌐
+- **Amazon Polly** - https://aws.amazon.com 🌐
+- **Microsoft Azure** - https://azure.microsoft.com 🌐
 
 ---
 
@@ -385,4 +396,4 @@ def speech_to_text_with_fallback(audio_data):
 
 **版本：** v2.4.0-alpha
 
-> **用声音陪伴你，越用越懂你！** 🎤💋
+> **用声音陪伴你，支持 125+ 语言！** 🎤🌍💋

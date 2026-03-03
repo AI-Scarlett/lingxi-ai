@@ -196,119 +196,294 @@ class BaiduEngine(BaseVoiceEngine):
             return False
 
 
-class AliyunEngine(BaseVoiceEngine):
-    """阿里云语音引擎"""
+class GoogleEngine(BaseVoiceEngine):
+    """Google Cloud 语音引擎（国外）"""
     
-    name = "aliyun"
-    display_name = "阿里云"
+    name = "google"
+    display_name = "Google Cloud"
     
     def __init__(self, config: Optional[VoiceConfig] = None):
         self.config = config
         self._client = None
     
     def speech_to_text(self, audio_data: bytes, **kwargs) -> str:
-        """阿里云语音识别"""
-        # TODO: 实现阿里云 API 调用
-        raise NotImplementedError("阿里云语音识别暂未实现")
+        """Google 语音识别（支持 125+ 语言）"""
+        try:
+            from google.cloud import speech
+            
+            client = speech.SpeechClient.from_service_account_json(
+                self.config.secret_key  # JSON 密钥文件路径
+            )
+            
+            audio = speech.RecognitionAudio(content=audio_data)
+            config = speech.RecognitionConfig(
+                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+                sample_rate_hertz=16000,
+                language_code=kwargs.get('language_code', 'zh-CN'),
+            )
+            
+            response = client.recognize(config=config, audio=audio)
+            results = []
+            for result in response.results:
+                results.append(result.alternatives[0].transcript)
+            
+            return " ".join(results)
+        except Exception as e:
+            raise Exception(f"Google 语音识别失败：{e}")
     
     def text_to_speech(self, text: str, voice_id: Optional[str] = None, **kwargs) -> bytes:
-        """阿里云语音合成"""
-        # TODO: 实现阿里云 API 调用
-        raise NotImplementedError("阿里云语音合成暂未实现")
+        """Google 语音合成（支持 220+ 声音）"""
+        try:
+            from google.cloud import texttospeech
+            
+            client = texttospeech.TextToSpeechClient.from_service_account_json(
+                self.config.secret_key
+            )
+            
+            synthesis_input = texttospeech.SynthesisInput(text=text)
+            
+            voice_name = voice_id or self.config.voice_id or "zh-CN-Wavenet-A"
+            voice = texttospeech.VoiceSelectionParams(
+                language_code=kwargs.get('language_code', 'zh-CN'),
+                name=voice_name,
+            )
+            
+            audio_config = texttospeech.AudioConfig(
+                audio_encoding=texttospeech.AudioEncoding.LINEAR16
+            )
+            
+            response = client.synthesize_speech(
+                input=synthesis_input, voice=voice, audio_config=audio_config
+            )
+            
+            return response.audio_content
+        except Exception as e:
+            raise Exception(f"Google 语音合成失败：{e}")
     
     def get_voices(self) -> List[Dict[str, str]]:
-        """阿里云可用音色"""
+        """Google 可用音色（部分）"""
         return [
-            {"id": "xiaoyun", "name": "小云", "style": "温柔", "gender": "女"},
-            {"id": "yuer", "name": "悦儿", "style": "可爱", "gender": "女"},
-            {"id": "ruoxi", "name": "若兮", "style": "情感", "gender": "女"},
-            {"id": "siqi", "name": "思琪", "style": "知性", "gender": "女"},
-            {"id": "aiqi", "name": "艾琪", "style": "AI 感", "gender": "女"},
+            # 中文
+            {"id": "zh-CN-Wavenet-A", "name": "中文女 1", "style": "温柔", "gender": "女", "language": "zh-CN"},
+            {"id": "zh-CN-Wavenet-B", "name": "中文男 1", "style": "沉稳", "gender": "男", "language": "zh-CN"},
+            {"id": "zh-CN-Wavenet-C", "name": "中文女 2", "style": "活泼", "gender": "女", "language": "zh-CN"},
+            # 英文
+            {"id": "en-US-Wavenet-A", "name": "英文女 1", "style": "温柔", "gender": "女", "language": "en-US"},
+            {"id": "en-US-Wavenet-B", "name": "英文男 1", "style": "沉稳", "gender": "男", "language": "en-US"},
+            {"id": "en-US-Wavenet-C", "name": "英文女 2", "style": "活泼", "gender": "女", "language": "en-US"},
+            # 日文
+            {"id": "ja-JP-Wavenet-A", "name": "日文女 1", "style": "温柔", "gender": "女", "language": "ja-JP"},
+            # 韩文
+            {"id": "ko-KR-Wavenet-A", "name": "韩文女 1", "style": "温柔", "gender": "女", "language": "ko-KR"},
+            # 法文
+            {"id": "fr-FR-Wavenet-A", "name": "法文女 1", "style": "优雅", "gender": "女", "language": "fr-FR"},
+            # 德文
+            {"id": "de-DE-Wavenet-A", "name": "德文女 1", "style": "专业", "gender": "女", "language": "de-DE"},
+            # 西班牙文
+            {"id": "es-ES-Wavenet-A", "name": "西班牙文女 1", "style": "热情", "gender": "女", "language": "es-ES"},
         ]
     
     def check_credentials(self, config: VoiceConfig) -> bool:
-        """检查阿里云凭证"""
+        """检查 Google 凭证"""
         try:
-            return bool(config.app_id and config.api_key and config.secret_key)
+            if not config.secret_key:
+                return False
+            # 检查 JSON 文件是否存在
+            return Path(config.secret_key).exists()
         except:
             return False
 
 
-class TencentEngine(BaseVoiceEngine):
-    """腾讯云语音引擎"""
+class AmazonEngine(BaseVoiceEngine):
+    """Amazon Polly 语音引擎（国外）"""
     
-    name = "tencent"
-    display_name = "腾讯云"
+    name = "amazon"
+    display_name = "Amazon Polly"
+    
+    def __init__(self, config: Optional[VoiceConfig] = None):
+        self.config = config
+        self._client = None
     
     def speech_to_text(self, audio_data: bytes, **kwargs) -> str:
-        """腾讯云语音识别"""
-        # TODO: 实现腾讯云 API 调用
-        raise NotImplementedError("腾讯云语音识别暂未实现")
+        """Amazon 语音识别（支持 50+ 语言）"""
+        try:
+            import boto3
+            
+            client = boto3.client(
+                'transcribe',
+                region_name=self.config.region or 'us-east-1',
+                aws_access_key_id=self.config.api_key,
+                aws_secret_access_key=self.config.secret_key
+            )
+            
+            # 简化的实现，实际应该使用流式 API
+            raise NotImplementedError("Amazon 语音识别需要使用流式 API，暂未实现")
+        except Exception as e:
+            raise Exception(f"Amazon 语音识别失败：{e}")
     
     def text_to_speech(self, text: str, voice_id: Optional[str] = None, **kwargs) -> bytes:
-        """腾讯云语音合成"""
-        # TODO: 实现腾讯云 API 调用
-        raise NotImplementedError("腾讯云语音合成暂未实现")
+        """Amazon Polly 语音合成（支持 60+ 语言）"""
+        try:
+            import boto3
+            
+            client = boto3.client(
+                'polly',
+                region_name=self.config.region or 'us-east-1',
+                aws_access_key_id=self.config.api_key,
+                aws_secret_access_key=self.config.secret_key
+            )
+            
+            voice_name = voice_id or self.config.voice_id or "Joanna"
+            
+            response = client.synthesize_speech(
+                Text=text,
+                OutputFormat='pcm',
+                VoiceId=voice_name,
+                LanguageCode=kwargs.get('language_code', 'en-US')
+            )
+            
+            return response['AudioStream'].read()
+        except Exception as e:
+            raise Exception(f"Amazon Polly 语音合成失败：{e}")
     
     def get_voices(self) -> List[Dict[str, str]]:
-        """腾讯云可用音色"""
+        """Amazon Polly 可用音色（部分）"""
         return [
-            {"id": "1001", "name": "女声", "style": "温柔", "gender": "女"},
-            {"id": "1002", "name": "男声", "style": "沉稳", "gender": "男"},
-            {"id": "1003", "name": "女声", "style": "活泼", "gender": "女"},
+            # 英文
+            {"id": "Joanna", "name": "Joanna", "style": "温柔", "gender": "女", "language": "en-US"},
+            {"id": "Matthew", "name": "Matthew", "style": "沉稳", "gender": "男", "language": "en-US"},
+            {"id": "Salli", "name": "Salli", "style": "活泼", "gender": "女", "language": "en-US"},
+            # 中文
+            {"id": "Zhiyu", "name": "Zhiyu", "style": "温柔", "gender": "女", "language": "zh-CN"},
+            # 日文
+            {"id": "Mizuki", "name": "Mizuki", "style": "可爱", "gender": "女", "language": "ja-JP"},
+            # 韩文
+            {"id": "Seoyeon", "name": "Seoyeon", "style": "温柔", "gender": "女", "language": "ko-KR"},
+            # 法文
+            {"id": "Celine", "name": "Celine", "style": "优雅", "gender": "女", "language": "fr-FR"},
+            # 德文
+            {"id": "Vicki", "name": "Vicki", "style": "专业", "gender": "女", "language": "de-DE"},
+            # 西班牙文
+            {"id": "Lucia", "name": "Lucia", "style": "热情", "gender": "女", "language": "es-ES"},
+            # 葡萄牙文
+            {"id": "Camila", "name": "Camila", "style": "温柔", "gender": "女", "language": "pt-BR"},
+            # 意大利文
+            {"id": "Carla", "name": "Carla", "style": "优雅", "gender": "女", "language": "it-IT"},
+            # 俄文
+            {"id": "Tatyana", "name": "Tatyana", "style": "温柔", "gender": "女", "language": "ru-RU"},
         ]
     
     def check_credentials(self, config: VoiceConfig) -> bool:
-        """检查腾讯云凭证"""
+        """检查 Amazon 凭证"""
         try:
-            return bool(config.app_id and config.api_key and config.secret_key)
+            return bool(config.api_key and config.secret_key)
         except:
             return False
 
 
 class AzureEngine(BaseVoiceEngine):
-    """微软 Azure 语音引擎（国内版）"""
+    """微软 Azure 语音引擎（国外）"""
     
     name = "azure"
-    display_name = "微软 Azure"
+    display_name = "Microsoft Azure"
     
     def __init__(self, config: Optional[VoiceConfig] = None):
         self.config = config
         self._client = None
     
     def speech_to_text(self, audio_data: bytes, **kwargs) -> str:
-        """Azure 语音识别"""
-        # TODO: 实现 Azure API 调用
-        raise NotImplementedError("Azure 语音识别暂未实现")
+        """Azure 语音识别（支持 100+ 语言）"""
+        try:
+            from azure.cognitiveservices.speech import SpeechConfig, SpeechRecognizer, AudioDataStream
+            
+            speech_config = SpeechConfig(
+                subscription=self.config.api_key,
+                region=self.config.region or "eastus"
+            )
+            speech_config.speech_recognition_language = kwargs.get('language_code', 'zh-CN')
+            
+            audio_stream = AudioDataStream(audio_data)
+            recognizer = SpeechRecognizer(speech_config=speech_config, audio_stream=audio_stream)
+            
+            result = recognizer.recognize_once()
+            return result.text
+        except Exception as e:
+            raise Exception(f"Azure 语音识别失败：{e}")
     
     def text_to_speech(self, text: str, voice_id: Optional[str] = None, **kwargs) -> bytes:
-        """Azure 语音合成"""
-        # TODO: 实现 Azure API 调用
-        raise NotImplementedError("Azure 语音合成暂未实现")
+        """Azure 语音合成（支持 400+ 声音）"""
+        try:
+            from azure.cognitiveservices.speech import SpeechConfig, SpeechSynthesizer
+            
+            speech_config = SpeechConfig(
+                subscription=self.config.api_key,
+                region=self.config.region or "eastus"
+            )
+            
+            voice_name = voice_id or self.config.voice_id or "zh-CN-XiaoxiaoNeural"
+            speech_config.speech_synthesis_voice_name = voice_name
+            
+            synthesizer = SpeechSynthesizer(speech_config=speech_config)
+            
+            result = synthesizer.speak_text_async(text).get()
+            return result.audio_data
+        except Exception as e:
+            raise Exception(f"Azure 语音合成失败：{e}")
     
     def get_voices(self) -> List[Dict[str, str]]:
-        """Azure 可用音色"""
+        """Azure 可用音色（部分）"""
         return [
-            {"id": "zh-CN-XiaoxiaoNeural", "name": "晓晓", "style": "温柔", "gender": "女"},
-            {"id": "zh-CN-YunxiNeural", "name": "云希", "style": "沉稳", "gender": "男"},
-            {"id": "zh-CN-YunjianNeural", "name": "云健", "style": "专业", "gender": "男"},
+            # 中文
+            {"id": "zh-CN-XiaoxiaoNeural", "name": "晓晓", "style": "温柔", "gender": "女", "language": "zh-CN"},
+            {"id": "zh-CN-YunxiNeural", "name": "云希", "style": "沉稳", "gender": "男", "language": "zh-CN"},
+            {"id": "zh-CN-YunjianNeural", "name": "云健", "style": "专业", "gender": "男", "language": "zh-CN"},
+            # 英文
+            {"id": "en-US-JennyNeural", "name": "Jenny", "style": "温柔", "gender": "女", "language": "en-US"},
+            {"id": "en-US-GuyNeural", "name": "Guy", "style": "沉稳", "gender": "男", "language": "en-US"},
+            # 日文
+            {"id": "ja-JP-NanamiNeural", "name": "Nanami", "style": "温柔", "gender": "女", "language": "ja-JP"},
+            # 韩文
+            {"id": "ko-KR-SunHiNeural", "name": "SunHi", "style": "温柔", "gender": "女", "language": "ko-KR"},
+            # 法文
+            {"id": "fr-FR-DeniseNeural", "name": "Denise", "style": "优雅", "gender": "女", "language": "fr-FR"},
+            # 德文
+            {"id": "de-DE-KatjaNeural", "name": "Katja", "style": "专业", "gender": "女", "language": "de-DE"},
+            # 西班牙文
+            {"id": "es-ES-ElviraNeural", "name": "Elvira", "style": "热情", "gender": "女", "language": "es-ES"},
+            # 葡萄牙文
+            {"id": "pt-BR-FranciscaNeural", "name": "Francisca", "style": "温柔", "gender": "女", "language": "pt-BR"},
+            # 意大利文
+            {"id": "it-IT-ElsaNeural", "name": "Elsa", "style": "优雅", "gender": "女", "language": "it-IT"},
+            # 俄文
+            {"id": "ru-RU-SvetlanaNeural", "name": "Svetlana", "style": "温柔", "gender": "女", "language": "ru-RU"},
+            # 阿拉伯文
+            {"id": "ar-SA-ZariyahNeural", "name": "Zariyah", "style": "优雅", "gender": "女", "language": "ar-SA"},
+            # 印地文
+            {"id": "hi-IN-SwaraNeural", "name": "Swara", "style": "温柔", "gender": "女", "language": "hi-IN"},
         ]
     
     def check_credentials(self, config: VoiceConfig) -> bool:
         """检查 Azure 凭证"""
         try:
-            return bool(config.app_id and config.api_key)
+            return bool(config.api_key and config.region)
         except:
             return False
 
 
 class VoiceEngineManager:
-    """语音引擎管理器"""
+    """语音引擎管理器
+    
+    支持引擎：
+    - 科大讯飞（国内首选）- 中文识别 98%
+    - Google Cloud（国外）- 支持 125+ 语言
+    - Amazon Polly（国外）- 支持 60+ 语言
+    - Azure（国外）- 支持 100+ 语言
+    """
     
     def __init__(self, config_path: str = "~/.openclaw/workspace/voice-config.json"):
         self.config_path = Path(config_path).expanduser()
         self.engines: Dict[str, BaseVoiceEngine] = {}
-        self.default_engine = "iflytek"
+        self.default_engine = "iflytek"  # 默认讯飞
         self._load_config()
     
     def _load_config(self):
@@ -336,12 +511,10 @@ class VoiceEngineManager:
         
         if engine_name == "iflytek":
             self.engines[engine_name] = IFlytekEngine(voice_config)
-        elif engine_name == "baidu":
-            self.engines[engine_name] = BaiduEngine(voice_config)
-        elif engine_name == "aliyun":
-            self.engines[engine_name] = AliyunEngine(voice_config)
-        elif engine_name == "tencent":
-            self.engines[engine_name] = TencentEngine(voice_config)
+        elif engine_name == "google":
+            self.engines[engine_name] = GoogleEngine(voice_config)
+        elif engine_name == "amazon":
+            self.engines[engine_name] = AmazonEngine(voice_config)
         elif engine_name == "azure":
             self.engines[engine_name] = AzureEngine(voice_config)
     
