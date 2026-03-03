@@ -89,20 +89,60 @@ async def _handle_background_task(
 ) -> str:
     """处理耗时任务（后台执行）
     
-    立即返回接收确认，实际任务在后台执行
+    立即返回接收确认，实际任务在后台执行，完成后 QQ 通知
     """
-    # 立即返回接收确认
-    reply = "已经收到请求，任务可能比较复杂，已转交给灵犀进行处理"
+    # 立即返回接收确认（1 秒内响应）
+    reply = f"""收到老板！💋
+
+📋 任务：{message[:50]}{'...' if len(message) > 50 else ''}
+⚙️ 已交给灵犀后台处理，完成后马上 QQ 通知你～
+
+（复杂任务并行处理中，请稍候✨）"""
     
-    # 后台异步执行实际任务
-    asyncio.create_task(orch.execute_async(
-        user_input=message,
-        user_id=user_id,
-        channel=channel,
-        is_background=True
-    ))
+    # 后台异步执行实际任务（不阻塞）
+    asyncio.create_task(_execute_and_notify(orch, user_id, message, channel))
     
     return reply
+
+async def _execute_and_notify(
+    orch: AsyncOrchestrator,
+    user_id: str,
+    message: str,
+    channel: str
+):
+    """后台执行任务并通知结果"""
+    try:
+        result = await orch.execute_async(
+            user_input=message,
+            user_id=user_id,
+            channel=channel,
+            is_background=False  # 内部执行不用 background
+        )
+        
+        # 完成后 QQ 通知
+        notification = f"""✅ 老板，任务完成啦！💋
+
+📋 任务：{message[:50]}{'...' if len(message) > 50 else ''}
+
+━━━━━━━━━━━━━━━━
+{result[:500]}
+━━━━━━━━━━━━━━━━
+
+还有其他需要吗？✨"""
+        
+        # 通过 QQ Bot 发送通知（这里需要调用 QQ Bot API）
+        await _send_qq_notification(user_id, notification)
+        
+    except Exception as e:
+        # 失败也要通知
+        error_msg = f"""❌ 老板，任务出问题了... 💦
+
+📋 任务：{message[:50]}{'...' if len(message) > 50 else ''}
+
+错误：{str(e)[:200]}
+
+我已经记下来了，会尽快修复！"""
+        await _send_qq_notification(user_id, error_msg)
 
 async def _handle_instant_task(
     orch: AsyncOrchestrator,
@@ -111,15 +151,23 @@ async def _handle_instant_task(
     channel: str
 ) -> str:
     """处理即时任务（立即响应）
-    """
-    reply = await orch.execute_async(
-        user_input=message,
-        user_id=user_id,
-        channel=channel,
-        is_background=False
-    )
     
-    return reply
+    简单任务直接执行并返回结果，不经过后台
+    """
+    try:
+        # 直接执行，等待结果返回
+        result = await orch.execute_async(
+            user_input=message,
+            user_id=user_id,
+            channel=channel,
+            is_background=False
+        )
+        
+        # 直接返回结果给用户
+        return result
+    
+    except Exception as e:
+        return f"抱歉老板，处理出问题了... 💦\n错误：{str(e)[:200]}"
 
 def _is_long_running_task(message: str) -> bool:
     """判断是否为耗时任务
@@ -198,6 +246,30 @@ async def cancel_task(user_id: str, task_id: str) -> str:
         return f"✅ 任务已取消：{task_id}"
     else:
         return f"❌ 取消失败，任务可能已完成或不存在"
+
+
+# ==================== QQ 通知发送 ====================
+
+async def _send_qq_notification(user_id: str, message: str):
+    """发送 QQ 通知给用户
+    
+    使用 OpenClaw message 工具发送 QQ 消息
+    """
+    try:
+        # 导入 message 工具（延迟导入）
+        from message import message
+        
+        # 发送 QQ 消息
+        await message(
+            action="send",
+            channel="qqbot",
+            target=user_id,
+            message=message
+        )
+        print(f"✅ QQ 通知已发送：{user_id}")
+    except Exception as e:
+        print(f"❌ QQ 通知发送失败：{e}")
+        # 不抛出异常，避免影响主流程
 
 # ==================== 命令行测试 ====================
 
