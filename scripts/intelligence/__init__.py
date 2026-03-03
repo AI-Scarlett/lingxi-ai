@@ -36,6 +36,7 @@ from .optimizer import Optimizer, get_optimizer
 from .predictor import Predictor, get_predictor
 from .config_migrator import ConfigMigrator, get_migrator
 from .qqbot_auto_enable import QQBotAutoEnable, get_auto_enable
+from ..voice.voice_manager import VoiceEngineManager, get_voice_manager
 
 
 class IntelligenceEngine:
@@ -48,9 +49,10 @@ class IntelligenceEngine:
         self.predictor = get_predictor()
         self.migrator = get_migrator()
         self.qqbot_auto_enable = get_auto_enable()
+        self.voice_manager = get_voice_manager()
         self._initialized = False
     
-    def initialize(self, analyze_days: int = 7, auto_migrate: bool = True, auto_enable_qqbot: bool = True):
+    def initialize(self, analyze_days: int = 7, auto_migrate: bool = True, auto_enable_qqbot: bool = True, auto_init_voice: bool = False):
         """
         初始化智能学习系统
         
@@ -58,16 +60,21 @@ class IntelligenceEngine:
             analyze_days: 分析最近 N 天的数据
             auto_migrate: 是否自动迁移配置
             auto_enable_qqbot: 是否自动启用 QQ Bot
+            auto_init_voice: 是否自动初始化语音引擎
         """
         # 1. 配置迁移（保留旧配置）
         if auto_migrate:
-            self.migrator.migrate(target_version="v2.3.0")
+            self.migrator.migrate(target_version="v2.4.0")
         
         # 2. QQ Bot 自动启用
         if auto_enable_qqbot:
             self.qqbot_auto_enable.enable_qqbot()
         
-        # 3. 分析历史模式
+        # 3. 语音引擎初始化
+        if auto_init_voice:
+            self.voice_manager  # 懒加载
+        
+        # 4. 分析历史模式
         self.learner.analyze_patterns(days=analyze_days)
         self._initialized = True
     
