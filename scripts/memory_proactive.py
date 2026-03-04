@@ -18,9 +18,11 @@ import aiofiles
 try:
     from .memory_service import MemoryService, MemoryItem
     from .memory_embedding import SemanticMemoryEnhancer, EmbeddingConfig
+    from .memory_config import MemoryConfig
 except ImportError:
     from memory_service import MemoryService, MemoryItem
     from memory_embedding import SemanticMemoryEnhancer, EmbeddingConfig
+    from memory_config import MemoryConfig
 
 
 class ProactiveTask:
@@ -356,17 +358,32 @@ class ProactiveAssistant:
     主动助手
     
     整合持续学习和意图预测，实现主动服务
+    
+    Args:
+        memory_service: 记忆服务
+        embedding_enhancer: Embedding 增强器
+        config: 配置对象（可选）
     """
     
-    def __init__(self, memory_service: MemoryService, embedding_enhancer: SemanticMemoryEnhancer):
+    def __init__(self, memory_service: MemoryService, embedding_enhancer: SemanticMemoryEnhancer, config: MemoryConfig = None):
         self.memory = memory_service
         self.enhancer = embedding_enhancer
-        self.learner = ContinuousLearner(memory_service, embedding_enhancer)
-        self.predictor = IntentPredictor(memory_service, embedding_enhancer)
+        self.config = config or MemoryConfig()
+        
+        # 根据配置决定是否初始化学习器和预测器
+        self.learner = None
+        self.predictor = None
+        
+        if self.config.proactive_learning_enabled:
+            self.learner = ContinuousLearner(memory_service, embedding_enhancer)
+        
+        if self.config.intent_prediction_enabled:
+            self.predictor = IntentPredictor(memory_service, embedding_enhancer)
         
         # 主动任务注册表
         self._tasks = {}
-        self._setup_default_tasks()
+        if self.config.proactive_tasks_enabled:
+            self._setup_default_tasks()
     
     def _setup_default_tasks(self):
         """设置默认主动任务"""
@@ -417,12 +434,14 @@ class ProactiveAssistant:
     
     async def start(self):
         """启动主动助手"""
-        await self.learner.start()
+        if self.learner:
+            await self.learner.start()
         print("✨ 主动助手已启动")
     
     async def stop(self):
         """停止主动助手"""
-        await self.learner.stop()
+        if self.learner:
+            await self.learner.stop()
         print("✨ 主动助手已停止")
     
     async def check_and_execute_tasks(self) -> List[Dict]:
@@ -480,43 +499,52 @@ class ProactiveAssistant:
         """获取主动建议"""
         suggestions = []
         
-        # 1. 意图预测
-        prediction = await self.predictor.predict_next_action(user_id)
-        
-        if prediction["confidence"] >= self.predictor.confidence_threshold:
-            suggestions.append({
-                "type": "prediction",
-                "content": prediction["suggested_action"],
-                "reasoning": prediction["reasoning"],
-                "confidence": prediction["confidence"]
-            })
+        # 1. 意图预测（如果启用）
+        if self.predictor:
+            prediction = await self.predictor.predict_next_action(user_id)
+            
+            if prediction["confidence"] >= self.predictor.confidence_threshold:
+                suggestions.append({
+                    "type": "prediction",
+                    "content": prediction["suggested_action"],
+                    "reasoning": prediction["reasoning"],
+                    "confidence": prediction["confidence"]
+                })
         
         # 2. 检查可执行任务
-        tasks = await self.check_and_execute_tasks()
-        for task in tasks:
-            suggestions.append({
-                "type": "task",
-                "content": task["result"].get("message", ""),
-                "task_id": task["task_id"]
-            })
+        if self._tasks:
+            tasks = await self.check_and_execute_tasks()
+            for task in tasks:
+                suggestions.append({
+                    "type": "task",
+                    "content": task["result"].get("message", ""),
+                    "task_id": task["task_id"]
+                })
         
         return suggestions
     
     def get_stats(self) -> Dict:
         """获取统计"""
-        return {
-            "learner": self.learner.get_stats(),
+        stats = {
             "registered_tasks": len(self._tasks),
-            "enabled_tasks": sum(1 for t in self._tasks.values() if t.enabled)
+            "enabled_tasks": sum(1 for t in self._tasks.values() if t.enabled),
+            "proactive_learning_enabled": self.config.proactive_learning_enabled,
+            "intent_prediction_enabled": self.config.intent_prediction_enabled,
+            "proactive_tasks_enabled": self.config.proactive_tasks_enabled,
         }
+        
+        if self.learner:
+            stats["learner"] = self.learner.get_stats()
+        
+        return stats
 
 
 # 便捷函数
-async def create_proactive_assistant() -> ProactiveAssistant:
+async def create_proactive_assistant(config: MemoryConfig = None) -> ProactiveAssistant:
     """创建主动助手"""
     memory = MemoryService()
     await memory.initialize()
     
     enhancer = SemanticMemoryEnhancer()
     
-    return ProactiveAssistant(memory, enhancer)
+    return ProactiveAssistant(memory, enhancer, config)
