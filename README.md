@@ -2,18 +2,20 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.7.1-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.8.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-20000x%20faster-orange.svg)](FAST_RESPONSE_BENCHMARK.md)
 [![Memory](https://img.shields.io/badge/memory-persistent-purple.svg)](MEMORY_PERSISTENCE_GUIDE.md)
+[![Parallel](https://img.shields.io/badge/parallel-5x%20faster-red.svg)](PARALLEL_EXECUTOR_GUIDE.md)
 
 ---
 
-## 🎯 三大核心目标
+## 🎯 四大核心目标
 
 1. **⚡ 快速反应** - 响应速度极致快（Layer 0: 0.005ms）
 2. **💰 Tokens 消耗极限降低** - 能省则省（节省 88.9%）
 3. **🧠 记忆永不丢失** - 持久化存储（JSONL + 可迁移）
+4. **🔀 真·并行执行** - 老板优先，最多 5 任务并发（v2.8.0）
 
 ---
 
@@ -55,6 +57,7 @@ reply = await orch.execute_async(
 
 | 版本 | 日期 | 核心功能 | 性能 |
 |------|------|---------|------|
+| **v2.8.0** | 2026-03-04 | **真·并行执行 + 老板优先** | **5x 并发 / 0 等待** |
 | **v2.7.1** | 2026-03-04 | **快速响应层 + 记忆持久化** | **0.005ms / 省 88.9%** |
 | v2.7.0 | 2026-03-04 | Embedding 向量检索 | 毫秒级语义搜索 |
 | v2.6.0 | 2026-03-04 | 完整记忆系统 | <10ms 检索 |
@@ -66,6 +69,45 @@ reply = await orch.execute_async(
 | v2.1.0 | 2026-03-03 | 异步任务 + QQ Bot | <1 秒响应 |
 | v1.1.0 | 2026-03-01 | 性能提升 500 倍 | 0.1ms / 300ms |
 | v1.0.0 | 2026-02-27 | 初始版本 | 50ms / 2s |
+
+---
+
+## 🆕 v2.8.0 新功能（2026-03-04）
+
+### 🔀 真·并行执行器
+
+**核心特性:**
+- ✅ 👑 **老板优先** - 永远预留 1 个槽位，老板命令 0 等待
+- ✅ 🎯 **智能依赖分析** - 自动分层，无依赖的并行
+- ✅ 📊 **进度实时推送** - 每步反馈，进度透明
+- ✅ 🔧 **真·并发** - 最多 5 个任务同时执行
+
+**使用示例:**
+```python
+from scripts.parallel_executor import ParallelExecutor, Task, Priority
+
+executor = ParallelExecutor(max_concurrent=5, boss_reserved=1)
+
+# 老板任务（优先执行）
+await executor.submit_boss("老板的命令", boss_func)
+
+# 普通任务（最多 4 个并发）
+task = Task.create("普通任务", normal_func, Priority.NORMAL)
+await executor.submit(task)
+
+# 依赖管理
+task_c = Task.create("任务 C", func_c, dependencies=[task_a.id, task_b.id])
+
+# 执行（自动分层）
+await executor.run_pending()
+```
+
+**性能提升:**
+- ⚡ 多任务速度提升 **3-5x**
+- 👑 老板命令 **0 等待**
+- 📊 进度 **100% 透明**
+
+📚 **详细文档:** [PARALLEL_EXECUTOR_GUIDE.md](scripts/PARALLEL_EXECUTOR_GUIDE.md)
 
 ---
 
