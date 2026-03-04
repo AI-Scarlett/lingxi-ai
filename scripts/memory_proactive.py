@@ -14,8 +14,13 @@ from typing import List, Dict, Optional, Callable
 from pathlib import Path
 import aiofiles
 
-from .memory_service import MemoryService, MemoryItem
-from .memory_embedding import SemanticMemoryEnhancer, EmbeddingConfig
+# 使用绝对导入（兼容脚本直接运行）
+try:
+    from .memory_service import MemoryService, MemoryItem
+    from .memory_embedding import SemanticMemoryEnhancer, EmbeddingConfig
+except ImportError:
+    from memory_service import MemoryService, MemoryItem
+    from memory_embedding import SemanticMemoryEnhancer, EmbeddingConfig
 
 
 class ProactiveTask:
