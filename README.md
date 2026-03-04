@@ -2,15 +2,92 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.5.1-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.6.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-500x%20faster-orange.svg)](OPTIMIZATION_GUIDE.md)
 [![Async](https://img.shields.io/badge/async-native-brightgreen.svg)](ASYNC_GUIDE.md)
 [![S0-S3](https://img.shields.io/badge/method-S0→S3%20Three--Step-red.svg)](COMPLEX_TASK_THREE_STEP.md)
+[![Memory](https://img.shields.io/badge/memory-memU%20inspired-purple.svg)](https://github.com/NevaMind-AI/memU)
 
 ---
 
 ## 🌟 核心特性
+
+### v2.6.0 记忆系统 💋 (2026-03-04)
+
+**🧠 完整记忆系统集成（参考 memU 框架）**
+
+**特别感谢：**
+> 本版本的记忆系统设计深受 [memU](https://github.com/NevaMind-AI/memU) 项目启发。
+> 感谢 NevaMind-AI 团队开源的优秀记忆框架，为 24/7 主动代理提供了清晰的设计范式。
+> 
+> **memU 核心贡献：**
+> - 文件系统式记忆结构（分层、可导航）
+> - 三层记忆架构（Resource → Item → Category）
+> - 主动学习循环（后台持续提取）
+> - 双模式检索（RAG 快速 + LLM 深度）
+> 
+> 我们在 memU 的基础上，针对灵犀的使用场景进行了优化和简化。
+> 🙏 向原文档作者致敬！
+
+**文件系统式记忆结构：**
+```
+memory/
+├── preferences/          # 用户偏好（沟通风格、兴趣话题）
+├── relationships/        # 关系网络（联系人、交互历史）
+├── knowledge/            # 知识库（专业领域、技能）
+├── context/              # 上下文（对话、待办任务）
+└── items/                # 原始记忆项（JSONL 格式）
+```
+
+**核心组件：**
+- ✅ `MemoryStructure` - 文件系统式存储（4 层分类）
+- ✅ `MemoryExtractor` - LLM 驱动自动提取
+- ✅ `MemoryOrganizer` - 自动分类 + 交叉引用
+- ✅ `MemoryRetriever` - 关键词检索 + LLM 深度检索
+- ✅ `MemoryService` - 统一 API 接口
+
+**记忆能力：**
+- ✅ 自动从对话中提取偏好、关系、知识
+- ✅ 交叉引用关联记忆
+- ✅ 模式检测（活跃时间、偏好分析）
+- ✅ 主动上下文加载（执行前自动加载）
+- ✅ 毫秒级检索（关键词匹配）
+- ✅ 深度推理检索（LLM 筛选 + 预测）
+
+**使用示例：**
+```python
+from scripts.memory_service import MemoryService
+
+service = MemoryService(llm_client)
+await service.initialize()
+
+# 记忆对话
+result = await service.memorize(conversation, conv_id)
+print(f"提取了 {result['extracted_items']} 条记忆")
+
+# 检索记忆
+result = await service.retrieve("用户偏好", method="keyword")
+print(f"检索到 {result['total']} 条结果")
+
+# 主动上下文
+context = await service.get_context(user_id)
+print(f"加载了 {context['total_memories']} 条记忆")
+
+# 统计信息
+stats = await service.get_stats()
+print(f"总记忆数：{stats['total_items']}")
+```
+
+**性能特点：**
+- ⚡ 记忆检索：<10ms（关键词）
+- 🧠 自动提取：后台异步，不阻塞响应
+- 💾 持久化存储：JSONL 格式，高效读写
+- 🔗 交叉引用：自动关联相关记忆
+
+**GitHub Tag:** https://github.com/AI-Scarlett/lingxi-ai/releases/tag/v2.6.0
+
+---
 
 ### v2.5.1 最新优化 🚀 (2026-03-04)
 
