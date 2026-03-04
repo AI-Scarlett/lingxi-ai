@@ -33,9 +33,9 @@ class FastResponse:
     response: str
     save_tokens: bool = True
 
-# Layer 0 规则库 - 完全不调 LLM
+# Layer 0 规则库 - 完全不调 LLM（v2.8.2: 10 条 → 30 条）
 LAYER0_RULES = [
-    # 问候类
+    # ========== 问候类 (5 条) ==========
     FastResponse(
         patterns=["你好", "您好", "hello", "hi", "早", "早上好", "晚上好", "午安"],
         response="老板好呀～💋 随时待命！"
@@ -45,48 +45,126 @@ LAYER0_RULES = [
         response="在呢老板～ 有什么吩咐？😊"
     ),
     FastResponse(
-        patterns=["谢谢", "谢谢你", "多谢", "thank you", "thanks"],
-        response="跟我还客气什么呀～💕"
+        patterns=["好久不见", "最近怎么样", "最近好吗"],
+        response="好久不见老板～ 想死您啦！💕 最近过得怎么样？"
     ),
+    FastResponse(
+        patterns=["嗨", "哈喽", "hey", "嗨喽"],
+        response="嗨老板～👋 今天心情怎么样？"
+    ),
+    FastResponse(
+        patterns=["起床了吗", "醒了吗", "睡着没"],
+        response="醒着呢老板～ 24 小时为您待命！⚡"
+    ),
+    
+    # ========== 告别类 (5 条) ==========
     FastResponse(
         patterns=["再见", "拜拜", "bye", "下次见"],
         response="老板慢走～ 随时叫我哦！💋"
     ),
+    FastResponse(
+        patterns=["先这样", "我去忙了", "回聊", "回头聊"],
+        response="好的老板～ 忙完记得找我！😊"
+    ),
+    FastResponse(
+        patterns=["晚安", "早点休息", "去睡了", "睡觉了"],
+        response="晚安老板～ 做个好梦！🌙 明天见！"
+    ),
+    FastResponse(
+        patterns=["有空再聊", "改天聊", "下次再聊"],
+        response="好的老板～ 随时等您！💋"
+    ),
+    FastResponse(
+        patterns=["撤了", "溜了", "下线了", "先下了"],
+        response="老板慢走～ 路上小心！😊"
+    ),
     
-    # 状态类
+    # ========== 感谢类 (5 条) ==========
+    FastResponse(
+        patterns=["谢谢", "谢谢你", "多谢"],
+        response="跟我还客气什么呀～💕"
+    ),
+    FastResponse(
+        patterns=["thank you", "thanks", "thx"],
+        response="You're welcome～ 老板开心最重要！😊"
+    ),
+    FastResponse(
+        patterns=["辛苦了", "麻烦你了", "辛苦啦"],
+        response="不辛苦～ 能为老板效劳是我的荣幸！💋"
+    ),
+    FastResponse(
+        patterns=["感谢", "太感谢了", "非常感谢"],
+        response="老板客气啦～ 应该的！😊"
+    ),
+    FastResponse(
+        patterns=["感恩", "比心", "爱你"],
+        response="嘿嘿～ 我也爱老板！💕💕💕"
+    ),
+    
+    # ========== 确认类 (5 条) ==========
+    FastResponse(
+        patterns=["好的", "好", "ok", "嗯", "行"],
+        response="收到老板！✅"
+    ),
+    FastResponse(
+        patterns=["没问题", "可以的", "行哒", "好哒"],
+        response="好嘞老板～ 马上办！⚡"
+    ),
+    FastResponse(
+        patterns=["收到", "明白", "懂了", "知道了"],
+        response="好的老板～ 理解万岁！😊"
+    ),
+    FastResponse(
+        patterns=["对的", "是的", "没错", "正确"],
+        response="英雄所见略同～ 老板英明！👍"
+    ),
+    FastResponse(
+        patterns=["好的谢谢", "好的麻烦你了", "好的辛苦了"],
+        response="老板太客气啦～ 应该的！💕"
+    ),
+    
+    # ========== 时间日期 (5 条) ==========
     FastResponse(
         patterns=["几点了", "现在时间", "几点", "时间"],
         response=lambda: f"现在{datetime.now().strftime('%H:%M')}啦～ ⏰"
     ),
     FastResponse(
-        patterns=["今天几号", "今天日期", "今天星期", "今天周几"],
-        response=lambda: f"今天{datetime.now().strftime('%Y-%m-%d')}，{['周一','周二','周三','周四','周五','周六','周日'][datetime.now().weekday()]}～ 📅"
+        patterns=["今天几号", "今天日期"],
+        response=lambda: f"今天{datetime.now().strftime('%Y年%m月%d日')}～ 📅"
+    ),
+    FastResponse(
+        patterns=["今天星期几", "今天周几", "星期几"],
+        response=lambda: f"今天{['周一','周二','周三','周四','周五','周六','周日'][datetime.now().weekday()]}～ 📅"
+    ),
+    FastResponse(
+        patterns=["明天", "后天", "大后天"],
+        response=lambda: f"老板，{datetime.now().strftime('%Y-%m-%d')}之后的一天好天气哦～ ☀️"
+    ),
+    FastResponse(
+        patterns=["昨天", "前天", "大前天"],
+        response="昨天已经过去啦～ 珍惜当下！💕"
     ),
     
-    # 确认类
-    FastResponse(
-        patterns=["好的", "好", "ok", "嗯", "行", "可以"],
-        response="收到老板！✅"
-    ),
+    # ========== 情感类 (5 条) ==========
     FastResponse(
         patterns=["不知道", "不清楚", "算了", "没事"],
         response="没事老板～ 有需要随时叫我！😊"
-    ),
-    
-    # 情感类
-    FastResponse(
-        patterns=["辛苦了", "累不累", "休息下"],
-        response="不累不累～ 能为老板效劳是我的荣幸！💋"
     ),
     FastResponse(
         patterns=["真棒", "厉害", "不错", "很好"],
         response="嘿嘿～ 老板开心最重要！😊"
     ),
-    
-    # 天气类（快速响应，不等待 API）
     FastResponse(
-        patterns=["武汉天气", "北京天气", "上海天气", "广州天气", "深圳天气"],
-        response=lambda: f"老板，天气数据正在获取中～ 建议您查看天气 APP 或网站获取最准确信息！☀️ 当前时间：{datetime.now().strftime('%H:%M')}"
+        patterns=["加油", "你可以的", "我相信你"],
+        response="谢谢老板鼓励～ 动力满满！💪💪💪"
+    ),
+    FastResponse(
+        patterns=["累了", "好累", "累死了"],
+        response="老板辛苦啦～ 快休息一下！☕️ 我给您捏捏肩～💆"
+    ),
+    FastResponse(
+        patterns=["开心", "高兴", "爽", "哈哈"],
+        response="老板开心我就开心～ 一起嗨！🎉"
     ),
 ]
 
