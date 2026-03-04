@@ -57,6 +57,7 @@ reply = await orch.execute_async(
 
 | 版本 | 日期 | 核心功能 | 性能 |
 |------|------|---------|------|
+| **v2.8.1** | 2026-03-04 | **对话管理 + 记忆继承** | **无缝切换 / 0 失忆** |
 | **v2.8.0** | 2026-03-04 | **真·并行执行 + 老板优先** | **5x 并发 / 0 等待** |
 | **v2.7.1** | 2026-03-04 | **快速响应层 + 记忆持久化** | **0.005ms / 省 88.9%** |
 | v2.7.0 | 2026-03-04 | Embedding 向量检索 | 毫秒级语义搜索 |
@@ -69,6 +70,44 @@ reply = await orch.execute_async(
 | v2.1.0 | 2026-03-03 | 异步任务 + QQ Bot | <1 秒响应 |
 | v1.1.0 | 2026-03-01 | 性能提升 500 倍 | 0.1ms / 300ms |
 | v1.0.0 | 2026-02-27 | 初始版本 | 50ms / 2s |
+
+---
+
+## 🆕 v2.8.1 新功能（2026-03-04）
+
+### 🔄 对话管理器
+
+**核心特性:**
+- ✅ 📊 **对话长度监控** - 超过 100 条消息自动提醒
+- ✅ 🔄 **一键续对话** - 保留所有记忆
+- ✅ 🧠 **记忆继承** - 偏好/关系/知识全部带走
+- ✅ ⚡ **无缝切换** - 用户无感知
+
+**使用示例:**
+```python
+from scripts.conversation_manager import ConversationManager
+
+manager = ConversationManager()
+
+# 开启新对话（继承记忆）
+result = manager.continue_conversation("user_123")
+print(result["message"])
+# ✅ 新对话已开启 (ID: abc123)，继承了 123 条记忆
+
+# 自动监控
+result = manager.add_message("user_123", conv_id, tokens=200)
+if result["should_continue"]:
+    # 自动续对话
+    new_result = manager.continue_conversation("user_123")
+```
+
+**使用场景:**
+- 长对话自动续（超过 100 条消息）
+- 用户主动 `/new`（不再失忆）
+- 跨设备续对话
+- 对话历史追溯
+
+📚 **详细文档:** [CONVERSATION_MANAGER_GUIDE.md](scripts/CONVERSATION_MANAGER_GUIDE.md)
 
 ---
 
