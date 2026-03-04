@@ -2,13 +2,13 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.6.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.7.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-500x%20faster-orange.svg)](OPTIMIZATION_GUIDE.md)
 [![Async](https://img.shields.io/badge/async-native-brightgreen.svg)](ASYNC_GUIDE.md)
 [![S0-S3](https://img.shields.io/badge/method-S0→S3%20Three--Step-red.svg)](COMPLEX_TASK_THREE_STEP.md)
 [![Memory](https://img.shields.io/badge/memory-memU%20inspired-purple.svg)](https://github.com/NevaMind-AI/memU)
-[![v2.7.0](https://img.shields.io/badge/latest-v2.7.0-red.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases/tag/v2.7.0)
+[![Config](https://img.shields.io/badge/config-flexible-yellow.svg)](CONFIG_GUIDE.md)
 
 ---
 
@@ -150,54 +150,41 @@ print(f"类别：{result['category']}, 置信度：{result['confidence']}")
 
 ---
 
-### v2.8.0 24/7 持续学习 + 主动预测 🚀 (2026-03-04)
+### ⚙️ 灵活配置系统
 
-**后台持续学习 + 意图预测 + 主动服务**
+**3 种预设模式，按需选择：**
 
-**核心功能：**
-- ✅ `ContinuousLearner` - 持续学习器
-  - 24/7 后台运行
-  - 自动处理新对话
-  - 定期模式检测
-  - 学习统计追踪
-
-- ✅ `IntentPredictor` - 意图预测器
-  - 基于历史记忆预测
-  - 时间模式分析
-  - 置信度评分
-  - 推理说明
-
-- ✅ `ProactiveAssistant` - 主动助手
-  - 整合学习和预测
-  - 主动任务系统
-  - 智能提醒和建议
-  - 记忆自动整理
-
-**主动任务示例：**
-- 🕘 工作时间提醒（9:00）
-- 🍱 午休提醒（12:00）
-- 📊 任务跟进（每小时）
-- 🧹 记忆整理（每周）
-
-**使用示例：**
+#### Minimal（最小消耗）
 ```python
-from scripts.memory_proactive import create_proactive_assistant
+from scripts.memory_config import apply_preset
+await apply_preset("minimal")
+```
+- ✅ 基础记忆 + 关键词检索
+- ❌ Embedding / 主动学习
+- 💰 ~50K tokens/月 (~$1.5)
 
-# 创建主动助手
-assistant = await create_proactive_assistant()
+#### Balanced（平衡模式）⭐ 推荐
+```python
+await apply_preset("balanced")
+```
+- ✅ Embedding 语义搜索（本地 TF-IDF，零成本）
+- ✅ 智能分类
+- ❌ 主动学习（耗 tokens）
+- 💰 ~100K tokens/月 (~$3)
 
-# 启动持续学习
-await assistant.start()
+#### Full（全功能）
+```python
+await apply_preset("full")
+```
+- ✅ 所有功能
+- ✅ 24/7 主动学习 + 意图预测
+- 💰 ~2.4M tokens/月 (~$72)
 
-# 获取主动建议
-suggestions = await assistant.get_proactive_suggestions(user_id)
-for suggestion in suggestions:
-    print(f"{suggestion['type']}: {suggestion['content']}")
+**详细配置指南：** [CONFIG_GUIDE.md](CONFIG_GUIDE.md)
 
-# 检查并执行任务
-executed = await assistant.check_and_execute_tasks()
+---
 
-# 获取统计
+### v2.6.0 记忆系统 💋 (2026-03-04)# 获取统计
 stats = assistant.get_stats()
 print(f"已处理对话：{stats['learner']['total_conversations_processed']}")
 ```
