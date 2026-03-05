@@ -2,7 +2,7 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.8.7-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.8.8-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-20000x%20faster-orange.svg)](scripts/FAST_RESPONSE_BENCHMARK.md)
 [![Learning](https://img.shields.io/badge/learning-self--improving-purple.svg)](LEARNING_LAYER_GUIDE.md)
@@ -55,6 +55,7 @@ reply = await orch.execute(
 
 | 版本 | 日期 | 核心功能 | 性能提升 | 详情 |
 |------|------|---------|---------|------|
+| **v2.8.8** | 2026-03-05 | **HEARTBEAT 任务同步 + Layer 0 自定义配置 + 文档错误检测** | **实时任务追踪** | [详情](#v288---heartbeat-任务同步--layer-0-自定义配置-) |
 | **v2.8.7** | 2026-03-05 | **代码质量修复完成 + 性能基准测试 + 文档自动化** | **100% 问题解决** | [详情](#v287---代码质量修复完成-) |
 | **v2.8.5** | 2026-03-05 | **自学习层 + 自动重试 + 性能监控 + 安全加固** | **越用越聪明** | [详情](#v285---自学习层-learning-layer-) |
 | **v2.8.4** | 2026-03-05 | Layer 0 扩展到 100+ 条规则 | 64.3% 快速响应命中率 | [详情](#v284---layer-0-扩展到-100-条规则) |
@@ -79,6 +80,77 @@ reply = await orch.execute(
 ---
 
 ## 🆕 最新版本详解
+
+### v2.8.8 - HEARTBEAT 任务同步 + Layer 0 自定义配置 🆕
+
+**发布日期**: 2026-03-05
+
+**核心功能**:
+
+#### 🔁 HEARTBEAT 任务同步器
+- ✅ 任务收到时自动写入 HEARTBEAT.md
+- ✅ 任务完成时自动删除对应内容
+- ✅ 支持渠道追踪（QQ/微信/钉钉等）
+- ✅ 定时任务固定保留
+- ✅ 心跳检查时生成实时任务报告
+
+**文件**: `scripts/heartbeat_task_sync.py`
+
+**使用方式**:
+```python
+from heartbeat_task_sync import on_task_received, on_task_completed, get_heartbeat_status
+
+# 任务收到
+on_task_received(task_id, description, channel, user_id)
+
+# 任务完成
+on_task_completed(task_id)
+
+# 心跳检查
+report = get_heartbeat_status()
+```
+
+#### 🎨 Layer 0 自定义配置
+- ✅ 用户自定义快速响应规则
+- ✅ JSON 配置文件，易编辑
+- ✅ 支持动态添加/删除/更新规则
+- ✅ 支持规则导入导出
+- ✅ 自定义规则优先级高于内置规则
+
+**文件**: `scripts/layer0_config.py`
+
+**使用方式**:
+```python
+from layer0_config import add_custom_response
+
+add_custom_response(
+    patterns=["老板好", "早"],
+    response="老板好呀～💋",
+    priority=10
+)
+```
+
+**配置文件**: `~/.openclaw/workspace/.learnings/layer0_custom_rules.json`
+
+#### 📝 文档错误检测
+- ✅ Learning Layer 添加文档错误检测 Hook
+- ✅ 错误检测词扩展到 60+（包含文档错误）
+- ✅ update_docs.py 自动检测 README 版本顺序
+
+**新增文件**:
+- `scripts/heartbeat_task_sync.py` - HEARTBEAT 任务同步器（400 行）
+- `scripts/layer0_config.py` - Layer 0 配置管理器（400 行）
+- `docs/LAYER0_CUSTOM_GUIDE.md` - Layer 0 自定义配置指南
+
+**预期收益**:
+- 任务状态：实时追踪，心跳可见
+- 渠道管理：清晰追踪每个任务来源
+- 自定义响应：用户完全掌控 Layer 0 回复
+- 文档质量：自动检测版本顺序等错误
+
+**总代码量**: +800 行
+
+---
 
 ### v2.8.7 - 代码质量修复完成 🆕
 
