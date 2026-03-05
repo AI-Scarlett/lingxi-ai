@@ -1,6 +1,6 @@
 # 灵犀 (Lingxi) API 文档
 
-> 自动生成 - 最后更新：2026-03-05T13:46:57.452920
+> 自动生成 - 最后更新：2026-03-05T14:18:08.497534
 
 ---
 
@@ -518,6 +518,10 @@ Args:
 #### on_user_correction()
 
 用户纠正时的 Hook
+
+#### on_document_error()
+
+文档错误检测 Hook（新增）
 
 #### on_feature_request()
 

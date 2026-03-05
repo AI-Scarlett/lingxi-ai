@@ -27,7 +27,7 @@ from collections import deque
 LEARNINGS_DIR = Path.home() / ".openclaw" / "workspace" / ".learnings"
 BACKUP_DIR = LEARNINGS_DIR / "backups"
 
-# 错误关键词（50+ 个，提高检测覆盖率）
+# 错误关键词（60+ 个，提高检测覆盖率）
 ERROR_KEYWORDS = [
     # 英文错误词 (25 个)
     "error", "errors", "errored",
@@ -60,7 +60,13 @@ ERROR_KEYWORDS = [
     "中断", "终止",
     "丢失", "泄露",
     "阻塞", "死锁",
-    "内存不足", "磁盘满"
+    "内存不足", "磁盘满",
+    
+    # 文档/质量相关错误 (10 个)
+    "顺序混乱", "顺序错误", "版本错误",
+    "文档错误", "格式错误", "拼写错误",
+    "配置错误", "路径错误", "链接失效",
+    "信息不一致"
 ]
 
 # 学习日志 ID 格式
@@ -472,6 +478,19 @@ class LearningLayer:
             action_taken=f"原始输出：{original_output[:200]}...",
             tags=["user-feedback", "correction"]
         )
+    
+    def on_document_error(self, error_type: str, description: str, file_path: str = ""):
+        """文档错误检测 Hook（新增）"""
+        if not self.enabled:
+            return
+        
+        self.logger.log_error(
+            error_type=error_type,
+            error_message=description,
+            context={"file_path": file_path, "error_category": "documentation"},
+            suggestion="检查文档格式、版本顺序、链接有效性等"
+        )
+        print(f"📝 检测到文档错误：{error_type}")
     
     def on_feature_request(self, feature_description: str, priority: str = "medium"):
         """功能需求记录"""

@@ -143,6 +143,33 @@ class DocGenerator:
             else:
                 print(f"   ⚠️  {file_name} 不存在")
     
+    def check_readme_versions(self) -> bool:
+        """检查 README 版本顺序是否正确"""
+        if not README_FILE.exists():
+            return True
+        
+        readme = README_FILE.read_text(encoding='utf-8')
+        
+        # 提取所有版本号
+        version_pattern = r'v(\d+)\.(\d+)\.(\d+)'
+        versions = re.findall(version_pattern, readme)
+        
+        if len(versions) < 2:
+            return True
+        
+        # 检查版本是否按倒序排列
+        for i in range(len(versions) - 1):
+            current = tuple(map(int, versions[i]))
+            next_v = tuple(map(int, versions[i + 1]))
+            
+            # 如果当前版本小于下一个版本，说明顺序错误
+            if current < next_v:
+                print(f"   ❌ 版本顺序错误：v{'.'.join(map(str, next_v))} 应该在 v{'.'.join(map(str, current))} 前面")
+                return False
+        
+        print(f"   ✅ 版本顺序正确")
+        return True
+    
     def generate_api_docs(self) -> str:
         """生成 API 文档"""
         content = f"""# 灵犀 (Lingxi) API 文档
@@ -325,6 +352,10 @@ def main():
     
     # 扫描文件
     generator.scan_files()
+    
+    # 检查 README 版本顺序
+    print("\n🔍 检查文档质量...")
+    version_order_ok = generator.check_readme_versions()
     
     # 检查变更
     old_cache = load_hash_cache()
