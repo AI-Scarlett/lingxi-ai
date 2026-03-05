@@ -74,6 +74,14 @@ try:
 except ImportError as e:
     AUDIT_LAYER_ENABLED = False
     print(f"⚠️  审计层导入失败：{e}")
+
+# ==================== 导入渠道路由器 ====================
+try:
+    from scripts.channel_router import get_channel_orchestrator, load_channel_config
+    CHANNEL_ROUTER_ENABLED = True
+except ImportError as e:
+    CHANNEL_ROUTER_ENABLED = False
+    print(f"⚠️  渠道路由器导入失败：{e}")
     try:
         from scripts.fast_response_layer import fast_respond, ResponseResult, cache_response
         FAST_RESPONSE_ENABLED = True
@@ -640,16 +648,53 @@ class SmartOrchestrator:
 
 _orchestrator: Optional[SmartOrchestrator] = None
 
-def get_orchestrator(max_concurrent: int = 3, enable_learning: bool = True, enable_auto_retry: bool = True) -> SmartOrchestrator:
-    """获取全局实例"""
+def get_orchestrator(max_concurrent: int = 3, enable_learning: bool = True, 
+                     enable_auto_retry: bool = True, enable_review: bool = False,
+                     enable_audit: bool = False, enable_fast_response: bool = True) -> SmartOrchestrator:
+    """
+    获取全局实例（旧版本兼容）
+    
+    Args:
+        max_concurrent: 最大并发数
+        enable_learning: 是否启用学习层
+        enable_auto_retry: 是否启用自动重试
+        enable_review: 是否启用质量审核
+        enable_audit: 是否启用审计日志
+        enable_fast_response: 是否启用快速响应
+    
+    Returns:
+        SmartOrchestrator 实例
+    """
     global _orchestrator
     if _orchestrator is None:
         _orchestrator = SmartOrchestrator(
             max_concurrent=max_concurrent,
             enable_learning=enable_learning,
-            enable_auto_retry=enable_auto_retry
+            enable_auto_retry=enable_auto_retry,
+            enable_review=enable_review,
+            enable_audit=enable_audit,
+            enable_fast_response=enable_fast_response
         )
     return _orchestrator
+
+def get_orchestrator_for_channel(channel: str, user_id: str, 
+                                  user_input: str = None) -> SmartOrchestrator:
+    """
+    根据渠道获取最优配置的 Orchestrator（新版本推荐）
+    
+    Args:
+        channel: 渠道名 (qqbot/feishu/wechat 等)
+        user_id: 用户 ID
+        user_input: 用户输入 (用于关键词匹配)
+    
+    Returns:
+        SmartOrchestrator 实例
+    """
+    if not CHANNEL_ROUTER_ENABLED:
+        print("⚠️  渠道路由器未启用，使用默认配置")
+        return get_orchestrator()
+    
+    return get_channel_orchestrator(channel, user_id, user_input)
 
 async def git_push(branch: str = "main", tags: bool = False) -> Dict[str, Any]:
     """便捷 Git 推送函数"""
