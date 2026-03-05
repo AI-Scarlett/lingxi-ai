@@ -2,7 +2,7 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.8.4-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.8.5-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-20000x%20faster-orange.svg)](FAST_RESPONSE_BENCHMARK.md)
 [![Memory](https://img.shields.io/badge/memory-persistent-purple.svg)](MEMORY_PERSISTENCE_GUIDE.md)
@@ -241,7 +241,82 @@ python3 scripts/memory_persistence.py migrate user_123
 
 ---
 
-## 📦 历史版本功能
+## 📚 完整版本历史
+
+**详细版本介绍请查看**: [README_VERSIONS.md](README_VERSIONS.md)
+
+### v2.8.5 - 自学习层 (Learning Layer) 🆕
+
+**核心功能**:
+- ✅ 错误自动捕获 - 监听执行结果，检测错误
+- ✅ 学习日志自动生成 - ERRORS.md / LEARNINGS.md / FEATURES.md
+- ✅ Hook 机制 - 任务开始提醒 + 完成后检测
+- ✅ 用户纠正记录 - 积累最佳实践
+- ✅ 功能需求追踪 - 优先级和复杂度估算
+
+**预期收益**: 重复错误减少 50%+，AI 越用越聪明
+
+**🙏 致谢**: 本功能灵感来自 [self-improving-agent](https://github.com/peterskoett/self-improving-agent) by @peterskoett
+
+---
+
+### v2.8.4 - Layer 0 扩展到 100+ 条规则
+
+**核心功能**:
+- ✅ Layer 0 规则从 30 条扩展到 100+ 条
+- ✅ 新增问候、告别、感谢、确认、时间、情感、日常对话等场景
+- ✅ 平均响应时间从 64.7ms 降到 31.6ms (2x 提升)
+- ✅ 快速响应命中率从 57.1% 提升到 64.3%
+
+---
+
+### v2.8.3 - 性能全面优化
+
+**核心功能**:
+- ✅ 快速响应层集成 (Layer 0/1/2/3)
+- ✅ 懒加载组件，启动更快
+- ✅ LRU 缓存，重复问题秒回
+- ✅ 执行器路径修复，并行正常工作
+- ✅ 性能监控，每次显示耗时
+
+**性能提升**: 平均响应 2500ms → 64.7ms (**38x**)
+
+---
+
+### v2.8.2 - Layer 0 规则扩展
+
+**核心功能**:
+- ✅ Layer 0 规则从 10 条扩展到 30 条
+- ✅ 新增问候、告别、感谢、确认、时间、情感类规则
+
+**性能提升**: 快速响应命中率 0% → 57.1%
+
+---
+
+### v2.8.1 - 对话管理器 + 记忆继承
+
+**核心功能**:
+- ✅ 对话管理器 (ConversationManager)
+- ✅ 对话长度监控 (超过 100 条自动提醒)
+- ✅ 一键续对话 (保留所有记忆)
+- ✅ 记忆继承 (偏好/关系/知识全部带走)
+- ✅ 无缝切换 (用户无感知)
+
+---
+
+### v2.8.0 - 真·并行执行 + 老板优先
+
+**核心功能**:
+- ✅ 真·并行执行器 (ParallelExecutor)
+- ✅ 老板优先机制 (VIP 用户高优先级)
+- ✅ 并发控制 (最多 5 任务并发)
+- ✅ 依赖图优化
+
+**性能提升**: 多任务并发快 **5x**
+
+---
+
+## 📦 更早版本
 
 ### v2.7.0 - Embedding 向量检索
 
@@ -370,18 +445,30 @@ lingxi-ai/
 
 ---
 
-## 📚 功能总览
+## 📚 整体功能介绍
 
-**详细功能介绍请查看**: [README_FEATURES.md](README_FEATURES.md)
+### 🎯 核心功能总览
 
-**核心功能速览**:
-- ⚡ **超高速响应层** - 64.3% 请求<5ms 响应，零 LLM 消耗
-- 🤖 **多 Agent 协作** - 8 大职能角色，智能任务拆解
-- 🔀 **并行执行系统** - 最多 5 任务并发，快 9-35x
-- 🧠 **记忆持久化** - JSONL 存储，永不丢失
-- 💬 **对话管理器** - 无缝续接，记忆继承
-- 📊 **性能监控** - 实时统计，透明度量
-- 🌐 **多平台集成** - QQ/飞书/钉钉/企微/Telegram
+| 功能 | 说明 | 性能 | 状态 |
+|------|------|------|------|
+| ⚡ **超高速响应层** | Layer 0/1/2/3分层响应 | 64.3% 请求<5ms | ✅ v2.8.4 |
+| 🤖 **多 Agent 协作** | 8 大职能角色智能调度 | 并行执行 | ✅ v2.8.0 |
+| 🔀 **并行执行系统** | Semaphore 并发控制 | 快 5-35x | ✅ v2.8.0 |
+| 🧠 **记忆持久化** | JSONL 格式存储 | <10ms 检索 | ✅ v2.7.1 |
+| 💬 **对话管理器** | 对话续接和记忆继承 | 无缝切换 | ✅ v2.8.1 |
+| 📊 **性能监控** | 实时统计和日志 | 每次显示 | ✅ v2.8.3 |
+| 🌐 **多平台集成** | QQ/飞书/钉钉/企微等 | 统一 API | ✅ v2.5.0 |
+| 🧠 **自学习层** | 错误捕获 + 学习日志 | 越用越聪明 | ✅ v2.8.5 |
+
+### 📋 详细功能文档
+
+- **[README_FEATURES.md](README_FEATURES.md)** - 完整功能介绍
+- **[README_VERSIONS.md](README_VERSIONS.md)** - 版本历史详解
+- **[LEARNING_LAYER_GUIDE.md](LEARNING_LAYER_GUIDE.md)** - 自学习层指南
+- **[CONVERSATION_MANAGER_GUIDE.md](scripts/CONVERSATION_MANAGER_GUIDE.md)** - 对话管理器
+- **[MEMORY_PERSISTENCE_GUIDE.md](scripts/MEMORY_PERSISTENCE_GUIDE.md)** - 记忆系统
+- **[PARALLEL_EXECUTOR_GUIDE.md](scripts/PARALLEL_EXECUTOR_GUIDE.md)** - 并行执行
+- **[FAST_RESPONSE_BENCHMARK.md](scripts/FAST_RESPONSE_BENCHMARK.md)** - 快速响应
 
 ---
 
