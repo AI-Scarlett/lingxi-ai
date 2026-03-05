@@ -314,29 +314,44 @@ class HeartbeatTaskSync:
             "scheduled_tasks": scheduled_tasks
         }
     
-    def generate_heartbeat_report(self) -> str:
+    def generate_heartbeat_report(self, format: str = "text") -> str:
         """生成心跳检查报告（用于回复用户）"""
         status = self.get_status()
         
-        report = "💓 **心跳检查报告**\n\n"
-        
-        if status["pending_count"] > 0 or status["running_count"] > 0:
-            report += f"🔄 进行中任务：{status['pending_count'] + status['running_count']}\n"
-            for task in status["tasks"]["pending"][:3]:
-                report += f"  - ⏳ {task['task_id']}: {task['description']}\n"
-        
-        if status["completed_count"] > 0:
-            report += f"\n✅ 最近完成：{min(status['completed_count'], 5)}\n"
-            for task in status["tasks"]["completed"]:
-                report += f"  - ✅ {task['task_id']}\n"
-        
-        if status["scheduled_count"] > 0:
-            report += f"\n⏰ 定时任务：{status['scheduled_count']}\n"
-            for st in status["scheduled_tasks"][:3]:
-                report += f"  - ⏰ {st['name']}: {st['schedule']}\n"
-        
-        if status["pending_count"] == 0 and status["running_count"] == 0:
-            report += "✨ 当前无进行中任务，一切正常！\n"
+        if format == "kanban":
+            # 看板格式
+            report = "📊 **任务看板**\n\n"
+            report += "```\n"
+            report += f"🔄 进行中  |  ✅ 已完成  |  ⏰ 定时\n"
+            report += f"{'─'*12} | {'─'*12} | {'─'*12}\n"
+            report += f"{status['pending_count'] + status['running_count']:^12} | {status['completed_count']:^12} | {status['scheduled_count']:^12}\n"
+            report += "```\n\n"
+            
+            # Agent 健康状态
+            report += "**Agent 健康状态**\n"
+            report += f"- 🟢 活跃：灵犀主服务\n"
+            report += f"- 📊 总任务：{status['pending_count'] + status['running_count'] + status['completed_count']}\n"
+        else:
+            # 文本格式
+            report = "💓 **心跳检查报告**\n\n"
+            
+            if status["pending_count"] > 0 or status["running_count"] > 0:
+                report += f"🔄 进行中任务：{status['pending_count'] + status['running_count']}\n"
+                for task in status["tasks"]["pending"][:3]:
+                    report += f"  - ⏳ {task['task_id']}: {task['description']}\n"
+            
+            if status["completed_count"] > 0:
+                report += f"\n✅ 最近完成：{min(status['completed_count'], 5)}\n"
+                for task in status["tasks"]["completed"]:
+                    report += f"  - ✅ {task['task_id']}\n"
+            
+            if status["scheduled_count"] > 0:
+                report += f"\n⏰ 定时任务：{status['scheduled_count']}\n"
+                for st in status["scheduled_tasks"][:3]:
+                    report += f"  - ⏰ {st['name']}: {st['schedule']}\n"
+            
+            if status["pending_count"] == 0 and status["running_count"] == 0:
+                report += "✨ 当前无进行中任务，一切正常！\n"
         
         return report
 

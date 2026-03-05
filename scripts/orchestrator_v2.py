@@ -58,6 +58,22 @@ try:
 except ImportError as e:
     CONVERSATION_MANAGER_ENABLED = False
     print(f"⚠️  对话管理器导入失败：{e}")
+
+# ==================== 导入质量审核层 ====================
+try:
+    from scripts.review_layer import get_review_layer, ReviewResult
+    REVIEW_LAYER_ENABLED = True
+except ImportError as e:
+    REVIEW_LAYER_ENABLED = False
+    print(f"⚠️  质量审核层导入失败：{e}")
+
+# ==================== 导入审计层 ====================
+try:
+    from scripts.audit_layer import get_audit_layer, TaskStage
+    AUDIT_LAYER_ENABLED = True
+except ImportError as e:
+    AUDIT_LAYER_ENABLED = False
+    print(f"⚠️  审计层导入失败：{e}")
     try:
         from scripts.fast_response_layer import fast_respond, ResponseResult, cache_response
         FAST_RESPONSE_ENABLED = True
@@ -373,6 +389,12 @@ class SmartOrchestrator:
         # 对话管理器
         self.conversation_manager = ConversationManager() if CONVERSATION_MANAGER_ENABLED else None
         
+        # 质量审核层
+        self.review_layer = get_review_layer(auto_review_enabled=enable_review) if REVIEW_LAYER_ENABLED else None
+        
+        # 审计层
+        self.audit_layer = get_audit_layer(auto_save=enable_audit) if AUDIT_LAYER_ENABLED else None
+        
         # 性能统计（从文件加载）
         self.stats = self._load_stats()
         
@@ -515,6 +537,14 @@ class SmartOrchestrator:
             
             # 4. 汇总结果
             summary = aggregate_results(subtasks)
+            
+            # ========== 质量审核层 Hook ==========
+            if self.review_layer and summary:
+                review_result = self.review_layer.review(summary, content_type="general")
+                if review_result.should_reject:
+                    print(f"🚫 质量审核驳回：{review_result.reason}")
+                    # 添加审核意见到输出
+                    summary = f"{summary}\n\n⚠️  审核意见：{review_result.reason}\n💡 建议：{review_result.suggestions[0] if review_result.suggestions else '请优化内容'}"
             
             # 5. 计算总分和耗时
             total_score = sum(st.score for st in subtasks) / len(subtasks) if subtasks else 0
