@@ -33,6 +33,14 @@ class FastResponse:
     save_tokens: bool = True
     priority: int = 0  # 优先级，数字越大越优先匹配
 
+# 导入自定义配置系统
+try:
+    from layer0_config import load_custom_rules, match_custom_rules
+    CUSTOM_RULES_ENABLED = True
+except ImportError:
+    CUSTOM_RULES_ENABLED = False
+    print("⚠️  自定义规则系统未启用")
+
 # Layer 0 规则库 - 完全不调 LLM（v2.0: 30 条 → 100+ 条）
 LAYER0_RULES = [
     # ========== 问候类 (15 条) ==========
@@ -537,16 +545,23 @@ def normalize_text(text: str) -> str:
 
 def match_layer0(user_input: str) -> Tuple[bool, Optional[str]]:
     """
-    Layer 0: 零思考响应匹配（优化版）
+    Layer 0: 零思考响应匹配（优化版 + 自定义规则）
     
     优化点：
     1. 按优先级排序匹配
     2. 最长匹配优先
     3. 提前返回
+    4. 支持用户自定义规则
     """
     normalized = normalize_text(user_input)
     
-    # 按优先级排序
+    # 1️⃣ 优先匹配自定义规则（用户配置）
+    if CUSTOM_RULES_ENABLED:
+        matched, response = match_custom_rules(user_input)
+        if matched:
+            return True, response
+    
+    # 2️⃣ 匹配内置规则
     sorted_rules = sorted(LAYER0_RULES, key=lambda x: x.priority, reverse=True)
     
     best_match = None
