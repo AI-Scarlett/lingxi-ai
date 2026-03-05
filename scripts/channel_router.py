@@ -43,7 +43,18 @@ def load_channel_config(config_path: str = None) -> Dict:
     
     # 默认路径
     if config_path is None:
-        config_path = Path(__file__).parent.parent.parent / "workspace" / ".learnings" / "channel_config.json"
+        # 尝试多个可能的位置
+        possible_paths = [
+            Path.home() / ".openclaw" / "workspace" / ".learnings" / "channel_config.json",
+            Path(__file__).parent.parent / ".learnings" / "channel_config.json",
+            Path(__file__).parent / "channel_config.json",
+        ]
+        for p in possible_paths:
+            if p.exists():
+                config_path = p
+                break
+        else:
+            config_path = possible_paths[0]  # 使用默认路径
     else:
         config_path = Path(config_path)
     
