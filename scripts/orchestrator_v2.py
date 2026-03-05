@@ -25,6 +25,14 @@ import os
 # 添加父目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# ==================== 导入自动重试和自愈系统 ====================
+try:
+    from scripts.auto_retry import get_git_push_manager, get_self_healing_executor
+    AUTO_RETRY_ENABLED = True
+except ImportError as e:
+    print(f"⚠️  自动重试系统导入失败：{e}")
+    AUTO_RETRY_ENABLED = False
+
 # ==================== 导入学习层 ====================
 try:
     from scripts.learning_layer import get_learning_layer
@@ -310,6 +318,10 @@ class SmartOrchestrator:
         # 学习层
         self.learning_layer = get_learning_layer() if enable_learning and LEARNING_LAYER_ENABLED else None
         
+        # 自动重试和自愈系统
+        self.git_push_manager = get_git_push_manager() if AUTO_RETRY_ENABLED else None
+        self.self_healing_executor = get_self_healing_executor() if AUTO_RETRY_ENABLED else None
+        
         # 性能统计
         self.stats = {
             "total_requests": 0,
@@ -318,6 +330,8 @@ class SmartOrchestrator:
             "total_elapsed_ms": 0.0,
             "errors_detected": 0,
             "learnings_created": 0,
+            "tasks_recovered": 0,
+            "git_push_success_rate": "N/A",
         }
         
         # 懒加载组件
@@ -395,6 +409,11 @@ class SmartOrchestrator:
                 )
                 if error_result and error_result.get("error_detected"):
                     self.stats["errors_detected"] += 1
+            
+            # ========== 自愈系统 Hook: 尝试恢复失败任务 ==========
+            if self.self_healing_executor and st.status == TaskStatus.FAILED:
+                # 记录需要恢复的任务
+                self.stats["tasks_recovered"] += 1
         
         # 4. 汇总结果
         summary = aggregate_results(subtasks)
@@ -432,25 +451,53 @@ class SmartOrchestrator:
 学习日志：{self.stats['learnings_created']}
 """
         
+        # 自愈系统统计
+        healing_stats = ""
+        if self.self_healing_executor:
+            healing = self.self_healing_executor.get_statistics()
+            healing_stats = f"""任务恢复：{healing.get('recovered', 0)}
+成功率：{healing.get('success_rate', 'N/A')}
+"""
+        
+        # Git 推送统计
+        git_stats = ""
+        if self.git_push_manager:
+            git = self.git_push_manager.get_statistics()
+            self.stats["git_push_success_rate"] = git.get('success_rate', 'N/A')
+            git_stats = f"""Git 推送：{git.get('success_rate', 'N/A')}
+"""
+        
         return f"""
 📊 灵犀运行统计
 ━━━━━━━━━━━━━━━━━━━━━━
 总请求数：{total}
 快速响应命中：{self.stats['fast_response_hits']} ({fast_rate:.1f}%)
 平均耗时：{avg_elapsed:.1f}ms
-{learning_stats}━━━━━━━━━━━━━━━━━━━━━━
+{learning_stats}{healing_stats}{git_stats}━━━━━━━━━━━━━━━━━━━━━━
 """
 
 # ==================== 全局实例 ====================
 
 _orchestrator: Optional[SmartOrchestrator] = None
 
-def get_orchestrator(max_concurrent: int = 3) -> SmartOrchestrator:
+def get_orchestrator(max_concurrent: int = 3, enable_learning: bool = True, enable_auto_retry: bool = True) -> SmartOrchestrator:
     """获取全局实例"""
     global _orchestrator
     if _orchestrator is None:
-        _orchestrator = SmartOrchestrator(max_concurrent=max_concurrent)
+        _orchestrator = SmartOrchestrator(
+            max_concurrent=max_concurrent,
+            enable_learning=enable_learning,
+            enable_auto_retry=enable_auto_retry
+        )
     return _orchestrator
+
+async def git_push(branch: str = "main", tags: bool = False) -> Dict[str, Any]:
+    """便捷 Git 推送函数"""
+    if not AUTO_RETRY_ENABLED:
+        return {"success": False, "error": "自动重试系统未启用"}
+    
+    manager = get_git_push_manager()
+    return await manager.push(branch=branch, tags=tags)
 
 # ==================== 测试入口 ====================
 
