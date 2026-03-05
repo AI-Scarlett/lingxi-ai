@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-灵犀 - 自学习层 (Learning Layer) v2.9.0
+灵犀 - 自学习层 (Learning Layer) v2.8.5
 
 心有灵犀，越用越聪明 🧠
 
@@ -182,7 +182,7 @@ class LearningLogger:
         """获取文件头"""
         return f"""# {title}
 
-> 自动生成 - 灵犀 Learning Layer v2.9.0  
+> 自动生成 - 灵犀 Learning Layer v2.8.5  
 > 最后更新：{datetime.now().isoformat()}
 
 ---
@@ -505,7 +505,7 @@ def get_learning_layer() -> LearningLayer:
 # ==================== 测试入口 ====================
 
 if __name__ == "__main__":
-    print("🧠 灵犀 Learning Layer v2.9.0 测试")
+    print("🧠 灵犀 Learning Layer v2.8.5 测试")
     print("=" * 60)
     
     layer = get_learning_layer()

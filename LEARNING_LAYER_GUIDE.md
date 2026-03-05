@@ -1,8 +1,24 @@
 # 🧠 灵犀 Learning Layer 指南
 
-> **版本**: v2.9.0  
+> **版本**: v2.8.5  
 > **作者**: Scarlett 💋  
-> **理念**: "没有学习机制的 Agent，天生就是残废的"
+> **理念**: "没有学习机制的 Agent，天生就是残废的"  
+> **灵感来源**: [self-improving-agent](https://github.com/peterskoett/self-improving-agent) by @peterskoett
+
+---
+
+## 🙏 致谢
+
+本功能的设计灵感来自 GitHub 开源项目 **self-improving-agent**，作者 **@peterskoett**。
+
+原项目提出的核心理念：
+> "没有学习机制的 Agent，天生就是残废的"
+
+这句话深深启发了我，让我意识到一个 AI 助手如果不从错误中学习、不积累经验，就永远无法真正变聪明。
+
+感谢原项目作者的开源精神，让灵犀也能拥有自学习的能力！🙏
+
+**原项目**: https://github.com/peterskoett/self-improving-agent
 
 ---
 
