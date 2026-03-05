@@ -25,6 +25,14 @@ import os
 # 添加父目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# ==================== 导入学习层 ====================
+try:
+    from scripts.learning_layer import get_learning_layer
+    LEARNING_LAYER_ENABLED = True
+except ImportError as e:
+    print(f"⚠️  学习层导入失败：{e}")
+    LEARNING_LAYER_ENABLED = False
+
 # ==================== 导入快速响应层 ====================
 try:
     # 优先使用 v2 版本（更多规则）
@@ -291,12 +299,16 @@ def aggregate_results(subtasks: List[SubTask]) -> str:
 # ==================== 主控制器 ====================
 
 class SmartOrchestrator:
-    """灵犀 - 智慧调度系统主控制器 v2.0"""
+    """灵犀 - 智慧调度系统主控制器 v2.9"""
     
-    def __init__(self, max_concurrent: int = 3, enable_fast_response: bool = True):
+    def __init__(self, max_concurrent: int = 3, enable_fast_response: bool = True, enable_learning: bool = True):
         self.name = "灵犀"
         self.max_concurrent = max_concurrent
         self.enable_fast_response = enable_fast_response
+        self.enable_learning = enable_learning
+        
+        # 学习层
+        self.learning_layer = get_learning_layer() if enable_learning and LEARNING_LAYER_ENABLED else None
         
         # 性能统计
         self.stats = {
@@ -304,6 +316,8 @@ class SmartOrchestrator:
             "fast_response_hits": 0,
             "cache_hits": 0,
             "total_elapsed_ms": 0.0,
+            "errors_detected": 0,
+            "learnings_created": 0,
         }
         
         # 懒加载组件
@@ -316,6 +330,11 @@ class SmartOrchestrator:
         """执行用户任务"""
         start_time = time.time()
         self.stats["total_requests"] += 1
+        
+        # ========== 学习层 Hook: 任务开始 ==========
+        task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        if self.learning_layer:
+            self.learning_layer.on_task_start(task_id, user_input)
         
         # ========== Layer 0/1: 快速响应 ==========
         if self.enable_fast_response and FAST_RESPONSE_ENABLED:
@@ -366,6 +385,16 @@ class SmartOrchestrator:
         for i, st in enumerate(subtasks):
             subtasks[i] = executed[i]
             print(f"   → {ROLE_CONFIG[st.role]['emoji']} {st.role.value}: {'✅' if st.status == TaskStatus.COMPLETED else '❌'} ({st.elapsed_ms:.0f}ms)")
+            
+            # ========== 学习层 Hook: 检测子任务错误 ==========
+            if self.learning_layer and st.status == TaskStatus.FAILED:
+                error_result = self.learning_layer.on_task_complete(
+                    task_id=st.id,
+                    result={"error": st.error, "subtask": st.description},
+                    context={"user_input": user_input}
+                )
+                if error_result and error_result.get("error_detected"):
+                    self.stats["errors_detected"] += 1
         
         # 4. 汇总结果
         summary = aggregate_results(subtasks)
@@ -396,13 +425,20 @@ class SmartOrchestrator:
         avg_elapsed = self.stats["total_elapsed_ms"] / total if total > 0 else 0
         fast_rate = self.stats["fast_response_hits"] / total * 100 if total > 0 else 0
         
+        # 学习层统计
+        learning_stats = ""
+        if self.learning_layer and (self.stats["errors_detected"] > 0 or self.stats["learnings_created"] > 0):
+            learning_stats = f"""错误检测：{self.stats['errors_detected']}
+学习日志：{self.stats['learnings_created']}
+"""
+        
         return f"""
 📊 灵犀运行统计
 ━━━━━━━━━━━━━━━━━━━━━━
 总请求数：{total}
 快速响应命中：{self.stats['fast_response_hits']} ({fast_rate:.1f}%)
 平均耗时：{avg_elapsed:.1f}ms
-━━━━━━━━━━━━━━━━━━━━━━
+{learning_stats}━━━━━━━━━━━━━━━━━━━━━━
 """
 
 # ==================== 全局实例 ====================
