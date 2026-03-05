@@ -80,57 +80,6 @@ reply = await orch.execute(
 
 ## 🆕 最新版本详解
 
-### v2.8.5 - 自学习层 (Learning Layer) 🆕
-
-**发布日期**: 2026-03-05
-
-**核心功能**:
-
-#### 1️⃣ 自学习层 (Learning Layer)
-- ✅ 错误自动捕获 - 监听执行结果，检测错误
-- ✅ 学习日志自动生成 - ERRORS.md / LEARNINGS.md / FEATURES.md
-- ✅ Hook 机制 - 任务开始提醒 + 完成后检测
-- ✅ 用户纠正记录 - 积累最佳实践
-- ✅ 自动 Review - 每周自动分析错误模式、提炼经验
-
-**预期收益**: 重复错误减少 50%+，AI 越用越聪明
-
-#### 2️⃣ 自动重试和自愈系统
-- ✅ Git 推送自动重试 - 指数退避，最多 3 次
-- ✅ 任务自愈执行器 - 重试 + 降级方案
-- ✅ 主动错误预警 - 重复错误检测 (≥3 次)
-- ✅ 成功率提升：Git 70%→95%，任务 85%→95%
-
-#### 3️⃣ 性能主动监控
-- ✅ 实时指标监控 - 延迟、错误率、响应率
-- ✅ 基线自动计算 - 24 小时滚动基线
-- ✅ 异常主动告警 - 提前发现问题
-- ✅ 日报自动生成 - 无需人工干预
-
-#### 4️⃣ 安全加固
-- ✅ 输入清洗函数 - 防止命令注入
-- ✅ 路径白名单检查 - 限制文件访问范围
-- ✅ 安全日志记录 - 记录所有敏感操作
-- ✅ 文件权限检查 - 自动检测不安全权限
-
-**新增文件**:
-- `scripts/auto_retry.py` - 自动重试和自愈
-- `scripts/auto_review.py` - 自动 Review 系统
-- `scripts/performance_monitor.py` - 性能监控系统
-- `scripts/security_utils.py` - 安全工具函数
-- `AUTO_RETRY_GUIDE.md` - 使用指南
-
-**预期收益**:
-- 人工干预：20 次/周 → **5 次/周** (-75%)
-- Review 时间：2 小时/周 → **0** (-100%)
-- 问题发现：从事后 → **事前**
-
-📚 **详细文档**: [LEARNING_LAYER_GUIDE.md](LEARNING_LAYER_GUIDE.md), [AUTO_RETRY_GUIDE.md](AUTO_RETRY_GUIDE.md)
-
-**🙏 致谢**: 自学习层灵感来自 [self-improving-agent](https://github.com/peterskoett/self-improving-agent) by @peterskoett
-
----
-
 ### v2.8.7 - 代码质量修复完成 🆕
 
 **发布日期**: 2026-03-05
@@ -181,6 +130,57 @@ python3 scripts/update_docs.py
 - 文档维护：自动化，无需人工干预
 
 **总代码量**: +720 行
+
+---
+
+### v2.8.5 - 自学习层 (Learning Layer)
+
+**发布日期**: 2026-03-05
+
+**核心功能**:
+
+#### 1️⃣ 自学习层 (Learning Layer)
+- ✅ 错误自动捕获 - 监听执行结果，检测错误
+- ✅ 学习日志自动生成 - ERRORS.md / LEARNINGS.md / FEATURES.md
+- ✅ Hook 机制 - 任务开始提醒 + 完成后检测
+- ✅ 用户纠正记录 - 积累最佳实践
+- ✅ 自动 Review - 每周自动分析错误模式、提炼经验
+
+**预期收益**: 重复错误减少 50%+，AI 越用越聪明
+
+#### 2️⃣ 自动重试和自愈系统
+- ✅ Git 推送自动重试 - 指数退避，最多 3 次
+- ✅ 任务自愈执行器 - 重试 + 降级方案
+- ✅ 主动错误预警 - 重复错误检测 (≥3 次)
+- ✅ 成功率提升：Git 70%→95%，任务 85%→95%
+
+#### 3️⃣ 性能主动监控
+- ✅ 实时指标监控 - 延迟、错误率、响应率
+- ✅ 基线自动计算 - 24 小时滚动基线
+- ✅ 异常主动告警 - 提前发现问题
+- ✅ 日报自动生成 - 无需人工干预
+
+#### 4️⃣ 安全加固
+- ✅ 输入清洗函数 - 防止命令注入
+- ✅ 路径白名单检查 - 限制文件访问范围
+- ✅ 安全日志记录 - 记录所有敏感操作
+- ✅ 文件权限检查 - 自动检测不安全权限
+
+**新增文件**:
+- `scripts/auto_retry.py` - 自动重试和自愈
+- `scripts/auto_review.py` - 自动 Review 系统
+- `scripts/performance_monitor.py` - 性能监控系统
+- `scripts/security_utils.py` - 安全工具函数
+- `AUTO_RETRY_GUIDE.md` - 使用指南
+
+**预期收益**:
+- 人工干预：20 次/周 → **5 次/周** (-75%)
+- Review 时间：2 小时/周 → **0** (-100%)
+- 问题发现：从事后 → **事前**
+
+📚 **详细文档**: [LEARNING_LAYER_GUIDE.md](LEARNING_LAYER_GUIDE.md), [AUTO_RETRY_GUIDE.md](AUTO_RETRY_GUIDE.md)
+
+**🙏 致谢**: 自学习层灵感来自 [self-improving-agent](https://github.com/peterskoett/self-improving-agent) by @peterskoett
 
 ---
 
