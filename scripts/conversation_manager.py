@@ -198,6 +198,11 @@ class ConversationManager:
         if usage >= 1.0:
             result["status"] = "exceeded"
             result["should_continue"] = True
+            result["suggestion"] = f"⚠️  对话长度已达 {conv.message_count}/{self.max_messages} 条，建议开启新对话，我会记住所有重要内容的！💋"
+        elif usage >= self.warning_threshold:
+            result["status"] = "warning"
+            result["suggestion"] = f"💡 对话已进行 {conv.message_count}/{self.max_messages} 条，快满啦～"
+            result["should_continue"] = True
             result["suggestion"] = f"📊 对话已达上限（{conv.message_count}/{self.max_messages} 消息），建议开启新对话"
         elif usage >= self.warning_threshold:
             result["status"] = "warning"

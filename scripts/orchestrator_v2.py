@@ -48,6 +48,16 @@ try:
     from scripts.fast_response_layer_v2 import fast_respond, ResponseResult, cache_response
     FAST_RESPONSE_ENABLED = True
 except ImportError:
+    FAST_RESPONSE_ENABLED = False
+    print(f"⚠️  快速响应层导入失败：{e}")
+
+# ==================== 导入对话管理器 ====================
+try:
+    from scripts.conversation_manager import ConversationManager
+    CONVERSATION_MANAGER_ENABLED = True
+except ImportError as e:
+    CONVERSATION_MANAGER_ENABLED = False
+    print(f"⚠️  对话管理器导入失败：{e}")
     try:
         from scripts.fast_response_layer import fast_respond, ResponseResult, cache_response
         FAST_RESPONSE_ENABLED = True
@@ -360,6 +370,9 @@ class SmartOrchestrator:
         self.git_push_manager = get_git_push_manager() if AUTO_RETRY_ENABLED else None
         self.self_healing_executor = get_self_healing_executor() if AUTO_RETRY_ENABLED else None
         
+        # 对话管理器
+        self.conversation_manager = ConversationManager() if CONVERSATION_MANAGER_ENABLED else None
+        
         # 性能统计（从文件加载）
         self.stats = self._load_stats()
         
@@ -411,9 +424,30 @@ class SmartOrchestrator:
         try:
             self.stats["total_requests"] += 1
             
+            # ========== 对话管理器 Hook: 检查对话长度 ==========
+            conv_warning = None
+            if self.conversation_manager and user_id:
+                conv = self.conversation_manager.get_current(user_id)
+                if conv:
+                    result = self.conversation_manager.add_message(user_id, conv.id)
+                    if result.get("status") == "exceeded" or result.get("status") == "warning":
+                        conv_warning = result.get("suggestion")
+            
             # ========== 学习层 Hook: 任务开始 ==========
             if self.learning_layer:
                 self.learning_layer.on_task_start(task_id, user_input)
+            
+            # ========== 对话长度警告（优先返回） ==========
+            if conv_warning:
+                return TaskResult(
+                    task_id=task_id,
+                    user_input=user_input,
+                    subtasks=[],
+                    total_score=10.0,
+                    final_output=conv_warning,
+                    total_elapsed_ms=(time.time() - start_time) * 1000,
+                    fast_response_layer="conversation_warning"
+                )
             
             # ========== Layer 0/1: 快速响应 ==========
             if self.enable_fast_response and FAST_RESPONSE_ENABLED:
