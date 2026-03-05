@@ -1,96 +1,96 @@
 {
-  "timestamp": 1772655479.6100044,
+  "timestamp": 1772671117.872378,
   "total_tests": 14,
-  "avg_elapsed_ms": 64.65705803462437,
-  "min_elapsed_ms": 0.0050067901611328125,
-  "max_elapsed_ms": 673.8312244415283,
+  "avg_elapsed_ms": 31.585267611912318,
+  "min_elapsed_ms": 0.030517578125,
+  "max_elapsed_ms": 438.05384635925293,
   "layer_distribution": {
-    "layer0": 7,
+    "layer0": 8,
     "layer1": 1,
-    "layer2/3": 6
+    "layer2/3": 5
   },
   "results": [
     {
       "input": "你好",
-      "elapsed_ms": 1.9876956939697266,
+      "elapsed_ms": 2.0422935485839844,
       "fast_layer": "layer0",
       "subtasks": 0
     },
     {
       "input": "在吗",
-      "elapsed_ms": 0.014066696166992188,
+      "elapsed_ms": 0.035762786865234375,
       "fast_layer": "layer0",
       "subtasks": 0
     },
     {
       "input": "谢谢",
-      "elapsed_ms": 0.010967254638671875,
+      "elapsed_ms": 0.0324249267578125,
       "fast_layer": "layer0",
       "subtasks": 0
     },
     {
       "input": "再见",
-      "elapsed_ms": 0.00667572021484375,
+      "elapsed_ms": 0.030994415283203125,
       "fast_layer": "layer0",
       "subtasks": 0
     },
     {
       "input": "几点了",
-      "elapsed_ms": 0.018358230590820312,
+      "elapsed_ms": 0.030517578125,
       "fast_layer": "layer0",
       "subtasks": 0
     },
     {
       "input": "帮我写个文案",
-      "elapsed_ms": 3.614187240600586,
+      "elapsed_ms": 1.1599063873291016,
       "fast_layer": "layer2/3",
       "subtasks": 1
     },
     {
       "input": "搜索一下新闻",
-      "elapsed_ms": 0.141143798828125,
+      "elapsed_ms": 0.22292137145996094,
       "fast_layer": "layer2/3",
       "subtasks": 1
     },
     {
       "input": "翻译这句话",
-      "elapsed_ms": 0.152587890625,
+      "elapsed_ms": 0.14495849609375,
       "fast_layer": "layer2/3",
       "subtasks": 1
     },
     {
       "input": "帮我写个小红书文案，配张自拍，然后发布",
-      "elapsed_ms": 673.8312244415283,
+      "elapsed_ms": 438.05384635925293,
       "fast_layer": "layer2/3",
       "subtasks": 3
     },
     {
       "input": "写个 Python 脚本分析 Excel 数据并生成图表",
-      "elapsed_ms": 225.20041465759277,
-      "fast_layer": "layer2/3",
-      "subtasks": 4
+      "elapsed_ms": 0.08487701416015625,
+      "fast_layer": "layer0",
+      "subtasks": 0
     },
     {
       "input": "搜索最新的 AI 新闻，然后写一篇总结文章",
-      "elapsed_ms": 0.186920166015625,
+      "elapsed_ms": 0.2200603485107422,
       "fast_layer": "layer2/3",
       "subtasks": 2
     },
     {
       "input": "你好",
-      "elapsed_ms": 0.008344650268554688,
+      "elapsed_ms": 0.03528594970703125,
       "fast_layer": "layer0",
       "subtasks": 0
     },
     {
       "input": "你好",
-      "elapsed_ms": 0.0050067901611328125,
+      "elapsed_ms": 0.03218650817871094,
       "fast_layer": "layer0",
       "subtasks": 0
     },
     {
       "input": "帮我写个文案",
-      "elapsed_ms": 0.021219253540039062,
+      "elapsed_ms": 0.06771087646484375,
       "fast_layer": "layer1",
       "subtasks": 0
     }

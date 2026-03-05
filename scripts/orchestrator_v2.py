@@ -27,11 +27,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # ==================== 导入快速响应层 ====================
 try:
-    from scripts.fast_response_layer import fast_respond, ResponseResult, cache_response
+    # 优先使用 v2 版本（更多规则）
+    from scripts.fast_response_layer_v2 import fast_respond, ResponseResult, cache_response
     FAST_RESPONSE_ENABLED = True
-except ImportError as e:
-    print(f"⚠️ 快速响应层导入失败：{e}")
-    FAST_RESPONSE_ENABLED = False
+except ImportError:
+    try:
+        from scripts.fast_response_layer import fast_respond, ResponseResult, cache_response
+        FAST_RESPONSE_ENABLED = True
+    except ImportError as e:
+        print(f"⚠️ 快速响应层导入失败：{e}")
+        FAST_RESPONSE_ENABLED = False
 
 # ==================== 数据结构定义 ====================
 
