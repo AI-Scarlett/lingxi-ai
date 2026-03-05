@@ -82,6 +82,14 @@ try:
 except ImportError as e:
     CHANNEL_ROUTER_ENABLED = False
     print(f"⚠️  渠道路由器导入失败：{e}")
+
+# ==================== 导入性能监控 ====================
+try:
+    from scripts.performance_monitor import log_performance as log_perf
+    PERFORMANCE_MONITOR_ENABLED = True
+except ImportError as e:
+    PERFORMANCE_MONITOR_ENABLED = False
+    print(f"⚠️  性能监控导入失败：{e}")
     try:
         from scripts.fast_response_layer import fast_respond, ResponseResult, cache_response
         FAST_RESPONSE_ENABLED = True
@@ -564,7 +572,21 @@ class SmartOrchestrator:
             # 6. 缓存结果（用于相似问题）
             cache_response(user_input, summary)
             
-            # 7. 保存统计信息
+            # 7. 性能监控
+            if PERFORMANCE_MONITOR_ENABLED:
+                try:
+                    log_perf(
+                        channel=channel or "unknown",
+                        response_time_ms=total_elapsed,
+                        tokens_in=0,  # 从 context 获取
+                        tokens_out=0,
+                        success=True,
+                        user_id=user_id
+                    )
+                except Exception as e:
+                    print(f"⚠️  性能监控记录失败：{e}")
+            
+            # 8. 保存统计信息
             self._save_stats()
             
             return TaskResult(
