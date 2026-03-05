@@ -27,10 +27,40 @@ from collections import deque
 LEARNINGS_DIR = Path.home() / ".openclaw" / "workspace" / ".learnings"
 BACKUP_DIR = LEARNINGS_DIR / "backups"
 
-# 错误关键词
+# 错误关键词（50+ 个，提高检测覆盖率）
 ERROR_KEYWORDS = [
-    "error", "failed", "failure", "exception", "traceback",
-    "错误", "失败", "异常", "报错", "崩溃"
+    # 英文错误词 (25 个)
+    "error", "errors", "errored",
+    "failed", "fails", "failure", "failures",
+    "exception", "exceptions", "traceback",
+    "crash", "crashed", "crashing",
+    "bug", "bugs",
+    "issue", "issues",
+    "problem", "problems",
+    "warning", "warnings", "warn",
+    "fatal", "critical",
+    "timeout", "timed out",
+    "unreachable", "unavailable",
+    "refused", "rejected",
+    "denied", "forbidden",
+    "not found", "missing",
+    "invalid", "corrupt",
+    
+    # 中文错误词 (25 个)
+    "错误", "报错", "出错",
+    "失败", "失利",
+    "异常", "崩溃", "挂掉",
+    "问题", "故障",
+    "警告", "告警",
+    "超时", "无响应",
+    "连接失败", "网络错误",
+    "权限不足", "拒绝访问",
+    "未找到", "不存在",
+    "无效", "损坏",
+    "中断", "终止",
+    "丢失", "泄露",
+    "阻塞", "死锁",
+    "内存不足", "磁盘满"
 ]
 
 # 学习日志 ID 格式

@@ -404,105 +404,135 @@ class SmartOrchestrator:
             print(f"⚠️  保存统计信息失败：{e}")
     
     async def execute(self, user_input: str, user_id: str = None) -> TaskResult:
-        """执行用户任务"""
+        """执行用户任务（带全局异常处理）"""
         start_time = time.time()
-        self.stats["total_requests"] += 1
-        
-        # ========== 学习层 Hook: 任务开始 ==========
         task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        if self.learning_layer:
-            self.learning_layer.on_task_start(task_id, user_input)
         
-        # ========== Layer 0/1: 快速响应 ==========
-        if self.enable_fast_response and FAST_RESPONSE_ENABLED:
-            fast_result = fast_respond(user_input)
+        try:
+            self.stats["total_requests"] += 1
             
-            if fast_result.response:
-                self.stats["fast_response_hits"] += 1
-                elapsed = (time.time() - start_time) * 1000
-                self.stats["total_elapsed_ms"] += elapsed
-                
-                # 缓存响应
-                cache_response(user_input, fast_result.response)
-                
-                return TaskResult(
-                    task_id=f"fast_{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                    user_input=user_input,
-                    subtasks=[],
-                    total_score=10.0,
-                    final_output=fast_result.response,
-                    total_elapsed_ms=elapsed,
-                    fast_response_layer=fast_result.layer
-                )
-        
-        # ========== Layer 2/3: 完整执行 ==========
-        print(f"\n🎭 {self.name}: 收到任务，开始分析...")
-        
-        # 1. 意图识别
-        intent = parse_intent(user_input)
-        print(f"📋 意图识别：{intent['types']} (置信度：{intent['confidence']:.2f})")
-        
-        # 2. 任务拆解
-        subtasks = decompose_task(user_input, intent)
-        print(f"📦 任务拆解：{len(subtasks)} 个子任务")
-        
-        # 3. 并行执行（带并发限制）
-        print(f"\n🚀 开始执行 (并发限制：{self.max_concurrent})...")
-        
-        semaphore = asyncio.Semaphore(self.max_concurrent)
-        
-        async def execute_with_semaphore(task: SubTask) -> SubTask:
-            async with semaphore:
-                return await execute_subtask(task, self.max_concurrent)
-        
-        tasks = [execute_with_semaphore(st) for st in subtasks]
-        executed = await asyncio.gather(*tasks)
-        
-        # 更新结果
-        for i, st in enumerate(subtasks):
-            subtasks[i] = executed[i]
-            print(f"   → {ROLE_CONFIG[st.role]['emoji']} {st.role.value}: {'✅' if st.status == TaskStatus.COMPLETED else '❌'} ({st.elapsed_ms:.0f}ms)")
+            # ========== 学习层 Hook: 任务开始 ==========
+            if self.learning_layer:
+                self.learning_layer.on_task_start(task_id, user_input)
             
-            # ========== 学习层 Hook: 检测子任务错误 ==========
-            if self.learning_layer and st.status == TaskStatus.FAILED:
-                error_result = self.learning_layer.on_task_complete(
-                    task_id=st.id,
-                    result={"error": st.error, "subtask": st.description},
+            # ========== Layer 0/1: 快速响应 ==========
+            if self.enable_fast_response and FAST_RESPONSE_ENABLED:
+                fast_result = fast_respond(user_input)
+                
+                if fast_result.response:
+                    self.stats["fast_response_hits"] += 1
+                    elapsed = (time.time() - start_time) * 1000
+                    self.stats["total_elapsed_ms"] += elapsed
+                    
+                    # 缓存响应
+                    cache_response(user_input, fast_result.response)
+                    
+                    return TaskResult(
+                        task_id=f"fast_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                        user_input=user_input,
+                        subtasks=[],
+                        total_score=10.0,
+                        final_output=fast_result.response,
+                        total_elapsed_ms=elapsed,
+                        fast_response_layer=fast_result.layer
+                    )
+            
+            # ========== Layer 2/3: 完整执行 ==========
+            print(f"\n🎭 {self.name}: 收到任务，开始分析...")
+            
+            # 1. 意图识别
+            intent = parse_intent(user_input)
+            print(f"📋 意图识别：{intent['types']} (置信度：{intent['confidence']:.2f})")
+            
+            # 2. 任务拆解
+            subtasks = decompose_task(user_input, intent)
+            print(f"📦 任务拆解：{len(subtasks)} 个子任务")
+            
+            # 3. 并行执行（带并发限制）
+            print(f"\n🚀 开始执行 (并发限制：{self.max_concurrent})...")
+            
+            semaphore = asyncio.Semaphore(self.max_concurrent)
+            
+            async def execute_with_semaphore(task: SubTask) -> SubTask:
+                async with semaphore:
+                    return await execute_subtask(task, self.max_concurrent)
+            
+            tasks = [execute_with_semaphore(st) for st in subtasks]
+            executed = await asyncio.gather(*tasks)
+            
+            # 更新结果
+            for i, st in enumerate(subtasks):
+                subtasks[i] = executed[i]
+                print(f"   → {ROLE_CONFIG[st.role]['emoji']} {st.role.value}: {'✅' if st.status == TaskStatus.COMPLETED else '❌'} ({st.elapsed_ms:.0f}ms)")
+                
+                # ========== 学习层 Hook: 检测子任务错误 ==========
+                if self.learning_layer and st.status == TaskStatus.FAILED:
+                    error_result = self.learning_layer.on_task_complete(
+                        task_id=st.id,
+                        result={"error": st.error, "subtask": st.description},
+                        context={"user_input": user_input}
+                    )
+                    if error_result and error_result.get("error_detected"):
+                        self.stats["errors_detected"] += 1
+                
+                # ========== 自愈系统 Hook: 尝试恢复失败任务 ==========
+                if self.self_healing_executor and st.status == TaskStatus.FAILED:
+                    self.stats["tasks_recovered"] += 1
+            
+            # 4. 汇总结果
+            summary = aggregate_results(subtasks)
+            
+            # 5. 计算总分和耗时
+            total_score = sum(st.score for st in subtasks) / len(subtasks) if subtasks else 0
+            total_elapsed = (time.time() - start_time) * 1000
+            self.stats["total_elapsed_ms"] += total_elapsed
+            
+            print(f"\n⏱️  总耗时：{total_elapsed:.1f}ms")
+            
+            # 6. 缓存结果（用于相似问题）
+            cache_response(user_input, summary)
+            
+            # 7. 保存统计信息
+            self._save_stats()
+            
+            return TaskResult(
+                task_id=task_id,
+                user_input=user_input,
+                subtasks=subtasks,
+                total_score=total_score,
+                final_output=summary,
+                total_elapsed_ms=total_elapsed,
+                fast_response_layer="layer2/3"
+            )
+            
+        except Exception as e:
+            # ========== 全局异常处理 ==========
+            elapsed = (time.time() - start_time) * 1000
+            self.stats["total_elapsed_ms"] += elapsed
+            
+            # 记录错误到学习层
+            if self.learning_layer:
+                self.learning_layer.on_task_complete(
+                    task_id=task_id,
+                    result={"error": str(e), "error_type": type(e).__name__},
                     context={"user_input": user_input}
                 )
-                if error_result and error_result.get("error_detected"):
-                    self.stats["errors_detected"] += 1
+            self.stats["errors_detected"] += 1
             
-            # ========== 自愈系统 Hook: 尝试恢复失败任务 ==========
-            if self.self_healing_executor and st.status == TaskStatus.FAILED:
-                # 记录需要恢复的任务
-                self.stats["tasks_recovered"] += 1
-        
-        # 4. 汇总结果
-        summary = aggregate_results(subtasks)
-        
-        # 5. 计算总分和耗时
-        total_score = sum(st.score for st in subtasks) / len(subtasks) if subtasks else 0
-        total_elapsed = (time.time() - start_time) * 1000
-        self.stats["total_elapsed_ms"] += total_elapsed
-        
-        print(f"\n⏱️  总耗时：{total_elapsed:.1f}ms")
-        
-        # 6. 缓存结果（用于相似问题）
-        cache_response(user_input, summary)
-        
-        # 7. 保存统计信息
-        self._save_stats()
-        
-        return TaskResult(
-            task_id=f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}",
-            user_input=user_input,
-            subtasks=subtasks,
-            total_score=total_score,
-            final_output=summary,
-            total_elapsed_ms=total_elapsed,
-            fast_response_layer="layer2/3"
-        )
+            # 保存统计信息（即使出错也要保存）
+            self._save_stats()
+            
+            print(f"\n❌ 执行失败：{e}")
+            
+            return TaskResult(
+                task_id=task_id,
+                user_input=user_input,
+                subtasks=[],
+                total_score=0.0,
+                final_output=f"⚠️  执行出错：{str(e)}",
+                total_elapsed_ms=elapsed,
+                fast_response_layer="error"
+            )
     
     def get_stats(self) -> str:
         """获取统计信息"""

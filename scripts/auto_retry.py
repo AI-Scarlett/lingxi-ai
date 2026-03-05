@@ -64,13 +64,16 @@ class GitPushManager:
         self.push_history = []
     
     async def push(self, branch: str = "main", tags: bool = False) -> Dict[str, Any]:
-        """推送到 GitHub（自动重试）"""
+        """推送到 GitHub（自动重试，带 5 分钟超时）"""
         result = {
             "success": False,
             "attempts": 0,
             "error": None,
             "message": ""
         }
+        
+        # 5 分钟超时配置
+        PUSH_TIMEOUT = 300.0  # 5 分钟 = 300 秒
         
         for attempt in range(self.config.max_retries):
             result["attempts"] = attempt + 1
@@ -89,10 +92,30 @@ class GitPushManager:
                     cwd=self.repo_path
                 )
                 
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(),
-                    timeout=60.0
-                )
+                try:
+                    # 带超时的等待（5 分钟）
+                    stdout, stderr = await asyncio.wait_for(
+                        process.communicate(),
+                        timeout=PUSH_TIMEOUT
+                    )
+                except asyncio.TimeoutError:
+                    # 超时后 kill 进程
+                    print(f"⏰ Git 推送超时 ({PUSH_TIMEOUT}秒)，终止进程...")
+                    try:
+                        process.kill()
+                        await process.wait()
+                    except:
+                        pass
+                    result["error"] = f"推送超时 ({PUSH_TIMEOUT}秒)"
+                    
+                    # 准备重试
+                    if attempt < self.config.max_retries - 1:
+                        delay = calculate_delay(attempt, self.config)
+                        print(f"⏳ {delay:.1f}秒后重试...")
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        break
                 
                 if process.returncode == 0:
                     result["success"] = True
@@ -118,13 +141,6 @@ class GitPushManager:
                         await asyncio.sleep(delay)
                     else:
                         print(f"❌ Git 推送失败（已达最大重试次数）: {error_msg}")
-            
-            except asyncio.TimeoutError:
-                result["error"] = "推送超时 (60 秒)"
-                if attempt < self.config.max_retries - 1:
-                    delay = calculate_delay(attempt, self.config)
-                    print(f"⏳ Git 推送超时，{delay:.1f}秒后重试...")
-                    await asyncio.sleep(delay)
             
             except Exception as e:
                 result["error"] = str(e)

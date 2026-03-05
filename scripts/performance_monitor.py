@@ -139,8 +139,8 @@ class PerformanceMonitor:
         print(f"\n{alert['message']}")
         print(f"   建议：{alert['suggestion']}\n")
     
-    def calculate_baseline(self, hours: int = 24) -> Dict:
-        """计算性能基线"""
+    def calculate_baseline(self, hours: int = 24, use_ewma: bool = True) -> Dict:
+        """计算性能基线（支持 EWMA 指数加权移动平均）"""
         cutoff = datetime.now() - timedelta(hours=hours)
         
         recent_metrics = [
@@ -151,17 +151,37 @@ class PerformanceMonitor:
         if not recent_metrics:
             return {}
         
-        # 计算平均值
-        avg_latency = sum(m.avg_latency_ms for m in recent_metrics) / len(recent_metrics)
-        avg_error_rate = sum(m.error_rate for m in recent_metrics) / len(recent_metrics)
-        avg_fast_response = sum(m.fast_response_rate for m in recent_metrics) / len(recent_metrics)
+        if use_ewma:
+            # EWMA 指数加权移动平均（新数据权重更高）
+            alpha = 0.3  # 平滑系数：0.3 = 新数据占 30% 权重
+            
+            # 初始化
+            ewma_latency = recent_metrics[0].avg_latency_ms
+            ewma_error = recent_metrics[0].error_rate
+            ewma_fast = recent_metrics[0].fast_response_rate
+            
+            # 迭代计算 EWMA
+            for m in recent_metrics[1:]:
+                ewma_latency = alpha * m.avg_latency_ms + (1 - alpha) * ewma_latency
+                ewma_error = alpha * m.error_rate + (1 - alpha) * ewma_error
+                ewma_fast = alpha * m.fast_response_rate + (1 - alpha) * ewma_fast
+            
+            avg_latency = ewma_latency
+            avg_error_rate = ewma_error
+            avg_fast_response = ewma_fast
+        else:
+            # 简单平均
+            avg_latency = sum(m.avg_latency_ms for m in recent_metrics) / len(recent_metrics)
+            avg_error_rate = sum(m.error_rate for m in recent_metrics) / len(recent_metrics)
+            avg_fast_response = sum(m.fast_response_rate for m in recent_metrics) / len(recent_metrics)
         
         self.baseline = {
             "avg_latency_ms": avg_latency,
             "avg_error_rate": avg_error_rate,
             "fast_response_rate": avg_fast_response,
             "calculated_at": datetime.now().isoformat(),
-            "sample_count": len(recent_metrics)
+            "sample_count": len(recent_metrics),
+            "method": "ewma" if use_ewma else "simple"
         }
         
         return self.baseline

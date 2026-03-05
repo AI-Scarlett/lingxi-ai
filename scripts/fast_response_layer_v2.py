@@ -433,45 +433,94 @@ LAYER0_RULES = [
     ),
 ]
 
-# ==================== Layer 1: 缓存响应 ====================
+# ==================== Layer 1: 缓存响应 (带 TTL) ====================
+
+@dataclass
+class CacheEntry:
+    """缓存条目（带时间戳）"""
+    value: Any
+    created_at: float  # 创建时间戳（秒）
+    ttl_seconds: int   # 过期时间（秒）
+    
+    def is_expired(self) -> bool:
+        """检查是否过期"""
+        return time.time() - self.created_at > self.ttl_seconds
 
 class LRUCache:
-    """LRU 缓存 - 记忆永不丢失的基石"""
+    """LRU 缓存 - 带 TTL 过期机制"""
     
-    def __init__(self, capacity: int = 1000):
+    def __init__(self, capacity: int = 1000, default_ttl: int = 3600):
         self.capacity = capacity
-        self.cache: Dict[str, Any] = {}
+        self.default_ttl = default_ttl  # 默认 1 小时过期
+        self.cache: Dict[str, CacheEntry] = {}
         self.order: list = []
         self.hits = 0
         self.misses = 0
+        self.expirations = 0
     
     def get(self, key: str) -> Optional[Any]:
         if key in self.cache:
+            entry = self.cache[key]
+            # 检查是否过期
+            if entry.is_expired():
+                self._remove(key)
+                self.expirations += 1
+                self.misses += 1
+                return None
+            
             self.hits += 1
             self.order.remove(key)
             self.order.append(key)
-            return self.cache[key]
+            return entry.value
         self.misses += 1
         return None
     
-    def put(self, key: str, value: Any):
+    def put(self, key: str, value: Any, ttl: int = None):
+        """添加缓存（支持自定义 TTL）"""
         if key in self.cache:
             self.order.remove(key)
         elif len(self.cache) >= self.capacity:
+            # 移除最旧的
             oldest = self.order.pop(0)
             del self.cache[oldest]
         
-        self.cache[key] = value
+        # 使用自定义 TTL 或默认 TTL
+        entry_ttl = ttl if ttl is not None else self.default_ttl
+        self.cache[key] = CacheEntry(
+            value=value,
+            created_at=time.time(),
+            ttl_seconds=entry_ttl
+        )
         self.order.append(key)
+    
+    def _remove(self, key: str):
+        """移除缓存条目"""
+        if key in self.cache:
+            del self.cache[key]
+        if key in self.order:
+            self.order.remove(key)
+    
+    def clear_expired(self) -> int:
+        """清理所有过期条目，返回清理数量"""
+        expired_keys = [
+            key for key, entry in self.cache.items()
+            if entry.is_expired()
+        ]
+        for key in expired_keys:
+            self._remove(key)
+            self.expirations += 1
+        return len(expired_keys)
     
     def stats(self) -> Dict:
         total = self.hits + self.misses
         return {
             "hits": self.hits,
             "misses": self.misses,
+            "expirations": self.expirations,
             "hit_rate": f"{self.hits/total*100:.1f}%" if total > 0 else "0%",
             "size": len(self.cache),
-            "capacity": self.capacity
+            "capacity": self.capacity,
+            "default_ttl": f"{self.default_ttl}s"
         }
 
 # 全局缓存实例
