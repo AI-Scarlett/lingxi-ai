@@ -2,7 +2,7 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.8.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.8.4-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-20000x%20faster-orange.svg)](FAST_RESPONSE_BENCHMARK.md)
 [![Memory](https://img.shields.io/badge/memory-persistent-purple.svg)](MEMORY_PERSISTENCE_GUIDE.md)
@@ -57,6 +57,9 @@ reply = await orch.execute_async(
 
 | 版本 | 日期 | 核心功能 | 性能 |
 |------|------|---------|------|
+| **v2.8.4** | 2026-03-05 | **Layer 0 扩展到 100+ 条** | **64.3% 命中率** |
+| **v2.8.3** | 2026-03-05 | **性能全面优化** | **79x 提升** |
+| **v2.8.2** | 2026-03-05 | **Layer 0 规则扩展** | **57% 命中率** |
 | **v2.8.1** | 2026-03-04 | **对话管理 + 记忆继承** | **无缝切换 / 0 失忆** |
 | **v2.8.0** | 2026-03-04 | **真·并行执行 + 老板优先** | **5x 并发 / 0 等待** |
 | **v2.7.1** | 2026-03-04 | **快速响应层 + 记忆持久化** | **0.005ms / 省 88.9%** |
@@ -67,7 +70,11 @@ reply = await orch.execute_async(
 | v2.4.0 | 2026-03-03 | 语音交互系统 | 50+ 音色 |
 | v2.3.0 | 2026-03-03 | 智能学习系统 | 速度 +85.8% |
 | v2.2.0 | 2026-03-03 | S0→S3 四层过滤 | 省 70% tokens |
-| v2.1.0 | 2026-03-03 | 异步任务 + QQ Bot | <1 秒响应 |
+| **v2.8.4** | 2026-03-05 | **Layer 0 扩展到 100+ 条** | **64.3% 命中率** |
+| **v2.8.3** | 2026-03-05 | **性能全面优化** | **79x 提升** |
+| **v2.8.2** | 2026-03-05 | **Layer 0 规则扩展** | **57% 命中率** |
+| **v2.8.1** | 2026-03-04 | **对话管理 + 记忆继承** | **无缝切换** |
+| **v2.8.0** | 2026-03-04 | **真·并行执行** | **5x 并发** |
 | v1.1.0 | 2026-03-01 | 性能提升 500 倍 | 0.1ms / 300ms |
 | v1.0.0 | 2026-02-27 | 初始版本 | 50ms / 2s |
 
@@ -308,7 +315,7 @@ memory/
 - 评估成本降低 **70%**
 - 复杂任务成功率 **98%**
 
-### v2.1.0 - 异步任务 + QQ Bot
+### v2.8.4 - Layer 0 扩展到 100+ 条规则 (最新)
 
 **核心功能:**
 - ✅ 多任务并行处理
