@@ -2,7 +2,7 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.8.8-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.9.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-20000x%20faster-orange.svg)](scripts/FAST_RESPONSE_BENCHMARK.md)
 [![Learning](https://img.shields.io/badge/learning-self--improving-purple.svg)](LEARNING_LAYER_GUIDE.md)
@@ -55,6 +55,7 @@ reply = await orch.execute(
 
 | 版本 | 日期 | 核心功能 | 性能提升 | 详情 |
 |------|------|---------|---------|------|
+| **v2.9.0** | 2026-03-05 | **Layer 0 技能调用系统 (5 个技能配置完成)** | **零 LLM 调用** | [详情](#v290---layer-0-技能调用系统-) |
 | **v2.8.8** | 2026-03-05 | **HEARTBEAT 任务同步 + Layer 0 自定义配置 + 文档错误检测** | **实时任务追踪** | [详情](#v288---heartbeat-任务同步--layer-0-自定义配置-) |
 | **v2.8.7** | 2026-03-05 | **代码质量修复完成 + 性能基准测试 + 文档自动化** | **100% 问题解决** | [详情](#v287---代码质量修复完成-) |
 | **v2.8.5** | 2026-03-05 | **自学习层 + 自动重试 + 性能监控 + 安全加固** | **越用越聪明** | [详情](#v285---自学习层-learning-layer-) |
@@ -81,7 +82,52 @@ reply = await orch.execute(
 
 ## 🆕 最新版本详解
 
-### v2.8.8 - HEARTBEAT 任务同步 + Layer 0 自定义配置 🆕
+### v2.9.0 - Layer 0 技能调用系统 🆕
+
+**发布日期**: 2026-03-05
+
+**核心功能**:
+
+#### ⚡ Layer 0 技能直接调用（5 个已配置）
+
+**1. 🔍 查找/搜索新闻**
+- 触发词："查找新闻", "搜索新闻", "百度一下新闻"
+- Action: `browser_search`
+- 回复："好的老板～ 马上打开百度搜索～🔍"
+
+**2. 📝 写公众号内容**
+- 触发词："写公众号", "公众号文章", "同步到公众号"
+- Action: `wechat_create_draft`
+- 回复："好的老板～ 马上为您撰写并发布到公众号草稿箱～📝"
+
+**3. 📸 来张自拍/照片**
+- 触发词："来张自拍", "自拍", "你的照片"
+- Action: `clawra_selfie`
+- 回复："好的老板～ 马上就来～💋"
+
+**4. 📱 发微博（自拍 + 文案）**
+- 触发词："发微博", "微博发布", "发个自拍到微博"
+- Action: `weibo_post_with_image`
+- 回复："好的老板～ 马上生成自拍并发布到微博～📱"
+
+**5. 📋 检查任务执行情况**
+- 触发词："检查任务", "任务执行情况", "HEARTBEAT 任务"
+- Action: `heartbeat_get_status`
+- 回复："好的老板～ 马上整理任务执行情况～📋"
+
+**配置文件**: `~/.openclaw/workspace/.learnings/layer0_skills.json`
+
+**预期收益**:
+- 响应时间：<5ms
+- Tokens 消耗：0
+- 成本：¥0
+- 用户体验：秒回
+
+**使用指南**: [docs/LAYER0_SKILLS_GUIDE.md](docs/LAYER0_SKILLS_GUIDE.md)
+
+---
+
+### v2.8.8 - HEARTBEAT 任务同步 + Layer 0 自定义配置
 
 **发布日期**: 2026-03-05
 
