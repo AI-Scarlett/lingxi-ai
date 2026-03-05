@@ -41,6 +41,14 @@ except ImportError:
     CUSTOM_RULES_ENABLED = False
     print("⚠️  自定义规则系统未启用")
 
+# 导入技能调用系统
+try:
+    from layer0_skills import match_layer0_skill
+    LAYER0_SKILLS_ENABLED = True
+except ImportError:
+    LAYER0_SKILLS_ENABLED = False
+    print("⚠️  Layer 0 技能系统未启用")
+
 # Layer 0 规则库 - 完全不调 LLM（v2.0: 30 条 → 100+ 条）
 LAYER0_RULES = [
     # ========== 问候类 (15 条) ==========
@@ -543,25 +551,41 @@ def normalize_text(text: str) -> str:
     text = re.sub(r'[^\w\s\u4e00-\u9fff]', '', text)
     return text
 
-def match_layer0(user_input: str) -> Tuple[bool, Optional[str]]:
+def match_layer0(user_input: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
     """
-    Layer 0: 零思考响应匹配（优化版 + 自定义规则）
+    Layer 0: 零思考响应匹配（优化版 + 自定义规则 + 技能调用）
     
     优化点：
     1. 按优先级排序匹配
     2. 最长匹配优先
     3. 提前返回
     4. 支持用户自定义规则
+    5. 支持直接调用技能
+    
+    Returns:
+        (matched, response, skill_action)
+        skill_action = {
+            "skill_name": str,
+            "action": str,
+            "params": dict,
+            "reply": str
+        }
     """
     normalized = normalize_text(user_input)
     
-    # 1️⃣ 优先匹配自定义规则（用户配置）
+    # 1️⃣ 优先匹配技能调用（最高优先级）
+    if LAYER0_SKILLS_ENABLED:
+        matched, skill_result = match_layer0_skill(user_input)
+        if matched:
+            return True, skill_result["reply"], skill_result
+    
+    # 2️⃣ 匹配自定义规则（用户配置）
     if CUSTOM_RULES_ENABLED:
         matched, response = match_custom_rules(user_input)
         if matched:
-            return True, response
+            return True, response, None
     
-    # 2️⃣ 匹配内置规则
+    # 3️⃣ 匹配内置规则
     sorted_rules = sorted(LAYER0_RULES, key=lambda x: x.priority, reverse=True)
     
     best_match = None
@@ -575,13 +599,13 @@ def match_layer0(user_input: str) -> Tuple[bool, Optional[str]]:
                     best_length = len(pattern)
                     # 动态响应
                     if callable(rule.response):
-                        return True, rule.response()
+                        return True, rule.response(), None
                     best_match = rule.response
     
     if best_match:
-        return True, best_match
+        return True, best_match, None
     
-    return False, None
+    return False, None, None
 
 # ==================== Layer 1: 缓存匹配 ====================
 
@@ -602,12 +626,13 @@ def cache_response(user_input: str, response: str):
 
 @dataclass
 class ResponseResult:
-    """响应结果"""
+    """响应结果（支持技能调用）"""
     layer: str
     response: str
     latency_ms: float
     tokens_saved: bool
     cache_hit: bool
+    skill_action: Optional[Dict] = None  # 技能调用信息
 
 def fast_respond(user_input: str, skip_layers: list = None) -> ResponseResult:
     """
@@ -625,7 +650,7 @@ def fast_respond(user_input: str, skip_layers: list = None) -> ResponseResult:
     
     # Layer 0: 零思考响应 (<5ms)
     if 'layer0' not in skip_layers:
-        matched, response = match_layer0(user_input)
+        matched, response, skill_action = match_layer0(user_input)
         if matched:
             latency = (time.time() - start_time) * 1000
             return ResponseResult(
@@ -633,7 +658,8 @@ def fast_respond(user_input: str, skip_layers: list = None) -> ResponseResult:
                 response=response,
                 latency_ms=latency,
                 tokens_saved=True,
-                cache_hit=False
+                cache_hit=False,
+                skill_action=skill_action
             )
     
     # Layer 1: 缓存响应 (<10ms)
