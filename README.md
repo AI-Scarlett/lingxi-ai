@@ -2,7 +2,7 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.9.0-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.9.1-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-20000x%20faster-orange.svg)](scripts/FAST_RESPONSE_BENCHMARK.md)
 [![Learning](https://img.shields.io/badge/learning-self--improving-purple.svg)](LEARNING_LAYER_GUIDE.md)
@@ -55,6 +55,7 @@ reply = await orch.execute(
 
 | 版本 | 日期 | 核心功能 | 性能提升 | 详情 |
 |------|------|---------|---------|------|
+| **v2.9.1** | 2026-03-05 | **对话管理器集成修复 + 质量审核层 + 审计日志层 + HEARTBEAT 看板** | **100% 对话监控** | [详情](#v291---对话管理器集成修复--质量审核层-) |
 | **v2.9.0** | 2026-03-05 | **Layer 0 技能调用系统 ** | **零 LLM 调用** | [详情](#v290---layer-0-技能调用系统-) |
 | **v2.8.8** | 2026-03-05 | **HEARTBEAT 任务同步 + Layer 0 自定义配置 + 文档错误检测** | **实时任务追踪** | [详情](#v288---heartbeat-任务同步--layer-0-自定义配置-) |
 | **v2.8.7** | 2026-03-05 | **代码质量修复完成 + 性能基准测试 + 文档自动化** | **100% 问题解决** | [详情](#v287---代码质量修复完成-) |
@@ -81,6 +82,96 @@ reply = await orch.execute(
 ---
 
 ## 🆕 最新版本详解
+
+### v2.9.1 - 对话管理器集成修复 + 质量审核层 🆕
+
+**发布日期**: 2026-03-05
+
+**核心功能**:
+
+#### 🔧 对话管理器集成修复
+- ✅ 修复 v2.8.1 对话管理器未实际调用问题
+- ✅ 在 `orchestrator_v2.py` 的 `execute()` 中集成对话长度检查
+- ✅ 80 条时警告，100 条时建议开启新对话
+- ✅ 记忆继承：偏好/关系/知识全部保留
+- ✅ 无缝切换，用户无感知
+
+**问题**: 之前对话管理器虽然导入但未在 `execute()` 中实际调用，导致对话长度监控失效
+
+**修复**: 在任务执行开始时检查对话长度，超过阈值自动返回提醒
+
+---
+
+#### 🔍 质量审核层 (QA Review Layer)
+- ✅ 4 项通用质量检查 + 3 项类型特定检查
+- ✅ 自动驳回机制（<40 分直接驳回）
+- ✅ 改进建议生成
+- ✅ 支持文案/代码/数据分析等类型
+- ✅ 新旧版本兼容（`auto_review_enabled=False` 禁用）
+
+**检查项示例**:
+- 内容完整性：长度>10 字符
+- 无乱码/占位符
+- 逻辑连贯性
+- 文案：有标题/emoji/分段/行动号召
+- 代码：语法正确/有注释/无硬编码
+- 数据分析：有数据支撑/有结论/有建议
+
+**文件**: `scripts/review_layer.py`
+
+---
+
+#### 📊 HEARTBEAT 看板优化
+- ✅ kanban 格式输出（任务看板可视化）
+- ✅ Agent 健康状态显示
+- ✅ 任务统计图表
+- ✅ 支持文本/看板双格式
+- ✅ 新旧版本兼容（默认 text 格式）
+
+**使用**:
+```python
+# 文本格式（旧版兼容）
+report = sync.generate_heartbeat_report()
+
+# 看板格式（新版）
+report = sync.generate_heartbeat_report(format="kanban")
+```
+
+---
+
+#### 📜 审计日志层 (Audit Log Layer)
+- ✅ 5 阶段时间线（任务接收→任务规划→质量审核→任务执行→任务完成）
+- ✅ 结构化 JSON 存储（`~/.learnings/audits/`）
+- ✅ 导出 Markdown 时间线
+- ✅ 可复现可审计
+- ✅ 新旧版本兼容（`auto_save=False` 禁用）
+
+**文件**: `scripts/audit_layer.py`
+
+**时间线示例**:
+```
+📨 任务接收 → 📝 任务规划 → 🔍 质量审核 → ⚙️ 任务执行 → ✅ 任务完成
+```
+
+---
+
+**版本兼容性**:
+```python
+SmartOrchestrator(
+    enable_review=True,   # 质量审核层
+    enable_audit=True     # 审计日志层
+)
+```
+
+**预期收益**:
+- 对话监控：100% 生效
+- 质量提升：自动检测低质内容
+- 可追溯性：完整审计日志
+- 兼容性：旧版本不受影响
+
+**参考项目**: [edict - 三省六部制 AI 多 Agent 协作](https://github.com/cft0808/edict)
+
+---
 
 ### v2.9.0 - Layer 0 技能调用系统 🆕
 
