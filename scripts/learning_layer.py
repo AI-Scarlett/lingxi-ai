@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 import asyncio
+from collections import deque
 
 # ==================== 配置 ====================
 
@@ -389,10 +390,20 @@ class ErrorDetector:
 class LearningLayer:
     """学习层主控制器"""
     
-    def __init__(self):
+    def __init__(self, max_history: int = 1000):
+        """初始化学习层
+        
+        Args:
+            max_history: 历史记录最大条数（默认 1000，防止内存泄漏）
+        """
         self.logger = LearningLogger()
         self.detector = ErrorDetector(self.logger)
         self.enabled = True
+        
+        # 使用 deque 限制大小，防止内存泄漏
+        self.execution_history = deque(maxlen=max_history)
+        self.error_history = deque(maxlen=max_history)
+        self.learning_logs = deque(maxlen=max_history)
     
     def on_task_start(self, task_id: str, task_description: str):
         """任务开始时的 Hook"""
@@ -487,6 +498,9 @@ class LearningLayer:
         """获取统计信息"""
         return {
             "enabled": self.enabled,
+            "execution_history_size": len(self.execution_history),
+            "error_history_size": len(self.error_history),
+            "learning_logs_size": len(self.learning_logs),
             "logger": self.logger.get_statistics(),
             "detector": {"error_keywords_count": len(ERROR_KEYWORDS)}
         }

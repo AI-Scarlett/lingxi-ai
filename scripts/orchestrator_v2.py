@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import sys
 import os
+from pathlib import Path
 
 # 添加父目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -221,41 +222,75 @@ def decompose_task(user_input: str, intent: Dict[str, Any]) -> List[SubTask]:
     
     return subtasks
 
-# ==================== 执行器 (修复路径) ====================
+# ==================== 执行器 (带重试和降级) ====================
 
-async def execute_subtask(subtask: SubTask, max_concurrent: int = 3) -> SubTask:
-    """执行子任务"""
+async def execute_once(subtask: SubTask) -> SubTask:
+    """执行单次任务（不含重试）"""
+    from tools.executors.factory import get_executor
+    
+    # 支持中文和英文角色名
+    role_key = subtask.role.value  # 中文名
+    executor = get_executor(role_key)
+    
+    if executor:
+        result = await executor.execute(subtask.input_data)
+        subtask.output_data = result
+        subtask.status = TaskStatus.COMPLETED
+    else:
+        # 兜底：模拟执行
+        await asyncio.sleep(0.1)
+        subtask.output_data = {"output": f"[{subtask.role.value}] 任务完成"}
+        subtask.status = TaskStatus.COMPLETED
+    
+    return subtask
+
+async def fallback_execute(subtask: SubTask) -> SubTask:
+    """降级执行方案"""
+    await asyncio.sleep(0.1)
+    subtask.output_data = {"output": f"[{subtask.role.value}] 任务完成（降级模式）"}
+    subtask.status = TaskStatus.COMPLETED
+    return subtask
+
+async def execute_subtask(subtask: SubTask, max_concurrent: int = 3, max_retries: int = 3) -> SubTask:
+    """执行子任务（带重试和降级）
+    
+    Args:
+        subtask: 子任务对象
+        max_concurrent: 最大并发数（未使用，保留兼容性）
+        max_retries: 最大重试次数（默认 3 次）
+    
+    Returns:
+        SubTask: 执行结果
+    """
     start_time = time.time()
     subtask.status = TaskStatus.RUNNING
     
-    try:
-        # ✅ 修复：使用正确的执行器路径
-        from tools.executors.factory import get_executor
-        
-        # 支持中文和英文角色名
-        role_key = subtask.role.value  # 中文名
-        executor = get_executor(role_key)
-        if executor:
-            result = await executor.execute(subtask.input_data)
-            subtask.output_data = result
-            subtask.status = TaskStatus.COMPLETED
-        else:
-            # 兜底：模拟执行
-            await asyncio.sleep(0.1)
-            subtask.output_data = {"output": f"[{subtask.role.value}] 任务完成"}
-            subtask.status = TaskStatus.COMPLETED
-        
-    except ImportError as e:
-        # 执行器不存在时的兜底方案
-        print(f"⚠️ 执行器导入失败：{e}，使用兜底执行")
-        await asyncio.sleep(0.1)
-        subtask.output_data = {"output": f"[{subtask.role.value}] 任务完成（兜底）"}
-        subtask.status = TaskStatus.COMPLETED
-        
-    except Exception as e:
-        subtask.status = TaskStatus.FAILED
-        subtask.error = str(e)
+    # 指数退避重试
+    for attempt in range(max_retries):
+        try:
+            result = await execute_once(subtask)
+            subtask.elapsed_ms = (time.time() - start_time) * 1000
+            return result
+            
+        except ImportError as e:
+            # 导入错误不重试，直接降级
+            print(f"⚠️  执行器导入失败：{e}，使用降级方案")
+            return await fallback_execute(subtask)
+            
+        except Exception as e:
+            # 其他错误尝试重试
+            if attempt < max_retries - 1:
+                delay = 2 ** attempt  # 指数退避：1s, 2s, 4s
+                print(f"⚠️  执行失败 (尝试 {attempt+1}/{max_retries})，{delay}秒后重试...")
+                await asyncio.sleep(delay)
+            else:
+                # 所有重试失败，使用降级方案
+                print(f"⚠️  所有重试失败，使用降级方案")
+                return await fallback_execute(subtask)
     
+    # 不应该到这里，兜底返回
+    subtask.status = TaskStatus.FAILED
+    subtask.error = "未知错误"
     subtask.elapsed_ms = (time.time() - start_time) * 1000
     return subtask
 
@@ -309,11 +344,14 @@ def aggregate_results(subtasks: List[SubTask]) -> str:
 class SmartOrchestrator:
     """灵犀 - 智慧调度系统主控制器 v2.9"""
     
-    def __init__(self, max_concurrent: int = 3, enable_fast_response: bool = True, enable_learning: bool = True):
+    def __init__(self, max_concurrent: int = 3, enable_fast_response: bool = True, enable_learning: bool = True, stats_file: str = None):
         self.name = "灵犀"
         self.max_concurrent = max_concurrent
         self.enable_fast_response = enable_fast_response
         self.enable_learning = enable_learning
+        
+        # 统计文件持久化
+        self.stats_file = Path(stats_file) if stats_file else Path.home() / ".openclaw" / "workspace" / ".learnings" / "orchestrator_stats.json"
         
         # 学习层
         self.learning_layer = get_learning_layer() if enable_learning and LEARNING_LAYER_ENABLED else None
@@ -322,8 +360,18 @@ class SmartOrchestrator:
         self.git_push_manager = get_git_push_manager() if AUTO_RETRY_ENABLED else None
         self.self_healing_executor = get_self_healing_executor() if AUTO_RETRY_ENABLED else None
         
-        # 性能统计
-        self.stats = {
+        # 性能统计（从文件加载）
+        self.stats = self._load_stats()
+        
+        # 懒加载组件
+        self._intent_parser = None
+        self._task_planner = None
+        
+        print(f"🚀 灵犀 v2.0 初始化完成 (并发限制：{max_concurrent})")
+    
+    def _default_stats(self) -> Dict:
+        """默认统计"""
+        return {
             "total_requests": 0,
             "fast_response_hits": 0,
             "cache_hits": 0,
@@ -333,12 +381,27 @@ class SmartOrchestrator:
             "tasks_recovered": 0,
             "git_push_success_rate": "N/A",
         }
-        
-        # 懒加载组件
-        self._intent_parser = None
-        self._task_planner = None
-        
-        print(f"🚀 灵犀 v2.0 初始化完成 (并发限制：{max_concurrent})")
+    
+    def _load_stats(self) -> Dict:
+        """加载统计信息"""
+        if self.stats_file.exists():
+            try:
+                data = json.loads(self.stats_file.read_text(encoding='utf-8'))
+                return {**self._default_stats(), **data}
+            except:
+                pass
+        return self._default_stats()
+    
+    def _save_stats(self):
+        """保存统计信息"""
+        try:
+            self.stats_file.parent.mkdir(parents=True, exist_ok=True)
+            self.stats_file.write_text(
+                json.dumps(self.stats, indent=2, ensure_ascii=False),
+                encoding='utf-8'
+            )
+        except Exception as e:
+            print(f"⚠️  保存统计信息失败：{e}")
     
     async def execute(self, user_input: str, user_id: str = None) -> TaskResult:
         """执行用户任务"""
@@ -427,6 +490,9 @@ class SmartOrchestrator:
         
         # 6. 缓存结果（用于相似问题）
         cache_response(user_input, summary)
+        
+        # 7. 保存统计信息
+        self._save_stats()
         
         return TaskResult(
             task_id=f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}",

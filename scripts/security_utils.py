@@ -20,21 +20,21 @@ import asyncio
 
 # ==================== 配置 ====================
 
-# 安全文件路径白名单
-SAFE_PATHS = [
-    Path.home() / ".openclaw" / "workspace",
-    Path.home() / ".openclaw" / "skills",
-    Path.home() / ".openclaw" / "extensions",
-]
+import os
+
+# 安全文件路径白名单（从环境变量读取，支持自定义）
+SAFE_PATHS_ENV = os.getenv(
+    "LINGXI_SAFE_PATHS",
+    f"{Path.home()}/.openclaw/workspace,{Path.home()}/.openclaw/skills,{Path.home()}/.openclaw/extensions"
+)
+SAFE_PATHS = [Path(p.strip()) for p in SAFE_PATHS_ENV.split(",")]
 
 # 禁止访问的路径
-FORBIDDEN_PATHS = [
-    "/etc",
-    "/root/.ssh",
-    "/proc",
-    "/sys",
-    "/dev",
-]
+FORBIDDEN_PATHS_ENV = os.getenv(
+    "LINGXI_FORBIDDEN_PATHS",
+    "/etc,/root/.ssh,/proc,/sys,/dev,/boot,/var/log"
+)
+FORBIDDEN_PATHS = [p.strip() for p in FORBIDDEN_PATHS_ENV.split(",")]
 
 # 危险命令关键词
 DANGEROUS_COMMANDS = [
