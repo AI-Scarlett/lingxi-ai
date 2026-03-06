@@ -2,7 +2,7 @@
 
 > **心有灵犀，一点就通** - 企业级 AI 智能调度系统 💋
 
-[![Version](https://img.shields.io/badge/version-2.9.1-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-2.9.3-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Performance](https://img.shields.io/badge/performance-20000x%20faster-orange.svg)](scripts/FAST_RESPONSE_BENCHMARK.md)
 [![Learning](https://img.shields.io/badge/learning-self--improving-purple.svg)](LEARNING_LAYER_GUIDE.md)
@@ -55,6 +55,8 @@ reply = await orch.execute(
 
 | 版本 | 日期 | 核心功能 | 性能提升 | 详情 |
 |------|------|---------|---------|------|
+| **v2.9.3** | 2026-03-06 | **❤️ 定时任务自动同步到 HEARTBEAT.md** | **开箱即用** | [详情](#v293---定时任务自动同步修复-) |
+| **v2.9.2** | 2026-03-06 | **💓 心跳同步机制修复** | **实时任务追踪** | [详情](#v292---心跳同步机制修复-) |
 | **v2.9.1** | 2026-03-05 | **对话管理器集成修复 + 质量审核层 + 审计日志层 + HEARTBEAT 看板** | **100% 对话监控** | [详情](#v291---对话管理器集成修复--质量审核层-) |
 | **v2.9.0** | 2026-03-05 | **Layer 0 技能调用系统 ** | **零 LLM 调用** | [详情](#v290---layer-0-技能调用系统-) |
 | **v2.8.8** | 2026-03-05 | **HEARTBEAT 任务同步 + Layer 0 自定义配置 + 文档错误检测** | **实时任务追踪** | [详情](#v288---heartbeat-任务同步--layer-0-自定义配置-) |
@@ -82,6 +84,85 @@ reply = await orch.execute(
 ---
 
 ## 🆕 最新版本详解
+
+### v2.9.3 - 定时任务自动同步修复 ❤️ 🆕
+
+**发布日期**: 2026-03-06
+
+**问题根因**:
+- ❌ HEARTBEAT.md 不显示 cron 定时任务（如两会新闻监控）
+- ❌ `heartbeat_task_sync.py` 未读取 `cron/jobs.json`
+- ❌ 这是 skill 本身的缺陷，不是用户配置问题
+
+**修复方案**:
+- ✅ 新增 `_load_cron_jobs()` 方法读取 `cron/jobs.json`
+- ✅ 自动合并启用的 cron 任务到 HEARTBEAT.md 定时任务列表
+- ✅ 无需用户手动配置，开箱即用
+
+**文件**: `scripts/heartbeat_task_sync.py`
+
+**代码示例**:
+```python
+def _load_cron_jobs(self) -> List[Dict]:
+    """从 cron/jobs.json 读取定时任务"""
+    cron_file = Path.home() / ".openclaw" / "cron" / "jobs.json"
+    if not cron_file.exists():
+        return []
+    
+    data = json.loads(cron_file.read_text(encoding='utf-8'))
+    jobs = data.get("jobs", [])
+    # 只返回启用的任务
+    return [job for job in jobs if job.get("enabled", True)]
+```
+
+**效果**: HEARTBEAT.md 现在完整显示所有定时任务，无需额外配置！
+
+---
+
+### v2.9.2 - 心跳同步机制修复 💓 🆕
+
+**发布日期**: 2026-03-06
+
+**核心改进**:
+
+#### ❤️ 心跳同步集成
+- ✅ 在 `orchestrator_async.py` 中集成 `heartbeat_task_sync` 钩子
+- ✅ 任务收到时自动调用 `on_task_received()` 写入 HEARTBEAT.md
+- ✅ 任务完成时自动调用 `on_task_completed()` 更新状态
+- ✅ 心跳间隔配置为 5 分钟（300 秒）
+
+#### 🐛 Bug 修复
+- ✅ 修复 `heartbeat_task_sync.py` 中 Task 对象反序列化问题
+- ✅ 在 `async_executor.py` 中添加 `get_task_result()` 方法支持等待任务完成
+
+**文件**:
+- `scripts/orchestrator_async.py` - 添加心跳同步钩子
+- `scripts/heartbeat_task_sync.py` - 修复 Task.from_dict() 反序列化
+- `scripts/async_executor.py` - 新增 get_task_result() 方法
+
+**代码示例**:
+```python
+# orchestrator_async.py
+from heartbeat_task_sync import on_task_received, on_task_completed
+
+# 任务收到时
+on_task_received(
+    task_id=task_id,
+    description=user_input[:100],
+    channel=channel,
+    user_id=user_id
+)
+
+# 任务完成时
+on_task_completed(task_id=task_id)
+```
+
+**效果**: 
+- 💓 HEARTBEAT.md 实时同步任务状态
+- ⏱️ 每 5 分钟心跳检查一次
+- 📊 任务状态可视化（进行中/已完成/定时任务）
+
+---
 
 ### v2.9.1 - 对话管理器集成修复 + 质量审核层 🆕
 
