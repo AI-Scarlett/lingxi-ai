@@ -339,28 +339,54 @@ class AliBailianEngine(BaseVoiceEngine):
             raise Exception(f"阿里云百炼语音识别失败：{e}")
     
     def text_to_speech(self, text: str, voice_id: Optional[str] = None, **kwargs) -> bytes:
-        """阿里云百炼语音合成（支持 50+ 音色）"""
+        """阿里云百炼语音合成（使用 qwen3-tts-flash 模型）"""
         try:
             import dashscope
-            from dashscope import SpeechSynthesizer
+            import os
+            from dashscope import MultiModalConversation
             
             # 设置 API Key
             dashscope.api_key = self.config.api_key
+            dashscope.base_http_api_url = 'https://dashscope.aliyuncs.com/api/v1'
             
-            # 音色选择（默认：中文女声）
-            voice_name = voice_id or self.config.voice_id or "longxiaochun"
+            # 音色选择（默认：Cherry）
+            voice_name = voice_id or self.config.voice_id or "Cherry"
             
-            # 调用语音合成 API
-            response = SpeechSynthesizer.call(
-                model='sambert-zh-v1',
-                voice=voice_name,
-                text=text
+            # 使用 qwen3-tts-flash 模型（支持实时语音合成）
+            response = MultiModalConversation.call(
+                model="qwen3-tts-flash",
+                text=text,
+                voice=voice_name
             )
             
-            if response.status_code == 200:
-                return response.get_audio_data()
-            else:
-                raise Exception(f"语音合成失败：{response.message}")
+            # 解析响应
+            if response and isinstance(response, dict):
+                output = response.get('output', {})
+                audio_info = output.get('audio', {})
+                
+                # 尝试获取音频 URL 或 data
+                audio_url = audio_info.get('url')
+                audio_data_b64 = audio_info.get('data')
+                
+                if audio_url:
+                    # 从 URL 下载音频
+                    import requests
+                    audio_response = requests.get(audio_url)
+                    if audio_response.status_code == 200:
+                        return audio_response.content
+                
+                if audio_data_b64:
+                    # Base64 解码
+                    import base64
+                    return base64.b64decode(audio_data_b64)
+                
+                # 检查错误
+                code = response.get('code', '')
+                message = response.get('message', '')
+                if code:
+                    raise Exception(f"{code}: {message}")
+            
+            raise Exception("无法获取音频数据")
                 
         except Exception as e:
             raise Exception(f"阿里云百炼语音合成失败：{e}")
