@@ -160,13 +160,13 @@ def create_orchestrator(config: Dict):
     """创建 Orchestrator 实例"""
     from scripts.orchestrator_v2 import SmartOrchestrator
     
+    # 传递所有配置参数
     return SmartOrchestrator(
         max_concurrent=config.get("max_concurrent", 3),
-        enable_review=config.get("enable_review", False),
-        enable_audit=config.get("enable_audit", False),
-        enable_learning=config.get("enable_learning", True),
         enable_fast_response=config.get("fast_response", True),
-        enable_auto_retry=config.get("enable_auto_retry", True)
+        enable_learning=config.get("enable_learning", True),
+        enable_review=config.get("enable_review", False),
+        enable_audit=config.get("enable_audit", False)
     )
 
 def get_channel_orchestrator(channel: str, user_id: str, 

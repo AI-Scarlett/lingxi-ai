@@ -386,11 +386,15 @@ def aggregate_results(subtasks: List[SubTask]) -> str:
 class SmartOrchestrator:
     """灵犀 - 智慧调度系统主控制器 v2.9"""
     
-    def __init__(self, max_concurrent: int = 3, enable_fast_response: bool = True, enable_learning: bool = True, stats_file: str = None):
+    def __init__(self, max_concurrent: int = 3, enable_fast_response: bool = True, 
+                 enable_learning: bool = True, enable_review: bool = False, 
+                 enable_audit: bool = False, stats_file: str = None):
         self.name = "灵犀"
         self.max_concurrent = max_concurrent
         self.enable_fast_response = enable_fast_response
         self.enable_learning = enable_learning
+        self.enable_review = enable_review
+        self.enable_audit = enable_audit
         
         # 统计文件持久化
         self.stats_file = Path(stats_file) if stats_file else Path.home() / ".openclaw" / "workspace" / ".learnings" / "orchestrator_stats.json"
