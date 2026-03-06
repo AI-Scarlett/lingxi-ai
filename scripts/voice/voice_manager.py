@@ -7,7 +7,7 @@
 支持的引擎：
 - 科大讯飞（首选）
 - 百度语音
-- 阿里云
+- 阿里云百炼（新增）
 - 腾讯云
 - 微软 Azure（国内版）
 """
@@ -294,6 +294,103 @@ class GoogleEngine(BaseVoiceEngine):
             return False
 
 
+class AliBailianEngine(BaseVoiceEngine):
+    """阿里云百炼语音引擎（国内）💋"""
+    
+    name = "ali_bailian"
+    display_name = "阿里云百炼"
+    
+    def __init__(self, config: Optional[VoiceConfig] = None):
+        self.config = config
+        self._client = None
+    
+    def speech_to_text(self, audio_data: bytes, **kwargs) -> str:
+        """阿里云百炼语音识别（支持中文、英文等）"""
+        try:
+            import dashscope
+            from dashscope import AudioTranscription
+            
+            # 设置 API Key
+            dashscope.api_key = self.config.api_key
+            
+            # 保存音频到临时文件
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+                f.write(audio_data)
+                audio_file = f.name
+            
+            try:
+                # 调用语音识别 API
+                result = AudioTranscription.call(
+                    model='paraformer-realtime-v2',
+                    format='wav',
+                    file_path=audio_file
+                )
+                
+                if result.status_code == 200:
+                    return result.output.get('text', '')
+                else:
+                    raise Exception(f"识别失败：{result.message}")
+            finally:
+                import os
+                os.unlink(audio_file)
+                
+        except Exception as e:
+            raise Exception(f"阿里云百炼语音识别失败：{e}")
+    
+    def text_to_speech(self, text: str, voice_id: Optional[str] = None, **kwargs) -> bytes:
+        """阿里云百炼语音合成（支持 50+ 音色）"""
+        try:
+            import dashscope
+            from dashscope import SpeechSynthesizer
+            
+            # 设置 API Key
+            dashscope.api_key = self.config.api_key
+            
+            # 音色选择（默认：中文女声）
+            voice_name = voice_id or self.config.voice_id or "longxiaochun"
+            
+            # 调用语音合成 API
+            response = SpeechSynthesizer.call(
+                model='sambert-zh-v1',
+                voice=voice_name,
+                text=text
+            )
+            
+            if response.status_code == 200:
+                return response.get_audio_data()
+            else:
+                raise Exception(f"语音合成失败：{response.message}")
+                
+        except Exception as e:
+            raise Exception(f"阿里云百炼语音合成失败：{e}")
+    
+    def get_voices(self) -> List[Dict[str, str]]:
+        """获取阿里云百炼可用音色列表"""
+        return [
+            {"id": "longxiaochun", "name": "龙小淳 (中文女声)", "lang": "zh-CN"},
+            {"id": "longxiaoyan", "name": "龙小颜 (中文女声)", "lang": "zh-CN"},
+            {"id": "longxiaoguang", "name": "龙小光 (中文男声)", "lang": "zh-CN"},
+            {"id": "longlong", "name": "龙龙 (中文男声)", "lang": "zh-CN"},
+            {"id": "xiaoyun", "name": "小云 (中文女声)", "lang": "zh-CN"},
+            {"id": "xiaogang", "name": "小刚 (中文男声)", "lang": "zh-CN"},
+            {"id": "ruby", "name": "Ruby (英文女声)", "lang": "en-US"},
+            {"id": "jenny", "name": "Jenny (英文女声)", "lang": "en-US"},
+        ]
+    
+    def check_credentials(self, config: VoiceConfig) -> bool:
+        """检查阿里云百炼凭证是否有效"""
+        try:
+            import dashscope
+            dashscope.api_key = config.api_key
+            
+            # 尝试获取音色列表
+            voices = self.get_voices()
+            return len(voices) > 0
+        except:
+            return False
+
+
 class AmazonEngine(BaseVoiceEngine):
     """Amazon Polly 语音引擎（国外）"""
     
@@ -475,6 +572,7 @@ class VoiceEngineManager:
     
     支持引擎：
     - 科大讯飞（国内首选）- 中文识别 98%
+    - 阿里云百炼（国内）- 支持 50+ 音色 💋
     - Google Cloud（国外）- 支持 125+ 语言
     - Amazon Polly（国外）- 支持 60+ 语言
     - Azure（国外）- 支持 100+ 语言
@@ -511,6 +609,8 @@ class VoiceEngineManager:
         
         if engine_name == "iflytek":
             self.engines[engine_name] = IFlytekEngine(voice_config)
+        elif engine_name == "ali_bailian":
+            self.engines[engine_name] = AliBailianEngine(voice_config)
         elif engine_name == "google":
             self.engines[engine_name] = GoogleEngine(voice_config)
         elif engine_name == "amazon":

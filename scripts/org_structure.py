@@ -79,9 +79,9 @@ class DepartmentConfig:
     def get_all_roles(self) -> List[str]:
         """获取部门下所有角色"""
         all_roles = [self.head_role]
-        # 递归获取各团队成员（包括子团队）
-        for subteam in team.get("subteams", []):
-            members.extend(await self._get_team_members_recursive(subteam["id"]))
+        # 注意：这里不需要递归获取子团队，因为 teams 字段只包含团队 ID
+        # 如果需要获取团队成员，应该通过 self.teams 字典查找
+        # 这个方法暂时返回部门负责人的角色
         return all_roles
 
 @dataclass
@@ -284,13 +284,8 @@ class AIEnterprise:
             task.assigned_to = escalation_target
             task.status = "escalated"
             print(f"⚠️  任务 {task.task_id} 已升级到：{escalation_target}")
-            # 记录升级原因和时间
-            await self._log_escalation(
-                task_id=task_id,
-                from_role=from_role,
-                to_role=to_role,
-                reason="自动升级 - 原角色无法处理"
-            )
+            # 记录升级原因和时间（暂不实现）
+            # TODO: 实现升级日志记录
         else:
             # 最终升级到 CEO
             task.assigned_to = self.company.ceo_role

@@ -75,7 +75,7 @@ class ConfigMigrator:
         
         return str(backup_file)
     
-    def migrate(self, target_version: str = "v2.3.0") -> MigrationResult:
+    def migrate(self, target_version: str = "v2.9.3") -> MigrationResult:
         """
         迁移配置到目标版本
         
@@ -388,7 +388,7 @@ if __name__ == "__main__":
     
     # 执行迁移
     print("\n🔄 执行迁移到 v2.3.0...")
-    result = migrator.migrate(target_version="v2.3.0")
+    result = migrator.migrate(target_version="v2.9.3")
     
     print(f"\n✅ 迁移完成:")
     print(f"   旧版本：{result.old_version}")
