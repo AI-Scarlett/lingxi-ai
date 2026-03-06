@@ -103,6 +103,21 @@ class HeartbeatTaskSync:
             "last_updated": datetime.now().isoformat()
         }
     
+    def _load_cron_jobs(self) -> List[Dict]:
+        """从 cron/jobs.json 读取定时任务"""
+        cron_file = Path.home() / ".openclaw" / "cron" / "jobs.json"
+        if not cron_file.exists():
+            return []
+        
+        try:
+            data = json.loads(cron_file.read_text(encoding='utf-8'))
+            jobs = data.get("jobs", [])
+            # 只返回启用的任务
+            return [job for job in jobs if job.get("enabled", True)]
+        except Exception as e:
+            print(f"⚠️ 读取 cron 任务失败：{e}")
+            return []
+    
     def _load_state(self) -> Dict:
         """加载任务状态"""
         if self.state_file.exists():
@@ -257,6 +272,21 @@ class HeartbeatTaskSync:
         """生成 HEARTBEAT.md 内容"""
         tasks = self.tasks.get("tasks", {})
         scheduled_tasks = self.tasks.get("scheduled_tasks", [])
+        
+        # 从 cron/jobs.json 读取定时任务
+        cron_jobs = self._load_cron_jobs()
+        if cron_jobs:
+            # 合并 cron 任务到 scheduled_tasks
+            for job in cron_jobs:
+                # 检查是否已存在
+                exists = any(st.get("name") == job["name"] for st in scheduled_tasks)
+                if not exists:
+                    scheduled_tasks.append({
+                        "name": job["name"],
+                        "schedule": job["schedule"].get("expr", "unknown"),
+                        "description": job["payload"].get("message", "")[:100] + "..." if len(job["payload"].get("message", "")) > 100 else job["payload"].get("message", ""),
+                        "source": "cron"
+                    })
         
         # 活动任务列表
         pending_tasks = [t for t in tasks.values() if t.status == "pending"]
