@@ -108,9 +108,21 @@ class HeartbeatTaskSync:
         if self.state_file.exists():
             try:
                 data = json.loads(self.state_file.read_text(encoding='utf-8'))
-                return {**self._default_state(), **data}
-            except:
-                pass
+                result = {**self._default_state(), **data}
+                
+                # 将字典转换回 Task 对象
+                if "tasks" in result:
+                    converted_tasks = {}
+                    for k, v in result["tasks"].items():
+                        if isinstance(v, dict):
+                            converted_tasks[k] = Task.from_dict(v)
+                        else:
+                            converted_tasks[k] = v
+                    result["tasks"] = converted_tasks
+                
+                return result
+            except Exception as e:
+                print(f"⚠️ 加载状态失败：{e}")
         return self._default_state()
     
     def _save_state(self):

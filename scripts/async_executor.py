@@ -343,6 +343,35 @@ class AsyncExecutor:
             "error": task.error
         }
     
+    async def get_task_result(self, task_id: str, timeout: float = None) -> Optional[Dict[str, Any]]:
+        """等待任务完成并返回结果
+        
+        Args:
+            task_id: 任务 ID
+            timeout: 超时时间（秒）
+            
+        Returns:
+            任务结果
+        """
+        import time
+        
+        start_time = time.time()
+        
+        while True:
+            task = self.task_manager.get(task_id)
+            if not task:
+                raise ValueError(f"任务不存在：{task_id}")
+            
+            if task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED]:
+                return self.get_task_status(task_id)
+            
+            # 检查超时
+            if timeout and (time.time() - start_time) > timeout:
+                raise TimeoutError(f"任务超时：{task_id}")
+            
+            # 等待 1 秒后重试
+            await asyncio.sleep(1)
+    
     def get_all_tasks(self, status: Optional[TaskStatus] = None) -> List[Dict[str, Any]]:
         """获取所有任务状态
         

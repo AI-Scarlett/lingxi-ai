@@ -8,6 +8,7 @@
 - 异步任务执行
 - 后台任务不阻塞主对话
 - 完成后主动通知用户
+- HEARTBEAT.md 任务状态同步
 """
 
 import json
@@ -27,6 +28,14 @@ from orchestrator import (
     TaskStatus as OrchTaskStatus,
     RoleType
 )
+
+# 导入心跳同步模块
+try:
+    from heartbeat_task_sync import on_task_received, on_task_completed, get_heartbeat_sync
+    HEARTBEAT_ENABLED = True
+except ImportError:
+    HEARTBEAT_ENABLED = False
+    print("⚠️  heartbeat_task_sync 未找到，心跳同步功能已禁用")
 
 # ==================== 异步编排器 ====================
 
@@ -61,9 +70,25 @@ class AsyncOrchestrator(SmartOrchestrator):
         """
         print(f"\n🎭 {self.name}（{self.role}）: 收到任务，开始分析...\n")
         
+        # 生成任务 ID
+        task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
         # 1. 解析意图
         intent = parse_intent(user_input, user_id)
         print(f"📋 意图识别：{intent['types']}")
+        
+        # ❤️ 心跳同步：任务收到时自动写入 HEARTBEAT.md
+        if HEARTBEAT_ENABLED:
+            try:
+                on_task_received(
+                    task_id=task_id,
+                    description=user_input[:100],
+                    channel=channel,
+                    user_id=user_id
+                )
+                print(f"💓 心跳同步：任务 {task_id} 已写入 HEARTBEAT.md")
+            except Exception as e:
+                print(f"⚠️ 心跳同步失败：{e}")
         
         # 2. 判断是否为耗时任务
         is_long_running = self._is_long_running_task(intent)
@@ -74,12 +99,23 @@ class AsyncOrchestrator(SmartOrchestrator):
                 user_input=user_input,
                 user_id=user_id,
                 channel=channel,
-                intent=intent
+                intent=intent,
+                task_id=task_id
             )
         else:
             # 同步执行（原有逻辑）
-            result = await self.execute(user_input, user_id)
-            return result.final_output
+            try:
+                result = await self.execute(user_input, user_id)
+                # ❤️ 心跳同步：任务完成时更新状态
+                if HEARTBEAT_ENABLED:
+                    on_task_completed(task_id=task_id)
+                    print(f"💓 心跳同步：任务 {task_id} 已完成")
+                return result.final_output
+            except Exception as e:
+                # 失败也要标记完成
+                if HEARTBEAT_ENABLED:
+                    on_task_completed(task_id=task_id)
+                raise e
     
     def _is_long_running_task(self, intent: Dict[str, Any]) -> bool:
         """判断是否为耗时任务
@@ -110,7 +146,8 @@ class AsyncOrchestrator(SmartOrchestrator):
         user_input: str,
         user_id: str,
         channel: str,
-        intent: Dict[str, Any]
+        intent: Dict[str, Any],
+        task_id: str = None
     ) -> str:
         """后台执行耗时任务
         
@@ -123,7 +160,7 @@ class AsyncOrchestrator(SmartOrchestrator):
         command = self._build_command(user_input, intent)
         
         # 启动后台任务
-        task_id = await self.executor.execute(
+        executor_task_id = await self.executor.execute(
             task_type=task_type,
             description=user_input[:100],
             command=command,
@@ -131,6 +168,29 @@ class AsyncOrchestrator(SmartOrchestrator):
             channel=channel,
             notify_on_complete=True
         )
+        
+        # 如果没有传入 task_id，使用 executor 返回的 ID
+        if task_id is None:
+            task_id = executor_task_id
+        
+        # ❤️ 心跳同步：后台任务完成时更新状态
+        async def execute_and_sync():
+            try:
+                # 等待任务执行完成
+                result = await self.executor.get_task_result(executor_task_id)
+                # 标记完成
+                if HEARTBEAT_ENABLED:
+                    on_task_completed(task_id=task_id)
+                    print(f"💓 心跳同步：后台任务 {task_id} 已完成")
+                return result
+            except Exception as e:
+                # 失败也要标记完成
+                if HEARTBEAT_ENABLED:
+                    on_task_completed(task_id=task_id)
+                raise e
+        
+        # 启动后台执行
+        asyncio.create_task(execute_and_sync())
         
         # 返回立即回复（不阻塞）
         return f"好的老板，任务已接收～ 💋\n\n📋 {user_input[:50]}...\n⚙️ 正在后台处理中，完成后我马上 QQ 通知你！\n\n任务 ID: `{task_id}`"
