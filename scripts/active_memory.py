@@ -249,6 +249,10 @@ class ActiveMemorySystem:
         if result is None:
             return False
         
+        # 字符串结果（如"已记录您的偏好"）也值得记录
+        if isinstance(result, str) and len(result) > 0:
+            return True
+        
         if isinstance(result, dict):
             # 有明确类型的结果值得记录
             if "type" in result or "error" in result:
@@ -257,9 +261,6 @@ class ActiveMemorySystem:
             # 有具体内容值得记录
             if len(str(result)) > 20:
                 return True
-        
-        if isinstance(result, str) and len(result) > 20:
-            return True
         
         return False
     
@@ -319,15 +320,24 @@ class ActiveMemorySystem:
     
     def _save_task_result(self, memory: Dict):
         """保存任务结果"""
-        # 添加到任务历史（通过状态管理器）
+        # 简化结果，避免循环引用
+        simple_result = memory["result"]
+        if isinstance(simple_result, dict):
+            # 只保存基本信息
+            simple_result = {
+                "type": simple_result.get("type", "unknown"),
+                "content": str(simple_result.get("content", ""))[:200],
+                "status": simple_result.get("status", "unknown")
+            }
+        
+        # 直接操作，避免递归调用
         self.state.state.task["history"].append({
-            "input": memory["input"],
-            "result": memory["result"],
+            "input": memory["input"][:200],
+            "result": simple_result,
             "completed_at": memory["completed_at"]
         })
         # 保留最近 50 条
         self.state.state.task["history"] = self.state.state.task["history"][-50:]
-        self.state._save_state()
     
     def _save_conversation(self, memory: Dict):
         """保存对话记录"""

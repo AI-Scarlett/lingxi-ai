@@ -242,7 +242,7 @@ class TaskWithMemory:
     async def _search_knowledge(self, params: Dict, context: Dict) -> List[Dict]:
         """搜索知识"""
         query = str(params.get("query", ""))
-        results = self.memory.search_knowledge(query, top_k=5)
+        results = self.state.search_knowledge(query, top_k=5)
         print(f"      📚 找到 {len(results)} 条知识")
         return results
     

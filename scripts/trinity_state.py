@@ -24,10 +24,29 @@ class TrinityState:
     task: Dict[str, Any]
     
     def to_dict(self) -> Dict:
-        return asdict(self)
+        """转换为字典（避免循环引用）"""
+        return {
+            "user_id": self.user_id,
+            "updated_at": self.updated_at,
+            "heartbeat": self.heartbeat,
+            "memory": self.memory,
+            "task": self.task
+        }
     
     def to_json(self) -> str:
-        return json.dumps(self.to_dict(), ensure_ascii=False, indent=2)
+        """转换为 JSON（安全版本）"""
+        try:
+            return json.dumps(self.to_dict(), ensure_ascii=False, indent=2)
+        except (TypeError, RecursionError) as e:
+            # 如果转换失败，返回简化版本
+            print(f"⚠️ JSON 转换失败：{e}，使用简化版本")
+            return json.dumps({
+                "user_id": self.user_id,
+                "updated_at": self.updated_at,
+                "heartbeat": {"tasks": len(self.heartbeat.get("tasks", []))},
+                "memory": {"preferences": len(self.memory.get("preferences", {}))},
+                "task": {"history": len(self.task.get("history", []))}
+            }, ensure_ascii=False, indent=2)
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'TrinityState':
@@ -100,12 +119,24 @@ class TrinityStateManager:
         """保存状态"""
         self.state.updated_at = datetime.now().isoformat()
         
-        # 原子写入（先写临时文件，再重命名）
-        temp_file = self.state_file.with_suffix('.tmp')
-        with open(temp_file, 'w', encoding='utf-8') as f:
-            f.write(self.state.to_json())
-        
-        temp_file.rename(self.state_file)
+        # 直接序列化 state 对象（不使用 to_json 方法）
+        try:
+            data = {
+                "user_id": self.state.user_id,
+                "updated_at": self.state.updated_at,
+                "heartbeat": self.state.heartbeat,
+                "memory": self.state.memory,
+                "task": self.state.task
+            }
+            
+            # 原子写入（先写临时文件，再重命名）
+            temp_file = self.state_file.with_suffix('.tmp')
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            temp_file.rename(self.state_file)
+        except Exception as e:
+            print(f"⚠️ 保存状态失败：{e}")
     
     # ========== 心跳相关方法 ==========
     
