@@ -97,6 +97,16 @@ except ImportError as e:
         print(f"⚠️ 快速响应层导入失败：{e}")
         FAST_RESPONSE_ENABLED = False
 
+# ==================== 导入三位一体系统 ====================
+try:
+    from scripts.trinity_state import get_state_manager, TrinityStateManager
+    from scripts.active_memory import get_active_memory_system, ActiveMemorySystem
+    from scripts.task_with_memory import get_task_with_memory, TaskWithMemory
+    TRINITY_SYSTEM_ENABLED = True
+except ImportError as e:
+    TRINITY_SYSTEM_ENABLED = False
+    print(f"⚠️  三位一体系统导入失败：{e}")
+
 # ==================== 数据结构定义 ====================
 
 class TaskStatus(Enum):
@@ -384,7 +394,7 @@ def aggregate_results(subtasks: List[SubTask]) -> str:
 # ==================== 主控制器 ====================
 
 class SmartOrchestrator:
-    """灵犀 - 智慧调度系统主控制器 v2.9"""
+    """灵犀 - 智慧调度系统主控制器 v3.0 (三位一体)"""
     
     def __init__(self, max_concurrent: int = 3, enable_fast_response: bool = True, 
                  enable_learning: bool = True, enable_review: bool = False, 
@@ -398,6 +408,14 @@ class SmartOrchestrator:
         
         # 统计文件持久化
         self.stats_file = Path(stats_file) if stats_file else Path.home() / ".openclaw" / "workspace" / ".learnings" / "orchestrator_stats.json"
+        
+        # ========== v3.0 三位一体系统 ==========
+        self.trinity_state = None
+        self.trinity_memory = None
+        self.trinity_executor = None
+        
+        if TRINITY_SYSTEM_ENABLED:
+            print(f"🧠 三位一体系统已启用")
         
         # 学习层
         self.learning_layer = get_learning_layer() if enable_learning and LEARNING_LAYER_ENABLED else None
@@ -422,7 +440,7 @@ class SmartOrchestrator:
         self._intent_parser = None
         self._task_planner = None
         
-        print(f"🚀 灵犀 v2.0 初始化完成 (并发限制：{max_concurrent})")
+        print(f"🚀 灵犀 v3.0 初始化完成 (并发限制：{max_concurrent})")
     
     def _default_stats(self) -> Dict:
         """默认统计"""
@@ -465,6 +483,17 @@ class SmartOrchestrator:
         
         try:
             self.stats["total_requests"] += 1
+            
+            # ========== v3.0 三位一体系统初始化 ==========
+            if TRINITY_SYSTEM_ENABLED and user_id:
+                # 初始化状态管理器
+                self.trinity_state = get_state_manager(user_id)
+                # 初始化主动记忆系统
+                self.trinity_memory = get_active_memory_system(user_id)
+                # 初始化任务执行器
+                self.trinity_executor = get_task_with_memory(user_id)
+                
+                print(f"🧠 三位一体系统已就绪")
             
             # ========== 对话管理器 Hook: 检查对话长度 ==========
             conv_warning = None
@@ -510,6 +539,14 @@ class SmartOrchestrator:
                     elapsed = (time.time() - start_time) * 1000
                     self.stats["total_elapsed_ms"] += elapsed
                     
+                    # v3.0: 记录到三位一体系统
+                    if self.trinity_state:
+                        self.trinity_state.add_knowledge({
+                            "type": "fast_response",
+                            "content": fast_result.response[:200],
+                            "tags": ["quick_reply", fast_result.layer]
+                        })
+                    
                     # 缓存响应
                     cache_response(user_input, fast_result.response)
                     
@@ -523,7 +560,28 @@ class SmartOrchestrator:
                         fast_response_layer=fast_result.layer
                     )
             
-            # ========== Layer 2/3: 完整执行 ==========
+            # ========== v3.0: 使用三位一体系统执行 ==========
+            if TRINITY_SYSTEM_ENABLED and self.trinity_executor:
+                print(f"\n🧠 三位一体系统：执行任务...")
+                
+                # 使用带记忆的任务执行器
+                result = await self.trinity_executor.execute(user_input, user_id)
+                
+                elapsed = (time.time() - start_time) * 1000
+                self.stats["total_elapsed_ms"] += elapsed
+                
+                # 从三位一体系统获取结果
+                return TaskResult(
+                    task_id=task_id,
+                    user_input=user_input,
+                    subtasks=[],
+                    total_score=10.0,
+                    final_output=result.get("content", str(result)),
+                    total_elapsed_ms=elapsed,
+                    fast_response_layer="trinity_v3"
+                )
+            
+            # ========== Layer 2/3: 完整执行（降级方案） ==========
             print(f"\n🎭 {self.name}: 收到任务，开始分析...")
             
             # 1. 意图识别
