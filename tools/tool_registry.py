@@ -171,13 +171,15 @@ class ToolRegistry:
         self.register(ToolDefinition(
             id="web_search",
             name="网页搜索",
-            description="搜索网页信息",
+            description="搜索网页信息 - 集成 17 个搜索引擎 (8 国内 +9 国际)，无需 API key",
             category=ToolCategory.SEARCH,
-            skills=["searxng"],
+            skills=["multi-search-engine"],
             models=[],
             input_schema={
                 "query": {"type": "string"},
-                "limit": {"type": "integer"}
+                "limit": {"type": "integer"},
+                "engine": {"type": "string", "description": "搜索引擎：baidu, google, duckduckgo, bing, etc."},
+                "time_filter": {"type": "string", "description": "时间过滤：qdr:h/d/w/m/y"}
             },
             output_schema={
                 "results": {"type": "array"}

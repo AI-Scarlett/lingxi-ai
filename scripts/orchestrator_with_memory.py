@@ -112,9 +112,9 @@ ROLE_CONFIG = {
     RoleType.SEARCHER: {
         "name": "搜索专家",
         "emoji": "🔍",
-        "skills": ["web-search", "tavily-search"],
+        "skills": ["multi-search-engine"],
         "model": "qwen-plus",
-        "description": "负责网页搜索、信息检索"
+        "description": "负责网页搜索、信息检索 - 集成 17 个搜索引擎 (8 国内 +9 国际)"
     },
     RoleType.TRANSLATOR: {
         "name": "翻译专家",

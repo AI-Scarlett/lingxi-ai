@@ -469,11 +469,21 @@ class SmartOrchestrator:
             # ========== 对话管理器 Hook: 检查对话长度 ==========
             conv_warning = None
             if self.conversation_manager and user_id:
+                # 获取或创建当前对话
                 conv = self.conversation_manager.get_current(user_id)
-                if conv:
-                    result = self.conversation_manager.add_message(user_id, conv.id)
-                    if result.get("status") == "exceeded" or result.get("status") == "warning":
-                        conv_warning = result.get("suggestion")
+                if not conv:
+                    # 如果没有活跃对话，创建新的
+                    conv = self.conversation_manager.create_conversation(user_id)
+                    print(f"🆕 创建新对话：{conv.id}")
+                
+                # 添加消息计数
+                result = self.conversation_manager.add_message(user_id, conv.id)
+                
+                # 检查是否需要续对话
+                if result.get("status") == "exceeded":
+                    conv_warning = f"💡 当前对话已超过 {result['message_count']} 条消息（上限 {result['max_messages']}），建议开启新对话保留记忆～"
+                elif result.get("status") == "warning":
+                    conv_warning = f"⚠️ 对话即将达到上限（{result['usage_percent']}%），需要我帮您续对话吗？"
             
             # ========== 学习层 Hook: 任务开始 ==========
             if self.learning_layer:
