@@ -119,17 +119,40 @@ class TrinityStateManager:
         """保存状态"""
         self.state.updated_at = datetime.now().isoformat()
         
-        # 直接序列化 state 对象（不使用 to_json 方法）
+        # 深度拷贝并清理数据，避免循环引用
+        def clean_data(obj, seen=None):
+            """递归清理对象，移除循环引用"""
+            if seen is None:
+                seen = set()
+            
+            obj_id = id(obj)
+            if obj_id in seen:
+                return "[Circular Reference]"
+            
+            if obj is None:
+                return None
+            if isinstance(obj, (str, int, float, bool)):
+                return obj
+            if isinstance(obj, dict):
+                seen.add(obj_id)
+                return {k: clean_data(v, seen) for k, v in obj.items()}
+            if isinstance(obj, (list, tuple)):
+                seen.add(obj_id)
+                return [clean_data(v, seen) for v in obj]
+            
+            # 其他类型转为字符串
+            return str(obj)[:200]
+        
         try:
-            data = {
+            data = clean_data({
                 "user_id": self.state.user_id,
                 "updated_at": self.state.updated_at,
                 "heartbeat": self.state.heartbeat,
                 "memory": self.state.memory,
                 "task": self.state.task
-            }
+            })
             
-            # 原子写入（先写临时文件，再重命名）
+            # 原子写入
             temp_file = self.state_file.with_suffix('.tmp')
             with open(temp_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)

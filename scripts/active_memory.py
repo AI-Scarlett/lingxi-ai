@@ -320,17 +320,26 @@ class ActiveMemorySystem:
     
     def _save_task_result(self, memory: Dict):
         """保存任务结果"""
-        # 简化结果，避免循环引用
-        simple_result = memory["result"]
-        if isinstance(simple_result, dict):
-            # 只保存基本信息
-            simple_result = {
-                "type": simple_result.get("type", "unknown"),
-                "content": str(simple_result.get("content", ""))[:200],
-                "status": simple_result.get("status", "unknown")
-            }
+        # 彻底简化结果，避免任何循环引用
+        def simplify(obj, max_depth=2):
+            """递归简化对象"""
+            if max_depth <= 0:
+                return str(obj)[:100]
+            if obj is None:
+                return None
+            if isinstance(obj, str):
+                return obj[:200]
+            if isinstance(obj, (int, float, bool)):
+                return obj
+            if isinstance(obj, dict):
+                return {k: simplify(v, max_depth - 1) for k, v in list(obj.items())[:10]}
+            if isinstance(obj, (list, tuple)):
+                return [simplify(v, max_depth - 1) for v in obj[:10]]
+            return str(obj)[:100]
         
-        # 直接操作，避免递归调用
+        simple_result = simplify(memory["result"])
+        
+        # 直接操作
         self.state.state.task["history"].append({
             "input": memory["input"][:200],
             "result": simple_result,
