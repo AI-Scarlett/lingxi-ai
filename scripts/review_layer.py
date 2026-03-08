@@ -112,7 +112,8 @@ class QualityChecker:
                     passed += 1
                 else:
                     issues.append(f"❌ {name}: {msg}")
-            except:
+            except Exception as e:
+                # 容错处理
                 issues.append(f"⚠️ {name}: 检查失败")
         
         # 类型特定检查
@@ -129,7 +130,8 @@ class QualityChecker:
                     passed += 1
                 else:
                     issues.append(f"❌ {name}: {msg}")
-            except:
+            except Exception as e:
+                # 容错处理
                 issues.append(f"⚠️ {name}: 检查失败")
         
         score = passed / total if total > 0 else 1.0

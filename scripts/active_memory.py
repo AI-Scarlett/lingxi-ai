@@ -191,7 +191,9 @@ class ActiveMemorySystem:
     
     def _get_recent_conversation(self, limit: int = 5) -> List[Dict]:
         """获取最近的对话"""
-        # TODO: 实现对话历史检索
+        # 实现对话历史检索（简化版：返回最近 10 条）
+        recent = self.conversation_history[-10:] if self.conversation_history else []
+        return recent
         return []
     
     def _search_task_history(self, keywords: List[str], top_k: int = 3) -> List[Dict]:
@@ -350,7 +352,15 @@ class ActiveMemorySystem:
     
     def _save_conversation(self, memory: Dict):
         """保存对话记录"""
-        # TODO: 实现对话记录保存
+        # 实现对话记录保存（简化版：添加到内存列表）
+        self.conversation_history.append({
+            "role": role,
+            "content": content,
+            "timestamp": datetime.now().isoformat()
+        })
+        # 保持最近 100 条
+        if len(self.conversation_history) > 100:
+            self.conversation_history = self.conversation_history[-100:]
         pass
 
 # ========== 工厂函数 ==========

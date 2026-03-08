@@ -461,7 +461,7 @@ class SmartOrchestrator:
             try:
                 data = json.loads(self.stats_file.read_text(encoding='utf-8'))
                 return {**self._default_stats(), **data}
-            except:
+            except Exception as e:
                 pass
         return self._default_stats()
     

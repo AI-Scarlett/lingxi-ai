@@ -55,7 +55,8 @@ def load_hash_cache() -> Dict[str, str]:
     if cache_file.exists():
         try:
             return json.loads(cache_file.read_text(encoding='utf-8'))
-        except:
+        except Exception as e:
+            # 容错处理
             return {}
     return {}
 

@@ -285,6 +285,21 @@ def get_builtin_skills() -> List[SkillRule]:
                 "range": r"(今天 | 明天 | 本周 | 本月|全部)"
             }
         ),
+        
+        # 🌐 网页内容提取技能（web-content-fetcher）
+        SkillRule(
+            id="skill_web_fetch",
+            patterns=["读取这个链接", "打开这个文章", "提取这个网页", "抓取这篇文章", "读取这篇文章", "帮我看看这个", "这个链接内容"],
+            skill_name="web_content_fetcher",
+            action="web_fetch",
+            params_template={"url": "", "method": "auto"},
+            reply_template="好的老板～ 马上为您提取网页内容～🌐",
+            priority=95,
+            param_extractors={
+                "url": r"(https?://[^\s]+)",
+                "method": r"(用 | 使用)(Jina|Scrapling|web_fetch)"
+            }
+        ),
     ]
 
 # ==================== 技能匹配器 ====================
@@ -370,7 +385,7 @@ class Layer0SkillMatcher:
                         groups = match.groups()
                         if groups:
                             params[param_name] = groups[-1] if len(groups) > 1 else groups[0]
-            except:
+            except Exception as e:
                 pass
         
         return params

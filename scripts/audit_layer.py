@@ -289,7 +289,7 @@ class AuditLayer:
             try:
                 data = json.loads(file_path.read_text(encoding='utf-8'))
                 return self._dict_to_audit(data)
-            except:
+            except Exception as e:
                 pass
         
         return None
@@ -334,7 +334,7 @@ class AuditLayer:
             try:
                 data = json.loads(file_path.read_text(encoding='utf-8'))
                 recent.append(self._dict_to_audit(data))
-            except:
+            except Exception as e:
                 pass
         
         return recent

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-灵犀 (Lingxi) v2.0 - OpenClaw 入口
+灵犀 (Lingxi) v3.0 - OpenClaw 入口
 智慧调度系统，心有灵犀，一点就通
 
-🚀 v2.0 优化亮点:
+🚀 v3.0 新增功能:
+- 🧠 智能模型路由：代码任务自动使用 Qwen-Coder
 - ⚡ 快速响应层：简单问题 <5ms 秒回
 - 💾 LRU 缓存：重复问题 <1ms
 - 🚀 并行执行：复杂任务快 9x
@@ -22,6 +23,9 @@ sys.path.insert(0, SKILL_PATH)
 from scripts.orchestrator_v2 import SmartOrchestrator, TaskResult, get_orchestrator as get_v2_orchestrator
 from scripts.fast_response_layer import fast_respond, cache_response
 
+# ✅ v3.0: 智能模型路由
+from scripts.model_router import select_model, get_model_router
+
 # 全局实例
 _orchestrator = None
 
@@ -32,19 +36,28 @@ def get_orchestrator(max_concurrent: int = 3) -> SmartOrchestrator:
         _orchestrator = SmartOrchestrator(max_concurrent=max_concurrent, enable_fast_response=True)
     return _orchestrator
 
-async def process_request(user_input: str, channel: str = None, user_id: str = None) -> str:
+async def process_request(user_input: str, channel: str = None, user_id: str = None, 
+                         model: str = None) -> str:
     """
-    处理用户请求 - 灵犀统一入口 (v2.0)
+    处理用户请求 - 灵犀统一入口 (v3.0)
     
     Args:
         user_input: 用户输入
         channel: 来源渠道 (qqbot, telegram, etc.)
         user_id: 用户 ID
+        model: 强制使用的模型（可选，默认自动选择）
     
     Returns:
         处理结果
     """
     orch = get_orchestrator()
+    
+    # ✅ v3.0: 智能模型路由
+    selected_model = select_model(user_input, force_model=model)
+    
+    # 设置模型到编排器（如果支持）
+    if hasattr(orch, 'set_model'):
+        orch.set_model(selected_model)
     
     # ✅ v2.0: 自动处理快速响应、缓存、并行执行
     result = await orch.execute(user_input, user_id)
@@ -53,6 +66,7 @@ async def process_request(user_input: str, channel: str = None, user_id: str = N
     # result.total_elapsed_ms - 总耗时
     # result.fast_response_layer - 使用的响应层
     # result.total_score - 评分
+    # result.model_used - 使用的模型（v3.0 新增）
     
     return result.final_output
 

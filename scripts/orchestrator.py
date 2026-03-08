@@ -160,7 +160,7 @@ def parse_intent(user_input: str, user_id: str = None) -> Dict[str, Any]:
                 for user in companion_users:
                     authorized_users.append(user.get("qq", ""))
                     authorized_users.append(user.get("openid", ""))
-        except:
+        except Exception as e:
             pass
         
         if user_id and user_id in authorized_users:

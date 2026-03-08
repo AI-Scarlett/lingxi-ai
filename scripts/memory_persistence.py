@@ -583,7 +583,7 @@ print(f"导入完成：{{result['imported']}} 条记忆")
                     if created < cutoff:
                         self.delete(user_id, memory.id, category)
                         deleted_count += 1
-                except:
+                except Exception as e:
                     pass
         
         return deleted_count

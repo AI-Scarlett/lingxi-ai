@@ -131,7 +131,8 @@ class ErrorPatternAnalyzer:
                 try:
                     context = json.loads(match.group(1))
                     contexts.append(context)
-                except:
+                except Exception as e:
+                    # 容错处理
                     continue
         
         if not contexts:

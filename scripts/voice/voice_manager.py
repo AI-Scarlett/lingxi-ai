@@ -119,7 +119,8 @@ class IFlytekEngine(BaseVoiceEngine):
         try:
             # 简单检查，实际应该调用 API
             return bool(config.app_id and config.api_key)
-        except:
+        except Exception as e:
+            # 容错处理
             return False
 
 
@@ -192,7 +193,8 @@ class BaiduEngine(BaseVoiceEngine):
         """检查百度凭证"""
         try:
             return bool(config.app_id and config.api_key and config.secret_key)
-        except:
+        except Exception as e:
+            # 容错处理
             return False
 
 
@@ -290,7 +292,8 @@ class GoogleEngine(BaseVoiceEngine):
                 return False
             # 检查 JSON 文件是否存在
             return Path(config.secret_key).exists()
-        except:
+        except Exception as e:
+            # 容错处理
             return False
 
 
@@ -413,7 +416,8 @@ class AliBailianEngine(BaseVoiceEngine):
             # 尝试获取音色列表
             voices = self.get_voices()
             return len(voices) > 0
-        except:
+        except Exception as e:
+            # 容错处理
             return False
 
 
@@ -500,7 +504,8 @@ class AmazonEngine(BaseVoiceEngine):
         """检查 Amazon 凭证"""
         try:
             return bool(config.api_key and config.secret_key)
-        except:
+        except Exception as e:
+            # 容错处理
             return False
 
 
@@ -589,7 +594,8 @@ class AzureEngine(BaseVoiceEngine):
         """检查 Azure 凭证"""
         try:
             return bool(config.api_key and config.region)
-        except:
+        except Exception as e:
+            # 容错处理
             return False
 
 

@@ -108,7 +108,8 @@ class InputSanitizer:
         # 解析路径
         try:
             path = Path(file_path).resolve()
-        except:
+        except Exception as e:
+            # 容错处理
             return None
         
         # 检查是否在白名单内
@@ -308,7 +309,8 @@ def get_security_logs(hours: int = 24) -> List[Dict]:
                     timestamp = datetime.fromisoformat(log_entry["timestamp"])
                     if timestamp >= cutoff:
                         logs.append(log_entry)
-                except:
+                except Exception as e:
+                    # 容错处理
                     continue
     
     except Exception as e:

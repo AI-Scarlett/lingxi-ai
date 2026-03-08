@@ -207,7 +207,8 @@ class ErrorLogManager:
                 ts = datetime.fromisoformat(error.timestamp).timestamp()
                 if ts >= cutoff:
                     recent.append(error)
-            except:
+            except Exception as e:
+                # 容错处理
                 continue
             
             if len(recent) >= limit:

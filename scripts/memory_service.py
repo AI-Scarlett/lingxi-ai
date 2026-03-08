@@ -31,6 +31,7 @@ class MemoryItem:
     confidence: float = 0.9  # 置信度（0-1）
     related_ids: List[str] = field(default_factory=list)  # 关联记忆 ID（交叉引用）
     user_id: str = "default"
+    channel: str = "unknown"  # 来源渠道：qqbot/feishu/wechat/dingtalk 等
     embeddings: Optional[List[float]] = None  # 向量嵌入（用于相似度检索）
     metadata: Dict[str, Any] = field(default_factory=dict)
     
@@ -443,7 +444,8 @@ class MemoryRetriever:
         self.llm = llm_client
     
     async def retrieve(self, query: str, method: str = "keyword", 
-                       category: Optional[str] = None, top_k: int = 10) -> Dict:
+                       category: Optional[str] = None, top_k: int = 10,
+                       cross_channel: bool = True, channel: str = None) -> Dict:
         """
         检索记忆
         
@@ -452,22 +454,30 @@ class MemoryRetriever:
             method: 检索方法（keyword/rag/llm）
             category: 限定类别
             top_k: 返回数量
+            cross_channel: 是否跨渠道检索（默认 True，实现共享记忆）
+            channel: 当前渠道（可选，用于过滤）
         
         Returns:
             检索结果
         """
         
         if method == "keyword":
-            return await self._keyword_retrieve(query, category, top_k)
+            return await self._keyword_retrieve(query, category, top_k, cross_channel, channel)
         elif method == "llm":
-            return await self._llm_retrieve(query, category, top_k)
+            return await self._llm_retrieve(query, category, top_k, cross_channel, channel)
         else:
-            return await self._keyword_retrieve(query, category, top_k)
+            return await self._keyword_retrieve(query, category, top_k, cross_channel, channel)
     
-    async def _keyword_retrieve(self, query: str, category: Optional[str], top_k: int) -> Dict:
+    async def _keyword_retrieve(self, query: str, category: Optional[str], top_k: int,
+                                 cross_channel: bool = True, channel: str = None) -> Dict:
         """关键词检索（快速版）"""
         
         items = await self.store.load_all_items()
+        
+        # 跨渠道检索：使用所有记忆（默认行为）
+        # 如果 cross_channel=False，则只使用当前渠道的记忆
+        if not cross_channel and channel:
+            items = [i for i in items if i.channel == channel]
         
         # 过滤类别
         if category:
@@ -561,12 +571,27 @@ class MemoryRetriever:
             print(f"LLM 检索失败：{e}")
             return candidates
     
-    async def proactive_context(self, user_id: str = "default") -> Dict:
-        """主动上下文加载（后台运行）"""
+    async def proactive_context(self, user_id: str = "default", channel: str = None, cross_channel: bool = True) -> Dict:
+        """
+        主动上下文加载（Layer 2 优先调用）
+        
+        Args:
+            user_id: 用户 ID（默认使用共享用户 ID）
+            channel: 当前渠道（可选）
+            cross_channel: 是否跨渠道检索（默认 True，实现共享记忆）
+        
+        Returns:
+            完整的记忆上下文，包括所有渠道的记忆
+        """
         
         items = await self.store.load_all_items()
         
-        # 获取最近记忆
+        # 跨渠道检索：使用所有记忆（默认行为）
+        # 如果 cross_channel=False，则只使用当前渠道的记忆
+        if not cross_channel and channel:
+            items = [i for i in items if i.channel == channel]
+        
+        # 获取最近记忆（所有渠道共享）
         recent = sorted(items, key=lambda x: x.timestamp, reverse=True)[:10]
         
         # 检测模式
@@ -576,8 +601,18 @@ class MemoryRetriever:
         return {
             "recent_context": [r.to_dict() for r in recent],
             "predicted_needs": patterns,
-            "total_memories": len(items)
+            "total_memories": len(items),
+            "cross_channel": cross_channel,
+            "channel_stats": self._get_channel_stats(items)
         }
+    
+    def _get_channel_stats(self, items: List[MemoryItem]) -> Dict:
+        """获取各渠道记忆统计"""
+        stats = {}
+        for item in items:
+            channel = item.channel or "unknown"
+            stats[channel] = stats.get(channel, 0) + 1
+        return stats
 
 
 class MemoryService:
@@ -601,47 +636,71 @@ class MemoryService:
             await self.store.ensure_structure()
             self._initialized = True
     
-    async def memorize(self, conversation: List[Dict], conv_id: str) -> Dict:
+    async def memorize(self, conversation: List[Dict], conv_id: str, channel: str = "unknown") -> Dict:
         """
         记忆对话（自动提取 + 存储）
         
         Args:
             conversation: 对话历史
             conv_id: 对话 ID
+            channel: 来源渠道（qqbot/feishu/wechat/dingtalk 等）
         
         Returns:
             提取的记忆项
         """
         await self.initialize()
         
-        # 保存原始对话（Resource 层）
-        await self.store.save_conversation(conv_id, conversation)
+        # 保存原始对话（Resource 层）- 包含渠道信息
+        await self.store.save_conversation(conv_id, conversation, metadata={"channel": channel})
         
         # 提取记忆（Item 层）
         items = await self.extractor.extract_from_conversation(conversation, conv_id)
         
-        # 自动分类和关联
+        # 自动分类和关联，并添加渠道信息
         for item in items:
             if not item.category:
                 item.category = self.organizer.auto_categorize(item.content)
             item.related_ids = await self.organizer.find_related(item)
+            item.channel = channel  # 记录来源渠道
             await self.store.save_memory_item(item)
         
         return {
             "conv_id": conv_id,
+            "channel": channel,
             "extracted_items": len(items),
             "items": [i.to_dict() for i in items]
         }
     
-    async def retrieve(self, query: str, method: str = "keyword", **kwargs) -> Dict:
-        """检索记忆"""
+    async def retrieve(self, query: str, method: str = "keyword", channel: str = None, cross_channel: bool = True, **kwargs) -> Dict:
+        """
+        检索记忆
+        
+        Args:
+            query: 查询文本
+            method: 检索方法（keyword/semantic）
+            channel: 当前渠道（可选）
+            cross_channel: 是否跨渠道检索（默认 True，实现共享记忆）
+        """
         await self.initialize()
-        return await self.retriever.retrieve(query, method, **kwargs)
+        # 跨渠道检索时，从所有渠道获取记忆
+        return await self.retriever.retrieve(query, method, cross_channel=cross_channel, **kwargs)
     
-    async def get_context(self, user_id: str = "default") -> Dict:
-        """获取主动上下文"""
+    async def get_context(self, user_id: str = None, channel: str = None, cross_channel: bool = True) -> Dict:
+        """
+        获取主动上下文（Layer 2 优先调用）
+        
+        Args:
+            user_id: 用户 ID（默认使用共享用户 ID）
+            channel: 当前渠道（可选）
+            cross_channel: 是否跨渠道检索（默认 True，实现共享记忆）
+        
+        Returns:
+            完整的记忆上下文，包括所有渠道的记忆
+        """
         await self.initialize()
-        return await self.retriever.proactive_context(user_id)
+        # 使用共享用户 ID，实现多渠道记忆共享
+        uid = user_id if user_id else self.store.SHARED_USER_ID if hasattr(self.store, 'SHARED_USER_ID') else "default"
+        return await self.retriever.proactive_context(uid, cross_channel=cross_channel)
     
     async def get_stats(self) -> Dict:
         """获取记忆统计"""

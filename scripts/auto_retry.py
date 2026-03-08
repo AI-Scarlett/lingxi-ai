@@ -104,7 +104,7 @@ class GitPushManager:
                     try:
                         process.kill()
                         await process.wait()
-                    except:
+                    except Exception as e:
                         pass
                     result["error"] = f"推送超时 ({PUSH_TIMEOUT}秒)"
                     
