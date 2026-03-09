@@ -5,19 +5,19 @@
 
 基于阿里云百炼大模型特性，根据任务类型自动选择最优模型
 
-📊 模型特性分析：
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-模型                      | 擅长领域                  | 成本  | 速度
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-qwen3.5-plus             | 通用任务、日常对话        | 中    | 快
-qwen3-max-2026-01-23     | 复杂推理、高质量创作      | 高    | 中
-qwen3-coder-next         | 代码生成、代码审查        | 中    | 快
-qwen3-coder-plus         | 复杂编程、架构设计        | 高    | 中
-glm-5                    | 中文任务、长文本理解      | 中    | 快
-glm-4.7                  | 性价比中文任务            | 低    | 快
-kimi-k2.5                | 超长文本、文件处理        | 中    | 中
-MiniMax-M2.5             | 创意内容、对话、角色扮演  | 中    | 快
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 模型特性分析 (阿里云百炼官方):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+模型                      | 文本生成 | 深度思考 | 视觉理解 | 定位
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+qwen3.5-plus             |    ✓    |    ✓    |    ✓    | 全能均衡
+qwen3-max-2026-01-23     |    ✓    |    ✓    |    ✗    | 高端推理
+qwen3-coder-next         |    ✓    |    ✗    |    ✗    | 轻量代码
+qwen3-coder-plus         |    ✓    |    ✗    |    ✗    | 专业代码
+glm-5                    |    ✓    |    ✓    |    ✗    | 中文深度
+glm-4.7                  |    ✓    |    ✓    |    ✗    | 性价比
+kimi-k2.5                |    ✓    |    ✓    |    ✓    | 长文本 + 视觉
+MiniMax-M2.5             |    ✓    |    ✓    |    ✗    | 创意对话
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 from enum import Enum
@@ -50,102 +50,102 @@ class ModelConfig:
     recommended_for: List[str]     # 推荐使用场景
 
 
-# 阿里云百炼模型配置
+# 阿里云百炼模型配置 (根据官方特性优化)
 MODEL_REGISTRY: Dict[str, ModelConfig] = {
     "qwen3.5-plus": ModelConfig(
         model_id="qwen3.5-plus",
         name="通义千问 3.5 Plus",
         tier=ModelTier.STANDARD,
-        strengths=["通用对话", "日常任务", "文本理解", "多轮对话"],
-        weak_areas=["复杂推理", "专业代码", "超长文本"],
+        strengths=["文本生成", "深度思考", "视觉理解", "全能均衡"],
+        weak_areas=[],  # 无明显短板
         cost_level=2,
         speed_level=2,
         max_context=32768,
-        recommended_for=["日常对话", "简单查询", "一般文案", "快速响应"]
+        recommended_for=["日常对话", "通用任务", "图像理解", "多模态任务", "快速响应"]
     ),
     
     "qwen3-max-2026-01-23": ModelConfig(
         model_id="qwen3-max-2026-01-23",
         name="通义千问 3 Max",
         tier=ModelTier.PREMIUM,
-        strengths=["复杂推理", "高质量创作", "逻辑分析", "专业咨询"],
-        weak_areas=["实时性要求极高"],
+        strengths=["文本生成", "深度思考", "复杂推理", "高质量输出"],
+        weak_areas=["视觉理解"],
         cost_level=5,
         speed_level=3,
         max_context=65536,
-        recommended_for=["重要决策", "复杂分析", "高质量文案", "专业建议", "深度思考"]
+        recommended_for=["重要决策", "复杂分析", "专业咨询", "深度思考", "高质量文案"]
     ),
     
     "qwen3-coder-next": ModelConfig(
         model_id="qwen3-coder-next",
         name="通义千问 Coder Next",
         tier=ModelTier.SPECIALIST,
-        strengths=["代码生成", "代码审查", "Bug 修复", "快速编程"],
-        weak_areas=["非代码任务"],
+        strengths=["文本生成", "代码生成", "轻量快速"],
+        weak_areas=["深度思考", "视觉理解"],
         cost_level=2,
-        speed_level=2,
+        speed_level=1,  # 最快
         max_context=32768,
-        recommended_for=["代码生成", "代码优化", "Debug", "脚本编写", "快速原型"]
+        recommended_for=["代码生成", "简单脚本", "快速原型", "代码补全"]
     ),
     
     "qwen3-coder-plus": ModelConfig(
         model_id="qwen3-coder-plus",
         name="通义千问 Coder Plus",
         tier=ModelTier.SPECIALIST,
-        strengths=["复杂编程", "架构设计", "系统开发", "代码重构"],
-        weak_areas=["非代码任务"],
+        strengths=["文本生成", "代码生成", "复杂编程"],
+        weak_areas=["深度思考", "视觉理解"],
         cost_level=4,
-        speed_level=3,
+        speed_level=2,
         max_context=65536,
-        recommended_for=["大型项目", "架构设计", "复杂算法", "系统重构", "技术文档"]
+        recommended_for=["复杂代码", "架构设计", "系统开发", "代码重构", "技术文档"]
     ),
     
     "glm-5": ModelConfig(
         model_id="glm-5",
         name="智谱 GLM-5",
         tier=ModelTier.STANDARD,
-        strengths=["中文理解", "长文本", "知识问答", "逻辑推理"],
-        weak_areas=["创意写作", "代码"],
+        strengths=["文本生成", "深度思考", "中文理解", "逻辑推理"],
+        weak_areas=["视觉理解"],
         cost_level=3,
         speed_level=2,
         max_context=128000,
-        recommended_for=["中文任务", "知识查询", "文档理解", "长文分析"]
+        recommended_for=["中文任务", "知识问答", "文档理解", "长文分析", "逻辑推理"]
     ),
     
     "glm-4.7": ModelConfig(
         model_id="glm-4.7",
         name="智谱 GLM-4.7",
         tier=ModelTier.ECONOMY,
-        strengths=["中文对话", "性价比", "快速响应"],
-        weak_areas=["复杂任务", "专业领域"],
-        cost_level=1,
-        speed_level=1,
+        strengths=["文本生成", "深度思考", "性价比", "快速响应"],
+        weak_areas=["视觉理解"],
+        cost_level=1,  # 最便宜
+        speed_level=1,  # 最快
         max_context=32768,
-        recommended_for=["简单问答", "日常聊天", "快速查询", "低成本任务"]
+        recommended_for=["简单问答", "日常聊天", "快速查询", "低成本任务", "高频调用"]
     ),
     
     "kimi-k2.5": ModelConfig(
         model_id="kimi-k2.5",
         name="月之暗面 Kimi K2.5",
         tier=ModelTier.SPECIALIST,
-        strengths=["超长文本", "文件处理", "资料整理", "多文档分析"],
-        weak_areas=["实时对话", "创意写作"],
+        strengths=["文本生成", "深度思考", "视觉理解", "超长上下文"],
+        weak_areas=[],  # 无明显短板
         cost_level=3,
         speed_level=3,
-        max_context=200000,
-        recommended_for=["长文档", "多文件分析", "资料汇总", "论文阅读", "合同审查"]
+        max_context=200000,  # 最长上下文
+        recommended_for=["长文档", "多文件分析", "图像理解", "资料汇总", "论文阅读", "合同审查"]
     ),
     
     "MiniMax-M2.5": ModelConfig(
         model_id="MiniMax-M2.5",
         name="MiniMax M2.5",
         tier=ModelTier.STANDARD,
-        strengths=["创意内容", "角色扮演", "对话互动", "情感表达"],
-        weak_areas=["专业任务", "代码"],
+        strengths=["文本生成", "深度思考", "创意内容", "对话互动"],
+        weak_areas=["视觉理解"],
         cost_level=2,
         speed_level=2,
         max_context=32768,
-        recommended_for=["创意写作", "角色扮演", "情感陪伴", "故事创作", "营销文案"]
+        recommended_for=["创意写作", "角色扮演", "情感陪伴", "故事创作", "营销文案", "对话互动"]
     ),
 }
 
@@ -186,6 +186,10 @@ class TaskType(Enum):
     PROFESSIONAL = "professional"
     CONSULTING = "consulting"
     
+    # 视觉类 (支持视觉理解的模型：qwen3.5-plus, kimi-k2.5)
+    VISION = "vision"
+    IMAGE_ANALYSIS = "image_analysis"
+    
     # 默认
     GENERAL = "general"
 
@@ -193,31 +197,41 @@ class TaskType(Enum):
 # ==================== 任务识别规则 ====================
 
 TASK_PATTERNS: Dict[TaskType, List[str]] = {
+    # ========== 对话类 ==========
     TaskType.GREETING: ["你好", "早", "嗨", "hello", "hi", "在吗", "在不在"],
     TaskType.EMOTIONAL: ["开心", "难过", "生气", "累", "无聊", "想你了", "爱你"],
     TaskType.CHAT: ["聊天", "聊聊", "说说", "讲讲", "你怎么看", "你觉得"],
     
+    # ========== 创作类 ==========
     TaskType.CREATIVE_WRITING: ["写", "创作", "生成", "文案", "文章", "内容"],
     TaskType.COPYWRITING: ["小红书", "微博", "广告", "营销", "推广", "标题"],
     TaskType.STORY: ["故事", "小说", "剧情", "编一个", "写个故事"],
     TaskType.POEM: ["诗", "诗词", "歌词", "写首诗"],
     
+    # ========== 代码类 ==========
     TaskType.CODE_GENERATION: ["代码", "脚本", "程序", "函数", "写个", "实现"],
     TaskType.CODE_REVIEW: ["审查", "检查代码", "代码质量", "优化代码"],
     TaskType.DEBUG: ["bug", "错误", "报错", "修复", "调试", "为什么不行"],
     TaskType.ARCHITECTURE: ["架构", "设计", "系统", "方案", "技术选型"],
     
+    # ========== 分析类 ==========
     TaskType.ANALYSIS: ["分析", "解析", "剖析", "拆解", "对比"],
     TaskType.RESEARCH: ["研究", "调研", "了解", "查一下", "搜索"],
     TaskType.DATA_PROCESSING: ["数据", "处理", "整理", "统计", "报表"],
     TaskType.DECISION: ["建议", "推荐", "选择", "哪个更好", "怎么办"],
     
+    # ========== 文档类 ==========
     TaskType.DOCUMENT: ["文档", "报告", "说明", "指南", "教程"],
     TaskType.SUMMARY: ["总结", "摘要", "概括", "要点", "提炼"],
     TaskType.TRANSLATION: ["翻译", "translate", "英文", "中文", "中英"],
     
+    # ========== 专业类 ==========
     TaskType.PROFESSIONAL: ["专业", "法律", "医疗", "金融", "财务", "税务"],
     TaskType.CONSULTING: ["咨询", "请教", "指导", "建议", "方案"],
+    
+    # ========== 视觉类 (新增) ==========
+    TaskType.VISION: ["图片", "图像", "看图", "识图", "视觉", "截图", "照片"],
+    TaskType.IMAGE_ANALYSIS: ["分析图片", "看图说话", "图片内容", "这是什么图"],
 }
 
 
@@ -329,35 +343,53 @@ class ModelRouter:
         )
     
     def _get_recommended_models(self, task_type: TaskType) -> List[str]:
-        """获取任务类型推荐的模型列表"""
+        """
+        获取任务类型推荐的模型列表
+        
+        基于阿里云百炼官方特性:
+        - 深度思考任务优先：qwen3-max, glm-5, glm-4.7, kimi-k2.5, MiniMax-M2.5
+        - 视觉理解任务：qwen3.5-plus, kimi-k2.5
+        - 代码任务：qwen3-coder-next (轻量), qwen3-coder-plus (专业)
+        - 性价比：glm-4.7
+        """
         recommendations = {
-            TaskType.GREETING: ["glm-4.7", "qwen3.5-plus"],
-            TaskType.EMOTIONAL: ["MiniMax-M2.5", "qwen3.5-plus"],
-            TaskType.CHAT: ["qwen3.5-plus", "MiniMax-M2.5", "glm-4.7"],
+            # ========== 对话类 ==========
+            TaskType.GREETING: ["glm-4.7", "qwen3.5-plus"],  # 快速 + 便宜
+            TaskType.EMOTIONAL: ["MiniMax-M2.5", "qwen3.5-plus"],  # 情感表达强
+            TaskType.CHAT: ["qwen3.5-plus", "MiniMax-M2.5", "glm-4.7"],  # 均衡
             
-            TaskType.CREATIVE_WRITING: ["MiniMax-M2.5", "qwen3-max-2026-01-23"],
-            TaskType.COPYWRITING: ["MiniMax-M2.5", "qwen3.5-plus"],
-            TaskType.STORY: ["MiniMax-M2.5", "qwen3-max-2026-01-23"],
-            TaskType.POEM: ["MiniMax-M2.5", "glm-5"],
+            # ========== 创作类 (需要深度思考) ==========
+            TaskType.CREATIVE_WRITING: ["MiniMax-M2.5", "qwen3-max-2026-01-23"],  # 创意 + 深度
+            TaskType.COPYWRITING: ["MiniMax-M2.5", "qwen3.5-plus"],  # 营销文案
+            TaskType.STORY: ["MiniMax-M2.5", "qwen3-max-2026-01-23"],  # 故事创作
+            TaskType.POEM: ["MiniMax-M2.5", "glm-5"],  # 诗词需要深度思考
             
-            TaskType.CODE_GENERATION: ["qwen3-coder-next", "qwen3-coder-plus"],
-            TaskType.CODE_REVIEW: ["qwen3-coder-plus", "qwen3-coder-next"],
-            TaskType.DEBUG: ["qwen3-coder-next", "qwen3-coder-plus"],
-            TaskType.ARCHITECTURE: ["qwen3-coder-plus", "qwen3-max-2026-01-23"],
+            # ========== 代码类 (文本生成，不需要深度思考) ==========
+            TaskType.CODE_GENERATION: ["qwen3-coder-next", "qwen3-coder-plus"],  # 轻量优先
+            TaskType.CODE_REVIEW: ["qwen3-coder-plus", "qwen3-coder-next"],  # 专业优先
+            TaskType.DEBUG: ["qwen3-coder-next", "qwen3-coder-plus"],  # 快速定位
+            TaskType.ARCHITECTURE: ["qwen3-coder-plus", "qwen3-max-2026-01-23"],  # 需要深度思考
             
-            TaskType.ANALYSIS: ["qwen3-max-2026-01-23", "glm-5"],
-            TaskType.RESEARCH: ["glm-5", "kimi-k2.5"],
-            TaskType.DATA_PROCESSING: ["glm-5", "qwen3.5-plus"],
-            TaskType.DECISION: ["qwen3-max-2026-01-23", "glm-5"],
+            # ========== 分析类 (需要深度思考) ==========
+            TaskType.ANALYSIS: ["qwen3-max-2026-01-23", "glm-5"],  # 深度分析
+            TaskType.RESEARCH: ["glm-5", "kimi-k2.5"],  # 长文本研究
+            TaskType.DATA_PROCESSING: ["glm-5", "qwen3.5-plus"],  # 数据处理
+            TaskType.DECISION: ["qwen3-max-2026-01-23", "glm-5"],  # 重要决策
             
-            TaskType.DOCUMENT: ["kimi-k2.5", "glm-5"],
-            TaskType.SUMMARY: ["kimi-k2.5", "glm-5"],
-            TaskType.TRANSLATION: ["qwen3.5-plus", "glm-5"],
+            # ========== 文档类 (需要深度思考 + 长文本) ==========
+            TaskType.DOCUMENT: ["kimi-k2.5", "glm-5"],  # 长文档
+            TaskType.SUMMARY: ["kimi-k2.5", "glm-5"],  # 摘要总结
+            TaskType.TRANSLATION: ["qwen3.5-plus", "glm-5"],  # 翻译
             
-            TaskType.PROFESSIONAL: ["qwen3-max-2026-01-23", "glm-5"],
-            TaskType.CONSULTING: ["qwen3-max-2026-01-23", "glm-5"],
+            # ========== 专业类 (需要深度思考) ==========
+            TaskType.PROFESSIONAL: ["qwen3-max-2026-01-23", "glm-5"],  # 专业咨询
+            TaskType.CONSULTING: ["qwen3-max-2026-01-23", "glm-5"],  # 深度咨询
             
-            TaskType.GENERAL: ["qwen3.5-plus", "glm-4.7"],
+            # ========== 视觉理解类 ==========
+            TaskType.VISION: ["qwen3.5-plus", "kimi-k2.5"],  # 图像理解
+            
+            # ========== 默认 ==========
+            TaskType.GENERAL: ["qwen3.5-plus", "glm-4.7"],  # 全能均衡
         }
         
         return recommendations.get(task_type, ["qwen3.5-plus"])
