@@ -151,18 +151,49 @@ class TaskResult:
     total_elapsed_ms: float = 0.0
     fast_response_layer: str = "none"
 
-# ==================== 角色配置 ====================
+# ==================== 导入智能模型路由 ====================
+
+try:
+    from scripts.model_router import get_model_router, route_model, MODEL_REGISTRY
+    MODEL_ROUTER_ENABLED = True
+except ImportError as e:
+    MODEL_ROUTER_ENABLED = False
+    print(f"⚠️  智能模型路由导入失败：{e}")
+
+# ==================== 角色配置 (v3.0.1: 集成智能路由) ====================
 
 ROLE_CONFIG = {
-    RoleType.COPYWRITER: {"name": "文案专家", "emoji": "📝", "model": "qwen-plus"},
+    RoleType.COPYWRITER: {"name": "文案专家", "emoji": "📝", "model": "auto"},
     RoleType.IMAGE_EXPERT: {"name": "图像专家", "emoji": "🎨", "model": "qwen-image-max"},
-    RoleType.CODER: {"name": "代码专家", "emoji": "💻", "model": "qwen-coder"},
-    RoleType.DATA_ANALYST: {"name": "数据专家", "emoji": "📊", "model": "qwen-max"},
-    RoleType.WRITER: {"name": "写作专家", "emoji": "✍️", "model": "qwen-plus"},
-    RoleType.OPERATOR: {"name": "运营专家", "emoji": "📱", "model": "qwen-plus"},
-    RoleType.SEARCHER: {"name": "搜索专家", "emoji": "🔍", "model": "qwen-plus"},
-    RoleType.TRANSLATOR: {"name": "翻译专家", "emoji": "💬", "model": "qwen-plus"},
+    RoleType.CODER: {"name": "代码专家", "emoji": "💻", "model": "auto"},
+    RoleType.DATA_ANALYST: {"name": "数据专家", "emoji": "📊", "model": "auto"},
+    RoleType.WRITER: {"name": "写作专家", "emoji": "✍️", "model": "auto"},
+    RoleType.OPERATOR: {"name": "运营专家", "emoji": "📱", "model": "auto"},
+    RoleType.SEARCHER: {"name": "搜索专家", "emoji": "🔍", "model": "auto"},
+    RoleType.TRANSLATOR: {"name": "翻译专家", "emoji": "💬", "model": "auto"},
 }
+
+def get_model_for_role(role: RoleType, user_input: str, priority: str = "balanced") -> str:
+    """
+    根据角色和输入智能选择模型
+    
+    Args:
+        role: 角色类型
+        user_input: 用户输入
+        priority: 优先级策略 (balanced/quality/speed/economy)
+    
+    Returns:
+        str: 模型 ID
+    """
+    if not MODEL_ROUTER_ENABLED:
+        # 降级：使用默认配置
+        config = ROLE_CONFIG.get(role, {})
+        model = config.get("model", "qwen3.5-plus")
+        return model if model != "auto" else "qwen3.5-plus"
+    
+    # 使用智能路由
+    routing_result = route_model(user_input, priority=priority)
+    return routing_result.model_id
 
 # ==================== 意图识别 (优化版) ====================
 
@@ -276,8 +307,14 @@ def decompose_task(user_input: str, intent: Dict[str, Any]) -> List[SubTask]:
 
 # ==================== 执行器 (带重试和降级) ====================
 
-async def execute_once(subtask: SubTask) -> SubTask:
-    """执行单次任务（不含重试）"""
+async def execute_once(subtask: SubTask, model_priority: str = "balanced") -> SubTask:
+    """
+    执行单次任务（不含重试）
+    
+    Args:
+        subtask: 子任务对象
+        model_priority: 模型选择优先级 (balanced/quality/speed/economy)
+    """
     from tools.executors.factory import get_executor
     
     # 支持中文和英文角色名
@@ -285,9 +322,27 @@ async def execute_once(subtask: SubTask) -> SubTask:
     executor = get_executor(role_key)
     
     if executor:
-        result = await executor.execute(subtask.input_data)
-        subtask.output_data = result
-        subtask.status = TaskStatus.COMPLETED
+        # 🎯 v3.0.1: 智能模型路由
+        user_input = subtask.input_data.get("user_input", "")
+        if MODEL_ROUTER_ENABLED:
+            selected_model = get_model_for_role(subtask.role, user_input, priority=model_priority)
+            print(f"   🎯 智能路由：{subtask.role.value} → {selected_model}")
+        else:
+            selected_model = None
+        
+        # 执行（如果执行器支持模型参数）
+        try:
+            if selected_model:
+                result = await executor.execute(subtask.input_data, model=selected_model)
+            else:
+                result = await executor.execute(subtask.input_data)
+            subtask.output_data = result
+            subtask.status = TaskStatus.COMPLETED
+        except TypeError:
+            # 执行器不支持 model 参数，降级
+            result = await executor.execute(subtask.input_data)
+            subtask.output_data = result
+            subtask.status = TaskStatus.COMPLETED
     else:
         # 兜底：模拟执行
         await asyncio.sleep(0.1)
@@ -303,13 +358,16 @@ async def fallback_execute(subtask: SubTask) -> SubTask:
     subtask.status = TaskStatus.COMPLETED
     return subtask
 
-async def execute_subtask(subtask: SubTask, max_concurrent: int = 3, max_retries: int = 3) -> SubTask:
-    """执行子任务（带重试和降级）
+async def execute_subtask(subtask: SubTask, max_concurrent: int = 3, max_retries: int = 3, 
+                         model_priority: str = "balanced") -> SubTask:
+    """
+    执行子任务（带重试和降级）
     
     Args:
         subtask: 子任务对象
         max_concurrent: 最大并发数（未使用，保留兼容性）
         max_retries: 最大重试次数（默认 3 次）
+        model_priority: 模型选择优先级 (balanced/quality/speed/economy)
     
     Returns:
         SubTask: 执行结果
@@ -320,7 +378,7 @@ async def execute_subtask(subtask: SubTask, max_concurrent: int = 3, max_retries
     # 指数退避重试
     for attempt in range(max_retries):
         try:
-            result = await execute_once(subtask)
+            result = await execute_once(subtask, model_priority=model_priority)
             subtask.elapsed_ms = (time.time() - start_time) * 1000
             return result
             
@@ -494,13 +552,32 @@ class SmartOrchestrator:
         except Exception as e:
             print(f"⚠️  保存统计信息失败：{e}")
     
-    async def execute(self, user_input: str, user_id: str = None) -> TaskResult:
-        """执行用户任务（带全局异常处理）"""
+    async def execute(self, user_input: str, user_id: str = None, 
+                     model_priority: str = "balanced") -> TaskResult:
+        """
+        执行用户任务（带全局异常处理）
+        
+        Args:
+            user_input: 用户输入
+            user_id: 用户 ID
+            model_priority: 模型选择优先级
+                - "balanced": 平衡模式（默认）
+                - "quality": 质量优先
+                - "speed": 速度优先
+                - "economy": 经济优先
+        """
         start_time = time.time()
         task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
         try:
             self.stats["total_requests"] += 1
+            
+            # ========== v3.0.1: 智能模型路由提示 ==========
+            if MODEL_ROUTER_ENABLED:
+                routing_result = route_model(user_input, priority=model_priority)
+                print(f"\n🎯 智能路由：{routing_result.model_name} (置信度：{routing_result.confidence:.1%})")
+                print(f"   任务类型：{routing_result.task_type.value}")
+                print(f"   选择理由：{routing_result.reason}")
             
             # ========== v3.0 三位一体系统初始化 ==========
             if TRINITY_SYSTEM_ENABLED and user_id:
@@ -625,8 +702,15 @@ class SmartOrchestrator:
                 async with semaphore:
                     return await execute_subtask(task, self.max_concurrent)
             
-            # 执行子任务
+            # 执行子任务（v3.0.1: 传递模型优先级）
             tasks = [execute_with_semaphore(st) for st in subtasks]
+            
+            # 包装任务以传递 model_priority
+            async def execute_with_priority(st: SubTask) -> SubTask:
+                async with semaphore:
+                    return await execute_subtask(st, self.max_concurrent, model_priority=model_priority)
+            
+            tasks = [execute_with_priority(st) for st in subtasks]
             executed = await asyncio.gather(*tasks)
             
             # 更新结果
