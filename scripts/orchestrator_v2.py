@@ -34,6 +34,30 @@ except ImportError as e:
     print(f"⚠️  自动重试系统导入失败：{e}")
     AUTO_RETRY_ENABLED = False
 
+# ==================== ✅ v3.0.2 性能优化补丁 ====================
+try:
+    from scripts.performance_patch import (
+        LazyTrinityState, get_trinity_state,
+        BatchLearningWriter, get_learning_writer,
+        PerformanceMonitor, get_performance_monitor,
+        get_model_simple, should_skip_model_routing,
+        call_subagent_safe
+    )
+    PERFORMANCE_PATCH_ENABLED = True
+    print("✅ 性能优化补丁已加载 (v3.0.2)")
+except ImportError as e:
+    print(f"⚠️  性能优化补丁未启用：{e}")
+    PERFORMANCE_PATCH_ENABLED = False
+
+# ==================== 🧠 v3.0.2 自动学习层 ====================
+try:
+    from scripts.learning_layer import AutoLearner
+    AUTO_LEARNING_ENABLED = True
+    print("🧠 自动学习层已启用 (v3.0.2)")
+except ImportError as e:
+    print(f"⚠️  自动学习层未启用：{e}")
+    AUTO_LEARNING_ENABLED = False
+
 # ==================== 导入学习层 ====================
 try:
     from scripts.learning_layer import get_learning_layer
@@ -307,47 +331,90 @@ def decompose_task(user_input: str, intent: Dict[str, Any]) -> List[SubTask]:
 
 # ==================== 执行器 (带重试和降级) ====================
 
-async def execute_once(subtask: SubTask, model_priority: str = "balanced") -> SubTask:
+async def execute_once(subtask: SubTask, model_priority: str = "balanced", perf_monitor=None) -> SubTask:
     """
     执行单次任务（不含重试）
     
     Args:
         subtask: 子任务对象
         model_priority: 模型选择优先级 (balanced/quality/speed/economy)
+        perf_monitor: 性能监控器 (可选)
     """
-    from tools.executors.factory import get_executor
+    start_time = time.time()
+    
+    # ✅ v3.0.2: 修复执行器导入路径
+    import sys
+    import os
+    skill_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    tools_path = os.path.join(skill_path, "tools", "executors")
+    if tools_path not in sys.path:
+        sys.path.insert(0, tools_path)
+    
+    from factory import get_executor
     
     # 支持中文和英文角色名
     role_key = subtask.role.value  # 中文名
     executor = get_executor(role_key)
     
-    if executor:
-        # 🎯 v3.0.1: 智能模型路由
-        user_input = subtask.input_data.get("user_input", "")
-        if MODEL_ROUTER_ENABLED:
-            selected_model = get_model_for_role(subtask.role, user_input, priority=model_priority)
-            print(f"   🎯 智能路由：{subtask.role.value} → {selected_model}")
-        else:
+    try:
+        if executor:
+            # ✅ v3.0.2: 简化模型路由 (简单问题直连默认模型)
+            user_input = subtask.input_data.get("user_input", "")
             selected_model = None
-        
-        # 执行（如果执行器支持模型参数）
-        try:
-            if selected_model:
-                result = await executor.execute(subtask.input_data, model=selected_model)
-            else:
+            
+            if PERFORMANCE_PATCH_ENABLED and should_skip_model_routing(user_input):
+                # 简单问题直连默认模型
+                selected_model = "qwen3.5-plus"
+                print(f"   ⚡ 简化路由：{subtask.role.value} → {selected_model}")
+            elif MODEL_ROUTER_ENABLED:
+                # 复杂问题使用完整路由
+                selected_model = get_model_for_role(subtask.role, user_input, priority=model_priority)
+                print(f"   🎯 智能路由：{subtask.role.value} → {selected_model}")
+            
+            # 执行（如果执行器支持模型参数）
+            try:
+                if selected_model:
+                    result = await executor.execute(subtask.input_data, model=selected_model)
+                else:
+                    result = await executor.execute(subtask.input_data)
+                subtask.output_data = result
+                subtask.status = TaskStatus.COMPLETED
+            except TypeError:
+                # 执行器不支持 model 参数，降级
                 result = await executor.execute(subtask.input_data)
-            subtask.output_data = result
-            subtask.status = TaskStatus.COMPLETED
-        except TypeError:
-            # 执行器不支持 model 参数，降级
-            result = await executor.execute(subtask.input_data)
-            subtask.output_data = result
-            subtask.status = TaskStatus.COMPLETED
-    else:
-        # 兜底：模拟执行
-        await asyncio.sleep(0.1)
-        subtask.output_data = {"output": f"[{subtask.role.value}] 任务完成"}
-        subtask.status = TaskStatus.COMPLETED
+                subtask.output_data = result
+                subtask.status = TaskStatus.COMPLETED
+        else:
+            # ✅ v3.0.2: 使用安全的子 Agent 调用
+            if PERFORMANCE_PATCH_ENABLED:
+                print(f"   🔄 无执行器，调用子 Agent: {subtask.role.value}")
+                result = await call_subagent_safe(
+                    task=subtask.description,
+                    agent_id=None,  # 使用默认 Agent
+                    cleanup="delete",
+                    timeout=300
+                )
+                subtask.output_data = {"output": result.get("output", "任务完成")}
+                subtask.status = TaskStatus.COMPLETED
+            else:
+                # 兜底：模拟执行
+                await asyncio.sleep(0.1)
+                subtask.output_data = {"output": f"[{subtask.role.value}] 任务完成"}
+                subtask.status = TaskStatus.COMPLETED
+    except Exception as e:
+        subtask.status = TaskStatus.FAILED
+        subtask.error = str(e)
+    
+    # ✅ v3.0.2: 记录性能指标
+    elapsed = (time.time() - start_time) * 1000
+    if perf_monitor:
+        is_fast = elapsed < 100
+        perf_monitor.record(
+            latency_ms=elapsed,
+            is_fast=is_fast,
+            is_cache_hit=False,
+            is_error=(subtask.status == TaskStatus.FAILED)
+        )
     
     return subtask
 
@@ -359,15 +426,16 @@ async def fallback_execute(subtask: SubTask) -> SubTask:
     return subtask
 
 async def execute_subtask(subtask: SubTask, max_concurrent: int = 3, max_retries: int = 3, 
-                         model_priority: str = "balanced") -> SubTask:
+                         model_priority: str = "balanced", perf_monitor=None) -> SubTask:
     """
-    执行子任务（带重试和降级）
+    执行子任务（带重试和降级）v3.0.2
     
     Args:
         subtask: 子任务对象
         max_concurrent: 最大并发数（未使用，保留兼容性）
         max_retries: 最大重试次数（默认 3 次）
         model_priority: 模型选择优先级 (balanced/quality/speed/economy)
+        perf_monitor: 性能监控器 (可选)
     
     Returns:
         SubTask: 执行结果
@@ -378,7 +446,7 @@ async def execute_subtask(subtask: SubTask, max_concurrent: int = 3, max_retries
     # 指数退避重试
     for attempt in range(max_retries):
         try:
-            result = await execute_once(subtask, model_priority=model_priority)
+            result = await execute_once(subtask, model_priority=model_priority, perf_monitor=perf_monitor)
             subtask.elapsed_ms = (time.time() - start_time) * 1000
             return result
             
@@ -467,11 +535,12 @@ def generate_confirm_message(user_input: str, subtasks: List[SubTask]) -> str:
 # ==================== 主控制器 ====================
 
 class SmartOrchestrator:
-    """灵犀 - 智慧调度系统主控制器 v3.0 (三位一体)"""
+    """灵犀 - 智慧调度系统主控制器 v3.0.2 (性能优化版)"""
     
     def __init__(self, max_concurrent: int = 3, enable_fast_response: bool = True, 
                  enable_learning: bool = True, enable_review: bool = False, 
-                 enable_audit: bool = False, stats_file: str = None):
+                 enable_audit: bool = False, stats_file: str = None,
+                 enable_auto_retry: bool = True):  # ✅ 兼容参数（未使用）
         self.name = "灵犀"
         self.max_concurrent = max_concurrent
         self.enable_fast_response = enable_fast_response
@@ -489,6 +558,23 @@ class SmartOrchestrator:
         
         if TRINITY_SYSTEM_ENABLED:
             print(f"🧠 三位一体系统已启用")
+        
+        # ✅ v3.0.2: 懒加载三位一体状态
+        if PERFORMANCE_PATCH_ENABLED:
+            self.trinity_state_lazy = LazyTrinityState
+            self.learning_writer = get_learning_writer()
+            self.perf_monitor = get_performance_monitor()
+            print("⚡ 性能优化已启用：懒加载 + 批量写入 + 性能监控")
+        else:
+            self.trinity_state_lazy = None
+            self.learning_writer = None
+            self.perf_monitor = None
+        
+        # 🧠 v3.0.2: 自动学习器
+        if AUTO_LEARNING_ENABLED:
+            self.auto_learner = AutoLearner()
+        else:
+            self.auto_learner = None
         
         # 学习层
         self.learning_layer = get_learning_layer() if enable_learning and LEARNING_LAYER_ENABLED else None
@@ -702,13 +788,15 @@ class SmartOrchestrator:
                 async with semaphore:
                     return await execute_subtask(task, self.max_concurrent)
             
-            # 执行子任务（v3.0.1: 传递模型优先级）
-            tasks = [execute_with_semaphore(st) for st in subtasks]
-            
-            # 包装任务以传递 model_priority
+            # ✅ v3.0.2: 包装任务以传递 model_priority 和 perf_monitor
             async def execute_with_priority(st: SubTask) -> SubTask:
                 async with semaphore:
-                    return await execute_subtask(st, self.max_concurrent, model_priority=model_priority)
+                    return await execute_subtask(
+                        st, 
+                        self.max_concurrent, 
+                        model_priority=model_priority,
+                        perf_monitor=self.perf_monitor if PERFORMANCE_PATCH_ENABLED else None
+                    )
             
             tasks = [execute_with_priority(st) for st in subtasks]
             executed = await asyncio.gather(*tasks)
@@ -749,6 +837,25 @@ class SmartOrchestrator:
             self.stats["total_elapsed_ms"] += total_elapsed
             
             print(f"\n⏱️  总耗时：{total_elapsed:.1f}ms")
+            
+            # ✅ v3.0.2: 输出性能报告
+            if PERFORMANCE_PATCH_ENABLED and self.perf_monitor:
+                report = self.perf_monitor.get_report()
+                print(f"\n📈 性能报告:")
+                print(f"   平均延迟：{report['avg_latency_ms']:.1f}ms")
+                print(f"   快速响应率：{report['fast_response_rate']:.1%}")
+                print(f"   缓存命中率：{report['cache_hit_rate']:.1%}")
+            
+            # 🧠 v3.0.2: 记录到自动学习器
+            if AUTO_LEARNING_ENABLED and self.auto_learner:
+                # 记录查询（仅记录 passthrough 层的问题，Layer 0 已经很快了）
+                if total_elapsed > 100:  # 超过 100ms 的查询才记录
+                    self.auto_learner.record(
+                        query=user_input,
+                        latency_ms=total_elapsed,
+                        layer="passthrough"
+                    )
+                    print(f"🧠 已记录查询到学习器：\"{user_input[:30]}...\" ({total_elapsed:.0f}ms)")
             
             # 6. 缓存结果（用于相似问题）
             cache_response(user_input, summary)

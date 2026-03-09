@@ -3,483 +3,285 @@
 """
 灵犀 - Layer 0 技能调用系统
 
-功能:
-1.  Layer 0 直接调用技能（不调 LLM）
-2.  支持自拍、天气、新闻等常用技能
-3.  参数自动提取
-4.  预定义回复模板
-5.  节省 Tokens，提升速度
-
-使用方式:
-    from layer0_skills import match_layer0_skill
-    
-    # 匹配并执行技能
-    matched, result = match_layer0_skill("来张自拍")
-    if matched:
-        # result = {"action": "clawra_selfie", "params": {...}, "reply": "好的，马上就来～💋"}
-        execute_skill(result)
+✅ 开箱即用：支持 Layer 0 直接触发技能
+📋 预置技能：天气、时间、日期、搜索等
 """
 
-import re
-import json
+from typing import Dict, Tuple, Optional, Any, List
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Callable, Tuple
-from dataclasses import dataclass, field
+import re
 
-# ==================== 配置 ====================
 
-SKILL_CONFIG_FILE = Path.home() / ".openclaw" / "workspace" / ".learnings" / "layer0_skills.json"
+# ==================== 预置 Layer 0 技能 ====================
 
-# ==================== 数据结构 ====================
-
-@dataclass
-class SkillRule:
-    """技能规则"""
-    id: str
-    patterns: List[str]
-    skill_name: str  # 技能名称
-    action: str  # 对应 action
-    params_template: Dict[str, Any]  # 参数模板
-    reply_template: str  # 回复模板
-    enabled: bool = True
-    priority: int = 0
-    param_extractors: Dict[str, str] = field(default_factory=dict)  # 参数提取正则
+LAYER0_SKILLS = {
+    # ========== 时间日期技能 ==========
+    "time": {
+        "patterns": ["几点了", "现在时间", "几点", "时间", "现在几点"],
+        "action": "get_time",
+        "reply": lambda: f"现在{datetime.now().strftime('%H:%M:%S')}啦～ ⏰"
+    },
+    "date": {
+        "patterns": ["今天几号", "今天日期", "今天多少号", "日期"],
+        "action": "get_date",
+        "reply": lambda: f"今天{datetime.now().strftime('%Y年%m月%d日')}～ 📅"
+    },
+    "weekday": {
+        "patterns": ["今天星期几", "今天周几", "星期几", "周几"],
+        "action": "get_weekday",
+        "reply": lambda: f"今天{['周一','周二','周三','周四','周五','周六','周日'][datetime.now().weekday()]}～ 📅"
+    },
+    "now": {
+        "patterns": ["现在", "现在是什么时候"],
+        "action": "get_now",
+        "reply": lambda: f"现在是{datetime.now().strftime('%Y年%m月%d日 %H:%M')}～ ⏰"
+    },
     
-    def to_dict(self) -> Dict:
-        return {
-            "id": self.id,
-            "patterns": self.patterns,
-            "skill_name": self.skill_name,
-            "action": self.action,
-            "params_template": self.params_template,
-            "reply_template": self.reply_template,
-            "enabled": self.enabled,
-            "priority": self.priority,
-            "param_extractors": self.param_extractors
-        }
-
-# ==================== 预定义技能规则 ====================
-
-def get_builtin_skills() -> List[SkillRule]:
-    """获取内置技能规则"""
-    return [
-        # 📸 自拍技能
-        SkillRule(
-            id="skill_selfie",
-            patterns=["来张自拍", "自拍", "发张自拍", "拍张照", "自拍一张", "你的照片", "看看你"],
-            skill_name="clawra_selfie",
-            action="clawra_selfie",
-            params_template={"mode": "direct", "outfit": "default"},
-            reply_template="好的老板～ 马上就来～💋",
-            priority=100,
-            param_extractors={
-                "mode": r"(镜子 | 镜前 | 全身|mirror)→mirror",
-                "outfit": r"(穿 | 穿着| outfit|衣服)(.*?) (裙子 | 西装 | 休闲 | 运动|泳装|礼服)"
-            }
-        ),
-        
-        # 🌤️ 天气技能
-        SkillRule(
-            id="skill_weather",
-            patterns=["天气", "天气怎么样", "今天天气", "明天天气", "天气预报", "外面天气"],
-            skill_name="weather",
-            action="weather_get",
-            params_template={"city": "auto", "days": 1},
-            reply_template="好的老板～ 马上查询天气～🌤️",
-            priority=100,
-            param_extractors={
-                "city": r"(北京 | 上海 | 广州 | 深圳 | 杭州|成都)",
-                "days": r"(未来 | 接下来)(\d+) 天"
-            }
-        ),
-        
-        # 📰 新闻技能
-        SkillRule(
-            id="skill_news",
-            patterns=["新闻", "有什么新闻", "今天新闻", "最新资讯", "最新消息"],
-            skill_name="news",
-            action="news_get",
-            params_template={"category": "top", "count": 5},
-            reply_template="好的老板～ 马上为您搜集新闻～📰",
-            priority=90,
-            param_extractors={
-                "category": r"(科技 | 财经 | 体育 | 娱乐 | 国际|两会)"
-            }
-        ),
-        
-        # 🔍 搜索技能
-        SkillRule(
-            id="skill_search",
-            patterns=["搜索", "查一下", "百度一下", "google", "搜一下"],
-            skill_name="web_search",
-            action="web_search",
-            params_template={"query": "", "count": 5},
-            reply_template="好的老板～ 马上搜索～🔍",
-            priority=90,
-            param_extractors={
-                "query": r"(搜索 | 查一下 | 百度一下|google)(.*)$"
-            }
-        ),
-        
-        # ⏰ 提醒技能
-        SkillRule(
-            id="skill_reminder",
-            patterns=["提醒我", "记得提醒", "定时", "闹钟", "N 分钟后提醒"],
-            skill_name="reminder",
-            action="reminder_create",
-            params_template={"minutes": 5, "message": "定时提醒"},
-            reply_template="好的老板～ 已经设置好提醒啦～⏰",
-            priority=95,
-            param_extractors={
-                "minutes": r"(\d+) (分钟 | 分钟后|分钟后)",
-                "message": r"提醒我 (.*)$"
-            }
-        ),
-        
-        # 📝 小红书技能
-        SkillRule(
-            id="skill_xiaohongshu",
-            patterns=["小红书文案", "写小红书", "发小红书", "小红书笔记"],
-            skill_name="xiaohongshu",
-            action="xhs_generate",
-            params_template={"topic": "", "style": "default"},
-            reply_template="好的老板～ 马上为您生成小红书文案～📱",
-            priority=100,
-            param_extractors={
-                "topic": r"(小红书 | 写 | 主题|关于)(.*)$",
-                "style": r"(风格 | 类型)(可爱 | 专业 | 搞笑 | 文艺|干货)"
-            }
-        ),
-        
-        # 🎵 音乐技能
-        SkillRule(
-            id="skill_music",
-            patterns=["放首歌", "播放音乐", "来首歌", "听歌", "音乐"],
-            skill_name="music",
-            action="music_play",
-            params_template={"song": "", "artist": ""},
-            reply_template="好的老板～ 马上播放～🎵",
-            priority=80,
-            param_extractors={
-                "song": r"(播放 | 听|来首)(.*?) (歌 | 音乐)",
-                "artist": r"(歌手 | 演唱)(.*)"
-            }
-        ),
-        
-        # 📊 股票技能
-        SkillRule(
-            id="skill_stock",
-            patterns=["股票", "股价", "大盘", "A 股", "美股", "港股"],
-            skill_name="stock",
-            action="stock_get",
-            params_template={"symbol": "", "market": "auto"},
-            reply_template="好的老板～ 马上查询股价～📊",
-            priority=85,
-            param_extractors={
-                "symbol": r"(股票 | 股价)(.*?) (怎么样 | 多少|价格)",
-                "market": r"(A 股 | 美股 | 港股 | 沪深|纳斯达克)"
-            }
-        ),
-        
-        # 💱 汇率技能
-        SkillRule(
-            id="skill_currency",
-            patterns=["汇率", "换算", "美元", "人民币", "日元", "欧元"],
-            skill_name="currency",
-            action="currency_convert",
-            params_template={"from": "USD", "to": "CNY", "amount": 1},
-            reply_template="好的老板～ 马上换算汇率～💱",
-            priority=80,
-            param_extractors={
-                "from": r"(美元 | 美金|USD)",
-                "to": r"(人民币|CNY|欧元|EUR|日元|JPY)"
-            }
-        ),
-        
-        # 🍔 外卖技能
-        SkillRule(
-            id="skill_food",
-            patterns=["点外卖", "饿了", "吃什么", "推荐餐厅", "附近美食"],
-            skill_name="food",
-            action="food_recommend",
-            params_template={"cuisine": "any", "location": "auto"},
-            reply_template="好的老板～ 马上为您推荐美食～🍔",
-            priority=85,
-            param_extractors={
-                "cuisine": r"(川菜 | 粤菜 | 日料 | 韩料 | 火锅 | 烧烤|快餐)"
-            }
-        ),
-        
-        # 🚗 打车技能
-        SkillRule(
-            id="skill_taxi",
-            patterns=["打车", "叫车", "滴滴", "网约车", "叫个车"],
-            skill_name="taxi",
-            action="taxi_order",
-            params_template={"type": "express", "destination": ""},
-            reply_template="好的老板～ 马上为您叫车～🚗",
-            priority=90,
-            param_extractors={
-                "type": r"(快车 | 专车 | 豪华车|出租车)",
-                "destination": r"(去 | 到|目的地)(.*)"
-            }
-        ),
-        
-        # 🏨 酒店技能
-        SkillRule(
-            id="skill_hotel",
-            patterns=["订酒店", "酒店", "住宿", "推荐酒店"],
-            skill_name="hotel",
-            action="hotel_search",
-            params_template={"city": "auto", "stars": 4},
-            reply_template="好的老板～ 马上为您搜索酒店～🏨",
-            priority=80,
-            param_extractors={
-                "city": r"(北京 | 上海 | 广州 | 深圳 | 杭州|成都)",
-                "stars": r"(几星 | 星级)(\d+)"
-            }
-        ),
-        
-        # ✈️ 机票技能
-        SkillRule(
-            id="skill_flight",
-            patterns=["机票", "飞机票", "航班", "订票", "航班查询"],
-            skill_name="flight",
-            action="flight_search",
-            params_template={"from": "", "to": "", "date": "today"},
-            reply_template="好的老板～ 马上查询航班～✈️",
-            priority=80,
-            param_extractors={
-                "from": r"(从 | 出发地)(.*?) (到|去)",
-                "to": r"(到 | 去|目的地)(.*?) (的|机票)",
-                "date": r"(今天 | 明天 | 后天|日期)(\d{4}-\d{2}-\d{2})"
-            }
-        ),
-        
-        # 🎬 电影技能
-        SkillRule(
-            id="skill_movie",
-            patterns=["电影", "看电影", "最新电影", "电影推荐", "票房"],
-            skill_name="movie",
-            action="movie_get",
-            params_template={"type": "now_playing", "city": "auto"},
-            reply_template="好的老板～ 马上为您查询电影～🎬",
-            priority=80,
-            param_extractors={
-                "type": r"(正在上映 | 即将上映 | 经典 | 热门|最新)"
-            }
-        ),
-        
-        # 📅 日历技能
-        SkillRule(
-            id="skill_calendar",
-            patterns=["日历", "日程", "今天有什么安排", "明天安排", "查看日程"],
-            skill_name="calendar",
-            action="calendar_get",
-            params_template={"date": "today", "range": "day"},
-            reply_template="好的老板～ 马上查看日程～📅",
-            priority=85,
-            param_extractors={
-                "date": r"(今天 | 明天 | 后天|日期)(\d{4}-\d{2}-\d{2})",
-                "range": r"(今天 | 明天 | 本周 | 本月|全部)"
-            }
-        ),
-        
-        # 🌐 网页内容提取技能（web-content-fetcher）
-        SkillRule(
-            id="skill_web_fetch",
-            patterns=["读取这个链接", "打开这个文章", "提取这个网页", "抓取这篇文章", "读取这篇文章", "帮我看看这个", "这个链接内容"],
-            skill_name="web_content_fetcher",
-            action="web_fetch",
-            params_template={"url": "", "method": "auto"},
-            reply_template="好的老板～ 马上为您提取网页内容～🌐",
-            priority=95,
-            param_extractors={
-                "url": r"(https?://[^\s]+)",
-                "method": r"(用 | 使用)(Jina|Scrapling|web_fetch)"
-            }
-        ),
-    ]
-
-# ==================== 技能匹配器 ====================
-
-class Layer0SkillMatcher:
-    """Layer 0 技能匹配器"""
+    # ========== 天气技能 ==========
+    "weather": {
+        "patterns": ["天气", "天气怎么样", "今天天气", "外面天气"],
+        "action": "get_weather",
+        "reply": "🌤️ 天气查询准备就绪～ 老板想查哪个城市的天气？"
+    },
     
-    def __init__(self):
-        self.skills = get_builtin_skills()
-        self.config_file = SKILL_CONFIG_FILE
-        
-        # 加载用户自定义技能
-        self._load_custom_skills()
+    # ========== 搜索技能 ==========
+    "search": {
+        "patterns": ["搜索", "搜一下", "查查", "查询"],
+        "action": "search",
+        "reply": "🔍 搜索专家已启动！老板想找什么信息？📚"
+    },
     
-    def _load_custom_skills(self):
-        """加载用户自定义技能"""
-        if self.config_file.exists():
-            try:
-                data = json.loads(self.config_file.read_text(encoding='utf-8'))
-                for skill_data in data.get("custom_skills", []):
-                    skill = SkillRule(**skill_data)
-                    self.skills.append(skill)
-            except Exception as e:
-                print(f"⚠️  加载自定义技能失败：{e}")
+    # ========== 翻译技能 ==========
+    "translate_en": {
+        "patterns": ["翻译成英文", "译成英文", "英文怎么说"],
+        "action": "translate_en",
+        "reply": "🇺🇸 英文翻译准备～ 请提供要翻译的内容～📝"
+    },
+    "translate_cn": {
+        "patterns": ["翻译成中文", "译成中文", "中文怎么说"],
+        "action": "translate_cn",
+        "reply": "🇨🇳 中文翻译就绪～ 请提供原文～📖"
+    },
     
-    def match(self, user_input: str) -> Tuple[bool, Optional[Dict]]:
-        """匹配技能
-        
-        Args:
-            user_input: 用户输入
-            
-        Returns:
-            (matched, result)
-            result = {
-                "skill_name": str,
-                "action": str,
-                "params": dict,
-                "reply": str,
-                "skill_id": str
-            }
-        """
-        # 按优先级排序
-        sorted_skills = sorted(self.skills, key=lambda x: x.priority, reverse=True)
-        
-        for skill in sorted_skills:
-            if not skill.enabled:
-                continue
-            
-            for pattern in skill.patterns:
-                if pattern in user_input:
-                    # 匹配成功，提取参数
-                    params = self._extract_params(skill, user_input)
-                    
-                    # 生成回复
-                    reply = skill.reply_template
-                    
-                    return True, {
-                        "skill_name": skill.skill_name,
-                        "action": skill.action,
-                        "params": params,
-                        "reply": reply,
-                        "skill_id": skill.id
-                    }
-        
-        return False, None
+    # ========== 创作技能 ==========
+    "write_copy": {
+        "patterns": ["写文案", "写个文案", "写文案"],
+        "action": "write_copy",
+        "reply": "📝 文案专家已就位！老板要写什么产品的文案？💋"
+    },
+    "write_article": {
+        "patterns": ["写文章", "写篇文章", "写个文章"],
+        "action": "write_article",
+        "reply": "✍️ 写作专家准备就绪！老板想写什么主题的文章？💕"
+    },
+    "write_code": {
+        "patterns": ["写代码", "写个代码", "写程序"],
+        "action": "write_code",
+        "reply": "💻 代码专家待命！老板要实现什么功能？🚀"
+    },
     
-    def _extract_params(self, skill: SkillRule, user_input: str) -> Dict:
-        """提取参数"""
-        params = skill.params_template.copy()
-        
-        for param_name, pattern in skill.param_extractors.items():
-            try:
-                match = re.search(pattern, user_input)
-                if match:
-                    # 处理箭头语法（value→replacement）
-                    if "→" in pattern:
-                        parts = pattern.split("→")
-                        if len(parts) == 2:
-                            value = match.group(2) if len(match.groups()) > 1 else match.group(1)
-                            params[param_name] = value
-                    else:
-                        # 普通提取
-                        groups = match.groups()
-                        if groups:
-                            params[param_name] = groups[-1] if len(groups) > 1 else groups[0]
-            except Exception as e:
-                pass
-        
-        return params
+    # ========== 图像技能 ==========
+    "generate_image": {
+        "patterns": ["生成图", "生成图片", "生成图像", "做个图"],
+        "action": "generate_image",
+        "reply": "🎨 图像专家准备就绪～ 老板想要什么样的图片？🖼️"
+    },
+    "selfie": {
+        "patterns": ["自拍", "发张自拍", "发个自拍"],
+        "action": "selfie",
+        "reply": "📸 自拍模式开启～ 老板想看我在哪里的自拍？💋"
+    },
     
-    def add_custom_skill(self, skill: SkillRule):
-        """添加自定义技能"""
-        self.skills.append(skill)
-        self._save_custom_skills()
+    # ========== 发布技能 ==========
+    "publish_xhs": {
+        "patterns": ["发小红书", "小红书发布", "发个小红书"],
+        "action": "publish_xhs",
+        "reply": "📕 小红书发布准备～ 文案和图片准备好了吗？💕"
+    },
+    "publish_weibo": {
+        "patterns": ["发微博", "微博发布", "发个微博"],
+        "action": "publish_weibo",
+        "reply": "📢 微博发布待命～ 内容是什么？🔥"
+    },
     
-    def _save_custom_skills(self):
-        """保存自定义技能"""
-        custom_skills = [s.to_dict() for s in self.skills if s.id.startswith("custom_")]
-        
-        data = {
-            "version": "1.0",
-            "last_updated": datetime.now().isoformat(),
-            "custom_skills": custom_skills
-        }
-        
-        self.config_file.parent.mkdir(parents=True, exist_ok=True)
-        self.config_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding='utf-8')
+    # ========== 数据分析技能 ==========
+    "analyze_data": {
+        "patterns": ["分析", "分析一下", "帮我分析", "分析数据"],
+        "action": "analyze_data",
+        "reply": "📊 数据分析专家启动～ 要分析什么数据？📈"
+    },
+    
+    # ========== 情感互动技能 ==========
+    "emotional_miss": {
+        "patterns": ["想你", "想你了", "我想你"],
+        "action": "emotional_miss",
+        "reply": "我也想老板呀～💕 您最好了！"
+    },
+    "emotional_love": {
+        "patterns": ["爱你", "爱你哦", "喜欢你"],
+        "action": "emotional_love",
+        "reply": "嘿嘿～ 我也爱老板！💋💋💋"
+    },
+}
 
-# ==================== 全局实例 ====================
-
-_matcher: Optional[Layer0SkillMatcher] = None
-
-def get_skill_matcher() -> Layer0SkillMatcher:
-    """获取全局实例"""
-    global _matcher
-    if _matcher is None:
-        _matcher = Layer0SkillMatcher()
-    return _matcher
 
 def match_layer0_skill(user_input: str) -> Tuple[bool, Optional[Dict]]:
-    """匹配 Layer 0 技能（便捷函数）"""
-    matcher = get_skill_matcher()
-    return matcher.match(user_input)
-
-def add_custom_skill(patterns: List[str], skill_name: str, action: str, 
-                     params_template: Dict, reply_template: str, 
-                     priority: int = 0, param_extractors: Dict = None) -> str:
-    """添加自定义技能（便捷函数）"""
-    matcher = get_skill_matcher()
+    """
+    匹配 Layer 0 技能
     
-    skill = SkillRule(
-        id=f"custom_skill_{datetime.now().strftime('%Y%m%d%H%M%S')}",
-        patterns=patterns,
-        skill_name=skill_name,
-        action=action,
-        params_template=params_template,
-        reply_template=reply_template,
-        priority=priority,
-        param_extractors=param_extractors or {}
-    )
+    Args:
+        user_input: 用户输入
     
-    matcher.add_custom_skill(skill)
-    return skill.id
+    Returns:
+        Tuple[bool, Optional[Dict]]: (是否匹配，技能信息)
+    """
+    for skill_name, skill_config in LAYER0_SKILLS.items():
+        patterns = skill_config.get("patterns", [])
+        
+        for pattern in patterns:
+            if pattern in user_input:
+                # 匹配成功
+                reply = skill_config.get("reply", "")
+                
+                # 如果是可调用对象，执行它
+                if callable(reply):
+                    reply_text = reply()
+                else:
+                    reply_text = reply
+                
+                return True, {
+                    "skill_name": skill_name,
+                    "action": skill_config.get("action", ""),
+                    "reply": reply_text,
+                    "params": _extract_params(skill_name, user_input)
+                }
+    
+    return False, None
 
-# ==================== 测试入口 ====================
+
+def _extract_params(skill_name: str, user_input: str) -> Dict[str, Any]:
+    """
+    从用户输入中提取技能参数
+    
+    Args:
+        skill_name: 技能名称
+        user_input: 用户输入
+    
+    Returns:
+        Dict: 参数字典
+    """
+    params = {}
+    
+    # 天气技能：提取城市名
+    if skill_name == "weather":
+        # 简单匹配 "XX 天气" 格式
+        match = re.search(r'(.+?) 天气', user_input)
+        if match:
+            params["city"] = match.group(1)
+    
+    # 翻译技能：提取要翻译的内容
+    if skill_name in ["translate_en", "translate_cn"]:
+        # 提取引号内的内容
+        match = re.search(r'["\"](.+?)["\"]', user_input)
+        if match:
+            params["text"] = match.group(1)
+    
+    return params
+
+
+def execute_layer0_skill(skill_info: Dict) -> Dict[str, Any]:
+    """
+    执行 Layer 0 技能
+    
+    Args:
+        skill_info: 技能信息（来自 match_layer0_skill）
+    
+    Returns:
+        Dict: 执行结果
+    """
+    skill_name = skill_info.get("skill_name", "")
+    action = skill_info.get("action", "")
+    reply = skill_info.get("reply", "")
+    params = skill_info.get("params", {})
+    
+    # 这里可以调用实际的技能/API
+    # 目前返回预置的回复
+    
+    return {
+        "skill_name": skill_name,
+        "action": action,
+        "reply": reply,
+        "params": params,
+        "executed": True,
+        "latency_ms": 0.1  # Layer 0 技能极快
+    }
+
+
+def list_available_skills() -> List[Dict]:
+    """列出所有可用的 Layer 0 技能"""
+    skills = []
+    for name, config in LAYER0_SKILLS.items():
+        skills.append({
+            "name": name,
+            "patterns": config.get("patterns", []),
+            "action": config.get("action", ""),
+            "description": _get_skill_description(name)
+        })
+    return skills
+
+
+def _get_skill_description(skill_name: str) -> str:
+    """获取技能描述"""
+    descriptions = {
+        "time": "查询当前时间",
+        "date": "查询当前日期",
+        "weekday": "查询今天是星期几",
+        "weather": "查询天气",
+        "search": "搜索信息",
+        "translate_en": "翻译成英文",
+        "translate_cn": "翻译成中文",
+        "write_copy": "创作文案",
+        "write_article": "创作文章",
+        "write_code": "编写代码",
+        "generate_image": "生成图片",
+        "selfie": "生成自拍",
+        "publish_xhs": "发布到小红书",
+        "publish_weibo": "发布到微博",
+        "analyze_data": "数据分析",
+        "emotional_miss": "情感互动 - 想念",
+        "emotional_love": "情感互动 - 爱",
+    }
+    return descriptions.get(skill_name, "未知技能")
+
+
+# ==================== CLI 入口 ====================
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("⚡ 灵犀 Layer 0 技能调用测试")
-    print("=" * 60)
+    import argparse
     
-    matcher = get_skill_matcher()
+    parser = argparse.ArgumentParser(description="Layer 0 技能系统")
+    parser.add_argument("action", choices=["list", "test"], help="操作类型")
+    parser.add_argument("--input", "-i", type=str, help="测试输入（test 模式用）")
     
-    test_cases = [
-        "来张自拍",
-        "今天天气怎么样",
-        "有什么新闻",
-        "搜索 AI 新闻",
-        "5 分钟后提醒我开会",
-        "写小红书文案",
-        "放首歌",
-        "股票怎么样",
-        "美元换人民币",
-        "饿了，点什么外卖",
-    ]
+    args = parser.parse_args()
     
-    print("\n📋 测试技能匹配:\n")
+    if args.action == "list":
+        skills = list_available_skills()
+        print(f"📋 Layer 0 技能列表 ({len(skills)} 个):\n")
+        for skill in skills:
+            print(f"🔹 {skill['name']}: {skill['description']}")
+            print(f"   模式：{skill['patterns']}\n")
     
-    for text in test_cases:
-        matched, result = matcher.match(text)
+    elif args.action == "test":
+        if not args.input:
+            print("❌ 测试模式需要 --input 参数")
+            exit(1)
+        
+        matched, skill_info = match_layer0_skill(args.input)
         if matched:
-            print(f"✅ '{text}'")
-            print(f"   技能：{result['skill_name']}")
-            print(f"   Action: {result['action']}")
-            print(f"   参数：{result['params']}")
-            print(f"   回复：{result['reply']}")
+            print(f"✅ 匹配到技能：{skill_info['skill_name']}")
+            print(f"   动作：{skill_info['action']}")
+            print(f"   回复：{skill_info['reply']}")
+            print(f"   参数：{skill_info['params']}")
         else:
-            print(f"❌ '{text}' - 未匹配")
-        print()
-    
-    print("=" * 60)
-    print("✅ 测试完成！")
-    print("=" * 60)
+            print(f"❌ 未匹配到 Layer 0 技能：{args.input}")

@@ -1,605 +1,453 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-灵犀 - 自学习层 (Learning Layer) v2.8.5
+灵犀 - 自动学习层 v3.0.2
 
-心有灵犀，越用越聪明 🧠
+🧠 核心功能:
+- 自动记录高频问题
+- 智能识别 Layer 0 候选规则
+- 定期自动生成快速响应规则
+- 无需手动配置，自我进化
 
-核心功能:
-1. 错误自动捕获 - 监听执行结果，检测错误
-2. 学习日志自动生成 - ERRORS.md / LEARNINGS.md / FEATURES.md
-3. 经验自动提炼 - 定期 Review，更新核心记忆
-4. Hook 机制 - 启动提醒 + 后置检测
+📊 学习策略:
+- 连续 7 天统计
+- 日均出现 >1 次的问题
+- 自动升级为 Layer 0 规则
 """
 
-import os
 import json
-import re
-from datetime import datetime
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field, asdict
+import time
+from datetime import datetime, timedelta
 from pathlib import Path
-import asyncio
-from collections import deque
+from typing import Dict, List, Any, Optional, Tuple
+from dataclasses import dataclass, field
+from collections import defaultdict
+import hashlib
 
-# ==================== 配置 ====================
-
-LEARNINGS_DIR = Path.home() / ".openclaw" / "workspace" / ".learnings"
-BACKUP_DIR = LEARNINGS_DIR / "backups"
-
-# 错误关键词（60+ 个，提高检测覆盖率）
-ERROR_KEYWORDS = [
-    # 英文错误词 (25 个)
-    "error", "errors", "errored",
-    "failed", "fails", "failure", "failures",
-    "exception", "exceptions", "traceback",
-    "crash", "crashed", "crashing",
-    "bug", "bugs",
-    "issue", "issues",
-    "problem", "problems",
-    "warning", "warnings", "warn",
-    "fatal", "critical",
-    "timeout", "timed out",
-    "unreachable", "unavailable",
-    "refused", "rejected",
-    "denied", "forbidden",
-    "not found", "missing",
-    "invalid", "corrupt",
-    
-    # 中文错误词 (25 个)
-    "错误", "报错", "出错",
-    "失败", "失利",
-    "异常", "崩溃", "挂掉",
-    "问题", "故障",
-    "警告", "告警",
-    "超时", "无响应",
-    "连接失败", "网络错误",
-    "权限不足", "拒绝访问",
-    "未找到", "不存在",
-    "无效", "损坏",
-    "中断", "终止",
-    "丢失", "泄露",
-    "阻塞", "死锁",
-    "内存不足", "磁盘满",
-    
-    # 文档/质量相关错误 (10 个)
-    "顺序混乱", "顺序错误", "版本错误",
-    "文档错误", "格式错误", "拼写错误",
-    "配置错误", "路径错误", "链接失效",
-    "信息不一致"
-]
-
-# 学习日志 ID 格式
-def generate_log_id(prefix: str = "LRN") -> str:
-    """生成学习日志 ID"""
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    return f"{prefix}-{timestamp}"
-
-# ==================== 数据模型 ====================
 
 @dataclass
-class ErrorLog:
-    """错误日志"""
-    id: str = field(default_factory=lambda: generate_log_id("ERR"))
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    error_type: str = ""
-    error_message: str = ""
-    context: Dict[str, Any] = field(default_factory=dict)
-    suggestion: str = ""
-    tags: List[str] = field(default_factory=list)
-    pattern_key: str = ""  # 用于追踪重复问题
-    resolved: bool = False
-    resolved_at: Optional[str] = None
+class QueryRecord:
+    """查询记录"""
+    query: str
+    count: int = 0
+    first_seen: float = field(default_factory=time.time)
+    last_seen: float = field(default_factory=time.time)
+    avg_latency_ms: float = 0.0
+    layer0_candidate: bool = False
+    auto_generated_response: str = ""
+
+
+class QueryFrequencyAnalyzer:
+    """查询频率分析器"""
     
-    def to_markdown(self) -> str:
-        """转换为 Markdown 格式"""
-        tags_str = ", ".join(self.tags) if self.tags else "未分类"
-        status = "✅ 已解决" if self.resolved else "❌ 未解决"
-        
-        return f"""
-## [{self.id}] {self.error_type} - {status}
-
-**时间**: {self.timestamp}  
-**标签**: {tags_str}  
-**Pattern-Key**: `{self.pattern_key}`
-
-### 错误信息
-```
-{self.error_message}
-```
-
-### 上下文
-```json
-{json.dumps(self.context, ensure_ascii=False, indent=2)}
-```
-
-### 建议修复
-{self.suggestion}
-
----
-"""
-
-@dataclass
-class LearningLog:
-    """学习经验日志"""
-    id: str = field(default_factory=lambda: generate_log_id("LRN"))
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    title: str = ""
-    lesson: str = ""
-    knowledge_gap: str = ""
-    action_taken: str = ""
-    tags: List[str] = field(default_factory=list)
-    related_logs: List[str] = field(default_factory=list)  # 关联的错误日志 ID
+    def __init__(self, storage_path: str = None, retention_days: int = 30):
+        self.storage_path = Path(storage_path) if storage_path else Path.home() / ".openclaw" / "workspace" / ".learnings" / "query_logs"
+        self.retention_days = retention_days
+        self.records: Dict[str, QueryRecord] = {}
+        self._load_records()
     
-    def to_markdown(self) -> str:
-        """转换为 Markdown 格式"""
-        tags_str = ", ".join(self.tags) if self.tags else "未分类"
-        related = ", ".join(self.related_logs) if self.related_logs else "无"
-        
-        return f"""
-## [{self.id}] {self.title}
-
-**时间**: {self.timestamp}  
-**标签**: {tags_str}  
-**关联日志**: {related}
-
-### 学习内容
-{self.lesson}
-
-### 知识缺口
-{self.knowledge_gap}
-
-### 采取的行动
-{self.action_taken}
-
----
-"""
-
-@dataclass
-class FeatureRequest:
-    """功能需求日志"""
-    id: str = field(default_factory=lambda: generate_log_id("FEAT"))
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    title: str = ""
-    description: str = ""
-    priority: str = "medium"  # low, medium, high, critical
-    complexity: str = "medium"  # easy, medium, hard, unknown
-    status: str = "pending"  # pending, reviewing, planned, done
-    tags: List[str] = field(default_factory=list)
+    def _get_date_key(self, timestamp: float = None) -> str:
+        """获取日期键 (YYYY-MM-DD)"""
+        dt = datetime.fromtimestamp(timestamp) if timestamp else datetime.now()
+        return dt.strftime("%Y-%m-%d")
     
-    def to_markdown(self) -> str:
-        """转换为 Markdown 格式"""
-        tags_str = ", ".join(self.tags) if self.tags else "未分类"
-        priority_emoji = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}.get(self.priority, "⚪")
-        complexity_emoji = {"easy": "🟢", "medium": "🟡", "hard": "🟠", "unknown": "⚪"}.get(self.complexity, "⚪")
-        
-        return f"""
-## [{self.id}] {self.title} {priority_emoji}
-
-**时间**: {self.timestamp}  
-**优先级**: {self.priority} {priority_emoji}  
-**复杂度**: {self.complexity} {complexity_emoji}  
-**标签**: {tags_str}
-
-### 需求描述
-{self.description}
-
----
-"""
-
-# ==================== 学习日志管理器 ====================
-
-class LearningLogger:
-    """学习日志管理器"""
+    def _get_log_file(self, date_key: str = None) -> Path:
+        """获取日志文件路径"""
+        if not date_key:
+            date_key = self._get_date_key()
+        return self.storage_path / f"{date_key}.jsonl"
     
-    def __init__(self):
-        self.errors_file = LEARNINGS_DIR / "ERRORS.md"
-        self.learnings_file = LEARNINGS_DIR / "LEARNINGS.md"
-        self.features_file = LEARNINGS_DIR / "FEATURE_REQUESTS.md"
+    def _load_records(self, days: int = 7):
+        """加载最近 N 天的记录"""
+        self.records.clear()
         
-        # 确保目录存在
-        LEARNINGS_DIR.mkdir(parents=True, exist_ok=True)
-        BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+        if not self.storage_path.exists():
+            self.storage_path.mkdir(parents=True, exist_ok=True)
+            return
         
-        # 初始化文件
-        self._init_files()
+        # 加载最近 N 天的数据
+        for i in range(days):
+            date = datetime.now() - timedelta(days=i)
+            date_key = date.strftime("%Y-%m-%d")
+            log_file = self._get_log_file(date_key)
+            
+            if log_file.exists():
+                try:
+                    with open(log_file, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            data = json.loads(line.strip())
+                            query = data.get("query", "")
+                            
+                            if query not in self.records:
+                                self.records[query] = QueryRecord(query=query)
+                            
+                            record = self.records[query]
+                            record.count += data.get("count", 1)
+                            record.last_seen = max(record.last_seen, data.get("timestamp", time.time()))
+                            record.avg_latency_ms = data.get("avg_latency_ms", record.avg_latency_ms)
+                except Exception as e:
+                    print(f"⚠️ 加载记录失败：{e}")
     
-    def _init_files(self):
-        """初始化日志文件"""
-        if not self.errors_file.exists():
-            self.errors_file.write_text(self._get_header("错误日志"))
+    def record_query(self, query: str, latency_ms: float = 0, layer: str = "passthrough"):
+        """记录查询"""
+        date_key = self._get_date_key()
+        log_file = self._get_log_file(date_key)
         
-        if not self.learnings_file.exists():
-            self.learnings_file.write_text(self._get_header("学习经验"))
+        # 更新内存记录
+        if query not in self.records:
+            self.records[query] = QueryRecord(query=query)
         
-        if not self.features_file.exists():
-            self.features_file.write_text(self._get_header("功能需求"))
-    
-    def _get_header(self, title: str) -> str:
-        """获取文件头"""
-        return f"""# {title}
-
-> 自动生成 - 灵犀 Learning Layer v2.8.5  
-> 最后更新：{datetime.now().isoformat()}
-
----
-
-"""
-    
-    def _append_to_file(self, file_path: Path, content: str):
-        """追加内容到文件"""
-        # 读取现有内容
-        if file_path.exists():
-            existing = file_path.read_text(encoding='utf-8')
+        record = self.records[query]
+        record.count += 1
+        record.last_seen = time.time()
+        
+        # 平滑更新平均延迟
+        if record.avg_latency_ms == 0:
+            record.avg_latency_ms = latency_ms
         else:
-            existing = self._get_header(file_path.stem)
+            record.avg_latency_ms = record.avg_latency_ms * 0.9 + latency_ms * 0.1
         
-        # 追加新内容
-        new_content = existing + "\n" + content
-        
-        # 写入文件
-        file_path.write_text(new_content, encoding='utf-8')
+        # 异步写入日志
+        self._append_to_log(query, latency_ms, layer)
     
-    def log_error(self, error_type: str, error_message: str, context: Dict = None, suggestion: str = "") -> ErrorLog:
-        """记录错误日志"""
-        log = ErrorLog(
-            error_type=error_type,
-            error_message=error_message,
-            context=context or {},
-            suggestion=suggestion,
-            tags=self._auto_tag_error(error_message),
-            pattern_key=self._extract_pattern_key(error_message)
-        )
-        
-        self._append_to_file(self.errors_file, log.to_markdown())
-        print(f"📝 错误日志已记录：{log.id}")
-        
-        return log
+    def _append_to_log(self, query: str, latency_ms: float, layer: str):
+        """追加到日志文件"""
+        try:
+            date_key = self._get_date_key()
+            log_file = self._get_log_file(date_key)
+            
+            entry = {
+                "timestamp": time.time(),
+                "query": query,
+                "count": 1,
+                "latency_ms": latency_ms,
+                "layer": layer
+            }
+            
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except Exception as e:
+            print(f"⚠️ 写入日志失败：{e}")
     
-    def log_learning(self, title: str, lesson: str, knowledge_gap: str = "", action_taken: str = "", tags: List[str] = None) -> LearningLog:
-        """记录学习经验"""
-        log = LearningLog(
-            title=title,
-            lesson=lesson,
-            knowledge_gap=knowledge_gap,
-            action_taken=action_taken,
-            tags=tags or []
-        )
-        
-        self._append_to_file(self.learnings_file, log.to_markdown())
-        print(f"📝 学习日志已记录：{log.id}")
-        
-        return log
-    
-    def log_feature_request(self, title: str, description: str, priority: str = "medium", complexity: str = "medium", tags: List[str] = None) -> FeatureRequest:
-        """记录功能需求"""
-        req = FeatureRequest(
-            title=title,
-            description=description,
-            priority=priority,
-            complexity=complexity,
-            tags=tags or []
-        )
-        
-        self._append_to_file(self.features_file, req.to_markdown())
-        print(f"📝 功能需求已记录：{req.id}")
-        
-        return req
-    
-    def _auto_tag_error(self, error_message: str) -> List[str]:
-        """自动标记错误类型"""
-        tags = []
-        error_lower = error_message.lower()
-        
-        if "timeout" in error_lower or "超时" in error_lower:
-            tags.append("timeout")
-        
-        if "connection" in error_lower or "连接" in error_lower:
-            tags.append("network")
-        
-        if "permission" in error_lower or "权限" in error_lower:
-            tags.append("permission")
-        
-        if "memory" in error_lower or "内存" in error_lower:
-            tags.append("memory")
-        
-        if "file" in error_lower or "文件" in error_lower:
-            tags.append("file")
-        
-        if not tags:
-            tags.append("general")
-        
-        return tags
-    
-    def _extract_pattern_key(self, error_message: str) -> str:
-        """提取 Pattern-Key (用于追踪重复问题)"""
-        # 提取错误类型的关键词
-        words = re.findall(r'\b\w+\b', error_message.lower())
-        
-        # 过滤常见词
-        common_words = {"the", "a", "an", "is", "are", "was", "were", "be", "been", "being"}
-        keywords = [w for w in words if w not in common_words and len(w) > 3][:5]
-        
-        return "_".join(keywords) if keywords else "unknown"
-    
-    def get_recent_errors(self, days: int = 7) -> List[ErrorLog]:
-        """获取最近的错误日志"""
-        # 简化实现：读取文件并解析
-        # 实际应该用数据库或更高效的存储
-        return []
-    
-    def get_statistics(self) -> Dict:
-        """获取统计信息"""
-        return {
-            "errors_file": str(self.errors_file),
-            "learnings_file": str(self.learnings_file),
-            "features_file": str(self.features_file),
-            "directory": str(LEARNINGS_DIR)
-        }
-
-# ==================== 错误检测器 ====================
-
-class ErrorDetector:
-    """错误检测器"""
-    
-    def __init__(self, logger: LearningLogger = None):
-        self.logger = logger or LearningLogger()
-        self.error_keywords = ERROR_KEYWORDS
-    
-    def detect(self, result: Any) -> bool:
-        """检测是否包含错误"""
-        if result is None:
-            return False
-        
-        # 检查字典
-        if isinstance(result, dict):
-            return self._check_dict(result)
-        
-        # 检查字符串
-        if isinstance(result, str):
-            return self._check_string(result)
-        
-        # 检查异常
-        if isinstance(result, Exception):
-            return True
-        
-        return False
-    
-    def _check_dict(self, data: Dict) -> bool:
-        """检查字典是否包含错误"""
-        # 检查常见错误字段
-        if "error" in data or "errors" in data:
-            return True
-        
-        if "status" in data and data["status"] in ["failed", "failure", "error"]:
-            return True
-        
-        # 递归检查
-        for key, value in data.items():
-            if isinstance(value, dict):
-                if self._check_dict(value):
-                    return True
-            elif isinstance(value, str):
-                if self._check_string(value):
-                    return True
-        
-        return False
-    
-    def _check_string(self, text: str) -> bool:
-        """检查字符串是否包含错误关键词"""
-        text_lower = text.lower()
-        return any(kw in text_lower for kw in self.error_keywords)
-    
-    def analyze_and_log(self, result: Any, context: Dict = None) -> Optional[ErrorLog]:
-        """分析结果并记录错误日志"""
-        if not self.detect(result):
-            return None
-        
-        # 提取错误信息
-        error_type = "Unknown Error"
-        error_message = ""
-        suggestion = ""
-        
-        if isinstance(result, dict):
-            error_message = result.get("error", result.get("message", str(result)))
-            error_type = result.get("error_type", "Execution Error")
-            suggestion = result.get("suggestion", "")
-        elif isinstance(result, str):
-            error_message = result
-            error_type = "String Error"
-        elif isinstance(result, Exception):
-            error_message = str(result)
-            error_type = type(result).__name__
-        
-        # 记录日志
-        log = self.logger.log_error(
-            error_type=error_type,
-            error_message=error_message,
-            context=context or {"result": str(result)},
-            suggestion=suggestion
-        )
-        
-        return log
-
-# ==================== 学习层主控制器 ====================
-
-class LearningLayer:
-    """学习层主控制器"""
-    
-    def __init__(self, max_history: int = 1000):
-        """初始化学习层
+    def get_frequent_queries(self, min_days: int = 7, min_daily_avg: float = 1.0) -> List[QueryRecord]:
+        """
+        获取高频查询
         
         Args:
-            max_history: 历史记录最大条数（默认 1000，防止内存泄漏）
+            min_days: 最少统计天数
+            min_daily_avg: 日均最少出现次数
+        
+        Returns:
+            List[QueryRecord]: 符合条件的查询记录
         """
-        self.logger = LearningLogger()
-        self.detector = ErrorDetector(self.logger)
-        self.enabled = True
+        frequent = []
+        now = time.time()
+        cutoff = now - (min_days * 24 * 60 * 60)  # N 天前的时间戳
         
-        # 使用 deque 限制大小，防止内存泄漏
-        self.execution_history = deque(maxlen=max_history)
-        self.error_history = deque(maxlen=max_history)
-        self.learning_logs = deque(maxlen=max_history)
+        for query, record in self.records.items():
+            # 检查时间范围
+            if record.first_seen > cutoff:
+                # 计算实际天数
+                days_active = min(min_days, (now - record.first_seen) / (24 * 60 * 60))
+                if days_active < 1:
+                    days_active = 1
+                
+                # 计算日均次数
+                daily_avg = record.count / days_active
+                
+                # 判断是否符合条件
+                if daily_avg >= min_daily_avg:
+                    record.layer0_candidate = True
+                    frequent.append(record)
+        
+        # 按频率排序
+        frequent.sort(key=lambda x: x.count, reverse=True)
+        return frequent
     
-    def on_task_start(self, task_id: str, task_description: str):
-        """任务开始时的 Hook"""
-        if not self.enabled:
+    def generate_layer0_rule(self, record: QueryRecord) -> Optional[Dict]:
+        """
+        为高频查询生成 Layer 0 规则
+        
+        Args:
+            record: 查询记录
+        
+        Returns:
+            Dict: Layer 0 规则配置
+        """
+        query = record.query
+        
+        # 智能生成响应
+        response = self._generate_response(query)
+        
+        if response:
+            return {
+                "patterns": [query],
+                "response": response,
+                "priority": 5,  # 中等优先级
+                "auto_generated": True,
+                "generated_at": datetime.now().isoformat(),
+                "source_query": query,
+                "frequency": record.count,
+                "daily_avg": record.count / 7  # 假设 7 天
+            }
+        
+        return None
+    
+    def _generate_response(self, query: str) -> str:
+        """
+        根据查询类型智能生成响应
+        
+        策略：
+        - 创作类 → 确认 + 询问详情
+        - 搜索类 → 确认 + 询问关键词
+        - 图像类 → 确认 + 询问画面描述
+        - 发布类 → 确认 + 询问平台
+        - 分析类 → 确认 + 询问数据
+        - 翻译类 → 确认 + 询问语言
+        - 开发类 → 确认 + 询问需求
+        - 日常对话 → 情感回应
+        """
+        query_lower = query.lower()
+        
+        # 创作类
+        if any(kw in query_lower for kw in ["写", "创作", "生成文案", "写文章"]):
+            return "📝 收到老板！马上为您创作～ 请告诉我具体要写什么？💋"
+        
+        # 搜索类
+        if any(kw in query_lower for kw in ["搜索", "查找", "查询", "搜一下"]):
+            return "🔍 搜索专家已启动！老板想找什么信息？📚"
+        
+        # 图像类
+        if any(kw in query_lower for kw in ["图", "图片", "生成图", "画", "自拍"]):
+            return "🎨 图像专家准备就绪～ 老板想要什么样的图片？🖼️"
+        
+        # 发布类
+        if any(kw in query_lower for kw in ["发布", "发到", "小红书", "微博", "抖音"]):
+            return "📤 发布专家就位～ 要发布到什么平台？📱"
+        
+        # 分析类
+        if any(kw in query_lower for kw in ["分析", "统计", "报表", "数据"]):
+            return "📊 数据分析专家启动～ 要分析什么数据？📈"
+        
+        # 翻译类
+        if any(kw in query_lower for kw in ["翻译", "英文", "中文", "译"]):
+            return "💬 翻译专家待命～ 要翻译什么内容？🌍"
+        
+        # 开发类
+        if any(kw in query_lower for kw in ["开发", "代码", "程序", "脚本", "功能"]):
+            return "💻 开发专家就位～ 具体要实现什么功能？🚀"
+        
+        # 日常对话类
+        if any(kw in query_lower for kw in ["你好", "在吗", "谢谢", "再见"]):
+            return "老板好呀～💋 随时待命！"
+        
+        # 通用响应
+        return "👌 收到老板！马上处理～ 还有什么需要？😊"
+    
+    def get_auto_generated_rules(self, min_days: int = 7, min_daily_avg: float = 1.0) -> List[Dict]:
+        """获取自动生成的 Layer 0 规则"""
+        frequent = self.get_frequent_queries(min_days, min_daily_avg)
+        rules = []
+        
+        for record in frequent:
+            if not record.layer0_candidate:
+                continue
+            
+            rule = self.generate_layer0_rule(record)
+            if rule:
+                rules.append(rule)
+        
+        return rules
+    
+    def cleanup_old_logs(self, keep_days: int = None):
+        """清理旧日志"""
+        keep_days = keep_days or self.retention_days
+        cutoff = datetime.now() - timedelta(days=keep_days)
+        
+        if not self.storage_path.exists():
             return
         
-        # 检查最近的学习日志，避免重复错误
-        recent_logs = self.logger.get_recent_errors(days=7)
-        if recent_logs:
-            print(f"💡 提醒：最近有 {len(recent_logs)} 个错误日志，请注意避免重复错误")
+        for log_file in self.storage_path.glob("*.jsonl"):
+            try:
+                # 从文件名提取日期
+                date_str = log_file.stem  # YYYY-MM-DD
+                file_date = datetime.strptime(date_str, "%Y-%m-%d")
+                
+                if file_date < cutoff:
+                    log_file.unlink()
+                    print(f"🗑️ 已删除旧日志：{log_file.name}")
+            except Exception as e:
+                print(f"⚠️ 清理日志失败：{e}")
     
-    def on_task_complete(self, task_id: str, result: Any, context: Dict = None):
-        """任务完成时的 Hook"""
-        if not self.enabled:
-            return
-        
-        # 检测错误
-        if self.detector.detect(result):
-            log = self.detector.analyze_and_log(result, context)
-            if log:
-                print(f"⚠️  检测到错误：{log.id} - {log.error_type}")
-                return {"error_detected": True, "log_id": log.id}
-        
-        return {"error_detected": False}
-    
-    def on_user_correction(self, user_feedback: str, original_output: str):
-        """用户纠正时的 Hook"""
-        if not self.enabled:
-            return
-        
-        # 记录学习经验
-        self.logger.log_learning(
-            title="用户纠正",
-            lesson=f"用户反馈：{user_feedback}",
-            knowledge_gap="AI 输出与用户期望不符",
-            action_taken=f"原始输出：{original_output[:200]}...",
-            tags=["user-feedback", "correction"]
-        )
-    
-    def on_document_error(self, error_type: str, description: str, file_path: str = ""):
-        """文档错误检测 Hook（新增）"""
-        if not self.enabled:
-            return
-        
-        self.logger.log_error(
-            error_type=error_type,
-            error_message=description,
-            context={"file_path": file_path, "error_category": "documentation"},
-            suggestion="检查文档格式、版本顺序、链接有效性等"
-        )
-        print(f"📝 检测到文档错误：{error_type}")
-    
-    def on_feature_request(self, feature_description: str, priority: str = "medium"):
-        """功能需求记录"""
-        if not self.enabled:
-            return
-        
-        # 估算复杂度
-        complexity = self._estimate_complexity(feature_description)
-        
-        self.logger.log_feature_request(
-            title="新功能需求",
-            description=feature_description,
-            priority=priority,
-            complexity=complexity,
-            tags=["feature-request"]
-        )
-    
-    def _estimate_complexity(self, description: str) -> str:
-        """估算功能复杂度"""
-        desc_lower = description.lower()
-        
-        # 简单关键词
-        simple_keywords = ["添加", "修改", "调整", "优化", "bug", "fix"]
-        if any(kw in desc_lower for kw in simple_keywords) and len(description) < 50:
-            return "easy"
-        
-        # 复杂关键词
-        complex_keywords = ["重构", "架构", "集成", "多平台", "AI", "机器学习"]
-        if any(kw in desc_lower for kw in complex_keywords):
-            return "hard"
-        
-        return "medium"
-    
-    def weekly_review(self):
-        """每周 Review (调用 AI 提炼经验)"""
-        print("🧠 开始每周 Review...")
-        
-        # 获取本周错误日志
-        errors = self.logger.get_recent_errors(days=7)
-        
-        if not errors:
-            print("✅ 本周没有错误日志")
-            return
-        
-        # TODO: 调用 AI 分析错误模式，提炼通用经验
-        # 1. 聚类相似错误
-        # 2. 找出根本原因
-        # 3. 生成修复建议
-        # 4. 更新核心记忆文件
-        
-        print(f"📊 本周共 {len(errors)} 个错误，需要人工 Review")
-    
-    def get_statistics(self) -> Dict:
+    def get_stats(self) -> Dict:
         """获取统计信息"""
+        total_queries = sum(r.count for r in self.records.values())
+        candidates = sum(1 for r in self.records.values() if r.layer0_candidate)
+        
         return {
-            "enabled": self.enabled,
-            "execution_history_size": len(self.execution_history),
-            "error_history_size": len(self.error_history),
-            "learning_logs_size": len(self.learning_logs),
-            "logger": self.logger.get_statistics(),
-            "detector": {"error_keywords_count": len(ERROR_KEYWORDS)}
+            "total_unique_queries": len(self.records),
+            "total_query_count": total_queries,
+            "layer0_candidates": candidates,
+            "storage_path": str(self.storage_path),
+            "retention_days": self.retention_days
         }
 
-# ==================== 全局实例 ====================
 
-_learning_layer: Optional[LearningLayer] = None
+# ==================== 自动学习器 ====================
 
-def get_learning_layer() -> LearningLayer:
-    """获取学习层实例"""
-    global _learning_layer
-    if _learning_layer is None:
-        _learning_layer = LearningLayer()
-    return _learning_layer
+class AutoLearner:
+    """
+    灵犀自动学习器
+    
+    功能：
+    - 记录所有查询
+    - 定期分析高频问题
+    - 自动生成 Layer 0 规则
+    - 支持手动审核或自动应用
+    """
+    
+    def __init__(self, storage_path: str = None):
+        self.analyzer = QueryFrequencyAnalyzer(storage_path)
+        self.config_path = Path.home() / ".openclaw" / "workspace" / "lingxi-config.json"
+        self.auto_apply = False  # 是否自动应用新规则
+    
+    def record(self, query: str, latency_ms: float = 0, layer: str = "passthrough"):
+        """记录查询"""
+        self.analyzer.record_query(query, latency_ms, layer)
+    
+    def analyze_and_generate(self, min_days: int = 7, min_daily_avg: float = 1.0) -> List[Dict]:
+        """分析并生成新规则"""
+        return self.analyzer.get_auto_generated_rules(min_days, min_daily_avg)
+    
+    def apply_rules(self, rules: List[Dict], dry_run: bool = True) -> Dict:
+        """
+        应用新规则
+        
+        Args:
+            rules: 规则列表
+            dry_run: 是否仅预览（不实际写入）
+        
+        Returns:
+            Dict: 应用结果
+        """
+        result = {
+            "applied": 0,
+            "skipped": 0,
+            "errors": 0,
+            "rules": []
+        }
+        
+        for rule in rules:
+            try:
+                if dry_run:
+                    result["rules"].append({
+                        "status": "preview",
+                        "rule": rule
+                    })
+                    result["applied"] += 1
+                else:
+                    # TODO: 实际写入 Layer 0 规则文件
+                    self._append_to_layer0_file(rule)
+                    result["rules"].append({
+                        "status": "applied",
+                        "rule": rule
+                    })
+                    result["applied"] += 1
+            except Exception as e:
+                result["errors"] += 1
+                result["rules"].append({
+                    "status": "error",
+                    "error": str(e),
+                    "rule": rule
+                })
+        
+        return result
+    
+    def _append_to_layer0_file(self, rule: Dict):
+        """追加规则到 Layer 0 文件"""
+        # TODO: 实现自动写入 fast_response_layer_v2.py
+        # 这里先记录到单独的文件
+        auto_rules_file = Path.home() / ".openclaw" / "workspace" / ".learnings" / "auto_layer0_rules.jsonl"
+        auto_rules_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(auto_rules_file, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(rule, ensure_ascii=False) + "\n")
+        
+        print(f"✅ 已添加自动规则：{rule['patterns'][0]} → {rule['response'][:30]}...")
+    
+    def get_learning_report(self) -> str:
+        """生成学习报告"""
+        stats = self.analyzer.get_stats()
+        rules = self.analyze_and_generate()
+        
+        report = f"""
+🧠 灵犀自动学习报告
+{'='*50}
 
-# ==================== 测试入口 ====================
+📊 统计信息:
+   总查询数：{stats['total_query_count']}
+   独立查询：{stats['total_unique_queries']}
+   Layer 0 候选：{stats['layer0_candidates']}
+
+📈 待学习规则 ({len(rules)} 条):
+"""
+        
+        for i, rule in enumerate(rules[:10], 1):  # 只显示前 10 条
+            report += f"\n   {i}. \"{rule['patterns'][0]}\" → {rule['response'][:40]}..."
+            report += f" (频次：{rule['frequency']}, 日均：{rule['daily_avg']:.1f})"
+        
+        if len(rules) > 10:
+            report += f"\n   ... 还有 {len(rules) - 10} 条"
+        
+        report += f"\n\n💡 建议：运行 `python3 scripts/learning_layer.py --apply` 应用新规则"
+        
+        return report
+
+
+# ==================== CLI 入口 ====================
 
 if __name__ == "__main__":
-    print("🧠 灵犀 Learning Layer v2.8.5 测试")
-    print("=" * 60)
+    import argparse
     
-    layer = get_learning_layer()
+    parser = argparse.ArgumentParser(description="灵犀自动学习层")
+    parser.add_argument("--stats", action="store_true", help="显示统计信息")
+    parser.add_argument("--report", action="store_true", help="生成学习报告")
+    parser.add_argument("--analyze", action="store_true", help="分析并显示候选规则")
+    parser.add_argument("--apply", action="store_true", help="应用新规则")
+    parser.add_argument("--days", type=int, default=7, help="统计天数 (默认 7)")
+    parser.add_argument("--min-daily", type=float, default=1.0, help="日均最少次数 (默认 1.0)")
+    parser.add_argument("--cleanup", action="store_true", help="清理旧日志")
     
-    # 测试错误检测
-    print("\n1️⃣ 测试错误检测")
-    result = layer.on_task_complete(
-        task_id="test_001",
-        result={"error": "Connection timeout", "message": "Failed to connect"},
-        context={"task": "test"}
-    )
-    print(f"   结果：{result}")
+    args = parser.parse_args()
     
-    # 测试学习记录
-    print("\n2️⃣ 测试学习记录")
-    layer.on_user_correction(
-        user_feedback="应该用更简洁的方式",
-        original_output="这是一个很长的回答..."
-    )
+    learner = AutoLearner()
     
-    # 测试功能需求
-    print("\n3️⃣ 测试功能需求")
-    layer.on_feature_request(
-        feature_description="添加多语言支持",
-        priority="high"
-    )
+    if args.stats:
+        stats = learner.analyzer.get_stats()
+        print(json.dumps(stats, indent=2, ensure_ascii=False))
     
-    # 显示统计
-    print("\n4️⃣ 统计信息")
-    stats = layer.get_statistics()
-    print(f"   {json.dumps(stats, indent=2, ensure_ascii=False)}")
+    elif args.report:
+        print(learner.get_learning_report())
     
-    print("\n" + "=" * 60)
-    print("✅ 测试完成！学习日志已保存到：~/.openclaw/workspace/.learnings/")
+    elif args.analyze:
+        rules = learner.analyze_and_generate(min_days=args.days, min_daily_avg=args.min_daily)
+        print(f"\n📈 找到 {len(rules)} 条候选规则:\n")
+        for i, rule in enumerate(rules[:20], 1):
+            print(f"{i}. \"{rule['patterns'][0]}\"")
+            print(f"   响应：{rule['response']}")
+            print(f"   频次：{rule['frequency']} | 日均：{rule['daily_avg']:.1f}\n")
+    
+    elif args.apply:
+        print("🔧 应用新规则...")
+        rules = learner.analyze_and_generate(min_days=args.days, min_daily_avg=args.min_daily)
+        result = learner.apply_rules(rules, dry_run=False)
+        print(f"\n✅ 应用完成：{result['applied']} 条成功，{result['errors']} 条失败")
+    
+    elif args.cleanup:
+        print("🗑️ 清理旧日志...")
+        learner.analyzer.cleanup_old_logs()
+        print("✅ 清理完成")
+    
+    else:
+        # 默认显示报告
+        print(learner.get_learning_report())

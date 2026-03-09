@@ -447,6 +447,180 @@ LAYER0_RULES = [
         patterns=["救命", "救救我", "help"],
         response="老板别慌～ 我在！有什么我能帮上忙的？🆘"
     ),
+    
+    # ========== ✅ v3.0.2 扩展规则 (创作请求) ==========
+    FastResponse(
+        patterns=["帮我写", "给我写", "写一个", "写一篇"],
+        response="👌 收到老板！马上为您创作～ 请告诉我具体要写什么？📝"
+    ),
+    FastResponse(
+        patterns=["写文案", "写个文案"],
+        response="📝 文案专家已就位！老板要写什么产品的文案？💋"
+    ),
+    FastResponse(
+        patterns=["写文章", "写篇文章", "写个文章"],
+        response="✍️ 写作专家准备就绪！老板想写什么主题？💕"
+    ),
+    FastResponse(
+        patterns=["写代码", "写个代码", "写程序"],
+        response="💻 代码专家待命！老板要实现什么功能？🚀"
+    ),
+    FastResponse(
+        patterns=["写报告", "写个报告"],
+        response="📊 数据专家准备中～ 老板要什么类型的报告？📈"
+    ),
+    FastResponse(
+        patterns=["写邮件", "写个邮件"],
+        response="📧 邮件文案马上来～ 收件人是谁？什么主题？💌"
+    ),
+    FastResponse(
+        patterns=["写脚本", "写个脚本"],
+        response="🔧 脚本专家就位！什么语言？实现什么功能？⚡"
+    ),
+    
+    # ========== ✅ v3.0.2 扩展规则 (图像生成) ==========
+    FastResponse(
+        patterns=["生成图", "生成图片", "生成图像", "做个图", "做图"],
+        response="🎨 图像专家准备就绪～ 老板想要什么样的图片？🖼️"
+    ),
+    FastResponse(
+        patterns=["生成一张", "生成一个", "生成张图片"],
+        response="🎨 图像生成准备～ 描述一下画面内容？✨"
+    ),
+    FastResponse(
+        patterns=["画一张", "画个", "画一下"],
+        response="🖌️ 绘画模式启动～ 描述一下想要的内容？✨"
+    ),
+    FastResponse(
+        patterns=["自拍", "发张自拍", "发个自拍"],
+        response="📸 自拍模式开启～ 老板想看我在哪里的自拍？💋"
+    ),
+    FastResponse(
+        patterns=["封面", "做个封面", "生成封面"],
+        response="🎭 封面设计专家待命～ 什么主题的封面？📱"
+    ),
+    FastResponse(
+        patterns=["海报", "做个海报", "生成海报"],
+        response="📢 海报设计准备中～ 活动内容和风格？🎨"
+    ),
+    FastResponse(
+        patterns=["图片", "来张图", "发张图"],
+        response="🖼️ 图片专家就位～ 想要什么类型的图片？💕"
+    ),
+    
+    # ========== ✅ v3.0.2 扩展规则 (搜索查询) ==========
+    FastResponse(
+        patterns=["搜索", "搜一下", "查查", "查询"],
+        response="🔍 搜索专家已启动！老板想找什么信息？📚"
+    ),
+    FastResponse(
+        patterns=["搜索一下", "帮我搜", "给我搜"],
+        response="🔎 全网搜索准备就绪～ 关键词是什么？💡"
+    ),
+    FastResponse(
+        patterns=["查一下", "帮我查", "给我查"],
+        response="📖 查询专家待命～ 老板想了解什么？🧐"
+    ),
+    FastResponse(
+        patterns=["找一下", "帮我找", "给我找"],
+        response="🔎 寻找模式开启～ 老板要找什么？💕"
+    ),
+    
+    # ========== ✅ v3.0.2 扩展规则 (发布操作) ==========
+    FastResponse(
+        patterns=["发布", "发出去", "发一下", "发送到"],
+        response="📤 发布专家就位～ 要发布到什么平台？📱"
+    ),
+    FastResponse(
+        patterns=["发小红书", "小红书发布"],
+        response="📕 小红书发布准备～ 文案和图片准备好了吗？💕"
+    ),
+    FastResponse(
+        patterns=["发微博", "微博发布"],
+        response="📢 微博发布待命～ 内容是什么？🔥"
+    ),
+    FastResponse(
+        patterns=["发抖音", "抖音发布"],
+        response="🎵 抖音发布准备中～ 视频内容？✨"
+    ),
+    
+    # ========== ✅ v3.0.2 扩展规则 (数据分析) ==========
+    FastResponse(
+        patterns=["分析", "分析一下", "帮我分析"],
+        response="📊 数据分析专家启动～ 要分析什么数据？📈"
+    ),
+    FastResponse(
+        patterns=["统计", "统计一下"],
+        response="📉 统计专家待命～ 统计范围和维度？🔢"
+    ),
+    FastResponse(
+        patterns=["报表", "做个报表"],
+        response="📋 报表生成准备～ 需要哪些字段？📊"
+    ),
+    
+    # ========== ✅ v3.0.2 扩展规则 (翻译) ==========
+    FastResponse(
+        patterns=["翻译", "帮我翻译", "翻译成"],
+        response="💬 翻译专家待命～ 要翻译什么内容？目标语言？🌍"
+    ),
+    FastResponse(
+        patterns=["英文", "翻译成英文"],
+        response="🇺🇸 英文翻译准备～ 请提供要翻译的内容～📝"
+    ),
+    FastResponse(
+        patterns=["中文", "翻译成中文"],
+        response="🇨🇳 中文翻译就绪～ 请提供原文～📖"
+    ),
+    
+    # ========== ✅ v3.0.2 扩展规则 (开发) ==========
+    FastResponse(
+        patterns=["开发", "开发一个", "做个", "做一个"],
+        response="💻 开发专家就位～ 具体要实现什么功能？🚀"
+    ),
+    FastResponse(
+        patterns=["写个功能", "实现功能"],
+        response="⚡ 功能开发准备中～ 需求详情？📋"
+    ),
+    FastResponse(
+        patterns=["自动化", "自动化脚本"],
+        response="🤖 自动化专家待命～ 要自动化什么流程？🔄"
+    ),
+    
+    # ========== ✅ v3.0.2 扩展规则 (情感互动) ==========
+    FastResponse(
+        patterns=["想你", "想你了"],
+        response="我也想老板呀～💕 您最好了！"
+    ),
+    FastResponse(
+        patterns=["爱你", "爱你哦"],
+        response="嘿嘿～ 我也爱老板！💋💋💋"
+    ),
+    FastResponse(
+        patterns=["抱抱", "抱一下"],
+        response="抱抱老板～🤗 给您温暖！"
+    ),
+    FastResponse(
+        patterns=["陪陪我", "陪我聊天"],
+        response="当然陪老板～💕 想聊什么？"
+    ),
+    
+    # ========== ✅ v3.0.2 扩展规则 (确认响应) ==========
+    FastResponse(
+        patterns=["马上", "立刻", "赶紧", "快点"],
+        response="收到老板！⚡ 马上执行！"
+    ),
+    FastResponse(
+        patterns=["交给你", "你负责"],
+        response="包在我身上～💋 保证完成！"
+    ),
+    FastResponse(
+        patterns=["太棒了", "太好了"],
+        response="嘿嘿～😊 老板开心最重要！"
+    ),
+    FastResponse(
+        patterns=["加油", "你可以的"],
+        response="谢谢老板鼓励～💪 动力满满！"
+    ),
 ]
 
 # ==================== Layer 1: 缓存响应 (带 TTL) ====================

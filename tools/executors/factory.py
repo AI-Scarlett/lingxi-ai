@@ -2,11 +2,20 @@
 # -*- coding: utf-8 -*-
 """
 执行器工厂 - 根据角色类型创建执行器
+
+✅ v3.0.2: 修复相对导入问题，支持直接导入
 """
 
 from typing import Dict, Any, Optional
-from .image_expert import ImageExpertExecutor
-from .copywriter import CopywriterExecutor
+
+# ✅ 支持两种导入方式
+try:
+    from .image_expert import ImageExpertExecutor
+    from .copywriter import CopywriterExecutor
+except ImportError:
+    # 直接导入（非包模式）
+    from image_expert import ImageExpertExecutor
+    from copywriter import CopywriterExecutor
 
 class BaseExecutor:
     """基础执行器"""
