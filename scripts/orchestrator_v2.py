@@ -391,6 +391,21 @@ def aggregate_results(subtasks: List[SubTask]) -> str:
     
     return "\n".join(results) + f"\n\n📈 综合评分：{avg_score:.1f}/10"
 
+def generate_confirm_message(user_input: str, subtasks: List[SubTask]) -> str:
+    """生成确认消息 - 先回复，后执行"""
+    if not subtasks:
+        return "👌 收到，马上处理～"
+    
+    # 根据子任务类型生成确认消息
+    task_types = [st.role.value for st in subtasks]
+    
+    if len(task_types) == 1:
+        return f"👌 收到！马上为您{task_types[0]}～"
+    elif len(task_types) == 2:
+        return f"👌 收到！马上安排{task_types[0]}和{task_types[1]}～"
+    else:
+        return f"👌 收到！马上处理这个复杂任务～"
+
 # ==================== 主控制器 ====================
 
 class SmartOrchestrator:
@@ -439,6 +454,9 @@ class SmartOrchestrator:
         # 懒加载组件
         self._intent_parser = None
         self._task_planner = None
+        
+        # 确认消息生成方法
+        self._generate_confirm_message = generate_confirm_message
         
         print(f"🚀 灵犀 v3.0 初始化完成 (并发限制：{max_concurrent})")
     
@@ -592,6 +610,12 @@ class SmartOrchestrator:
             subtasks = decompose_task(user_input, intent)
             print(f"📦 任务拆解：{len(subtasks)} 个子任务")
             
+            # ✅ 先回复确认，后台执行任务！
+            confirm_msg = self._generate_confirm_message(user_input, subtasks)
+            
+            # ✅ 先回复确认消息！
+            confirm_output = confirm_msg
+            
             # 3. 并行执行（带并发限制）
             print(f"\n🚀 开始执行 (并发限制：{self.max_concurrent})...")
             
@@ -601,6 +625,7 @@ class SmartOrchestrator:
                 async with semaphore:
                     return await execute_subtask(task, self.max_concurrent)
             
+            # 执行子任务
             tasks = [execute_with_semaphore(st) for st in subtasks]
             executed = await asyncio.gather(*tasks)
             
@@ -661,12 +686,15 @@ class SmartOrchestrator:
             # 8. 保存统计信息
             self._save_stats()
             
+            # ✅ 返回确认消息 + 执行结果
+            final_output = f"{confirm_output}\n\n{summary}"
+            
             return TaskResult(
                 task_id=task_id,
                 user_input=user_input,
                 subtasks=subtasks,
                 total_score=total_score,
-                final_output=summary,
+                final_output=final_output,
                 total_elapsed_ms=total_elapsed,
                 fast_response_layer="layer2/3"
             )

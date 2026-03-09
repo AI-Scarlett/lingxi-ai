@@ -224,7 +224,7 @@ LAYER0_RULES = [
         response="收到老板～😊"
     ),
     FastResponse(
-        patterns=["可以", "行吧", "好吧", "成"],
+        patterns=["可以", "行吧", "好吧", "成了", "成吧"],  # 移除单独的"成"，避免误匹配（如"生成"）
         response="好的老板～ 听您的！💋"
     ),
     FastResponse(
@@ -266,7 +266,7 @@ LAYER0_RULES = [
         response="昨天已经过去啦～ 珍惜当下！💕"
     ),
     FastResponse(
-        patterns=["今天", "今天怎么样"],
+        patterns=["今天怎么样", "今天如何", "今天好吗"],  # 移除单独的"今天"，避免误匹配
         response="今天是个好日子～ 老板心情怎么样？😊"
     ),
     FastResponse(
