@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-灵犀核心模块 - v2.0 重构版
+灵犀核心模块 - v4.0 重构版
 
-保持向后兼容，支持平滑迁移
+包含 MindCore 记忆核心系统 + EvoMind 自改进系统
 """
 
 from .memory import MemorySystem, get_memory_system
@@ -11,8 +11,12 @@ from .task_queue import TaskQueue, Task, TaskPriority, TaskStatus, get_task_queu
 from .compat import LegacyAdapter
 from .content_fetcher import SmartContentFetcher, get_content_fetcher
 
+# MindCore v4.0 新模块
+from .mindcore import MindCore, get_mindcore
+
 __version__ = "3.3.3"
 __all__ = [
+    # 传统模块（向后兼容）
     "MemorySystem",
     "get_memory_system",
     "TaskQueue",
@@ -20,7 +24,11 @@ __all__ = [
     "TaskPriority",
     "TaskStatus",
     "get_task_queue",
-    "LegacyAdapter",  # 兼容性适配器
-    "SmartContentFetcher",  # Scrapling 内容获取器
-    "get_content_fetcher"
+    "LegacyAdapter",
+    "SmartContentFetcher",
+    "get_content_fetcher",
+    
+    # MindCore v4.0 新模块
+    "MindCore",
+    "get_mindcore"
 ]

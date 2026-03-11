@@ -8,10 +8,20 @@ import asyncio
 from pathlib import Path
 from typing import Optional, List
 
+# 导入新页面路由
+from .pages.memory_page import router as memory_router
+from .pages.learning_page import router as learning_router
+from .pages.improvements_page import router as improvements_router
+
 # 静态文件目录
 DASHBOARD_DIR = Path(__file__).parent
 
-app = FastAPI(title="灵犀 Dashboard")
+app = FastAPI(title="灵犀 Dashboard v4.0")
+
+# 注册新路由
+app.include_router(memory_router)
+app.include_router(learning_router)
+app.include_router(improvements_router)
 
 # OpenClaw 数据源
 OPENCLAW_SESSIONS_FILE = Path.home() / ".openclaw" / "agents" / "main" / "sessions" / "sessions.json"
