@@ -1,8 +1,8 @@
-# 灵犀 (Lingxi) v3.1.0 - 智慧调度系统
+# 灵犀 (Lingxi) v3.3.3 - 智慧调度系统
 
 > **心有灵犀，一点就通** ✨  
-> **版本：** v3.1.0  
-> **发布日期：** 2026-03-09  
+> **版本：** v3.3.3（完整合并版）  
+> **发布日期：** 2026-03-11  
 > **基于 OpenClaw：** 2026.3.7
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -554,6 +554,63 @@ lingxi/
 ├── PERFORMANCE_SUMMARY.md          # 性能优化总结
 └── CHANGELOG_v3.1.0.md             # 更新日志
 ```
+
+---
+
+## 📊 灵犀 Dashboard（实时监控面板）
+
+**v3.3.3 新增功能 - 可视化任务监控**
+
+### 快速启动
+
+```bash
+cd /root/.openclaw/skills/lingxi/dashboard
+python3 start_dashboard.py
+```
+
+### 访问地址
+
+- **本地：** http://localhost:8765
+- **公网：** http://106.52.101.202:8765
+- **移动端：** 自动适配
+
+**访问 Token：** `1e4c2a9af43cd7001d00ce08b1a16d1a3d32b9de7d0e08ae4b63082fe1ff7bf6`
+
+**完整链接：**
+```
+http://106.52.101.202:8765/?token=1e4c2a9af43cd7001d00ce08b1a16d1a3d32b9de7d0e08ae4b63082fe1ff7bf6
+```
+
+### 核心功能
+
+- 📋 **任务列表** - 实时任务 + 定时任务，每条用户消息独立显示
+- 🔍 **任务详情** - 查看用户指令、助手回复、技能调用、Token 消耗
+- 📊 **统计分析** - LLM 调用次数、Token 使用量、任务完成率
+- 🎨 **主题切换** - 暗夜模式/白天模式一键切换
+- 📱 **移动端优化** - 完美适配手机/平板
+- 🔄 **实时刷新** - WebSocket 实时更新，无需手动刷新
+- 🚀 **性能监控** - CPU、内存、响应时间监控
+
+### 技术栈
+
+- **后端：** FastAPI + SQLite + WebSocket
+- **前端：** 原生 HTML + JavaScript + Chart.js
+- **部署：** systemd 守护进程
+
+### 系统服务
+
+```bash
+# 查看状态
+systemctl status lingxi-dashboard
+
+# 重启服务
+systemctl restart lingxi-dashboard
+
+# 查看日志
+journalctl -u lingxi-dashboard -f
+```
+
+**详细文档：** `dashboard/README.md`
 
 ---
 
