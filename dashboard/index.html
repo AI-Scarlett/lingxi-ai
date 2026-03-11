@@ -4,7 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🚀 灵犀数据看板 - Lingxi Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
     <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-primary: #333;
+            --text-secondary: #666;
+        }
+        
+        [data-theme="dark"] {
+            --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            --card-bg: rgba(20, 20, 20, 0.95);
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -24,22 +38,52 @@
         }
         
         header {
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--card-bg);
             border-radius: 15px;
-            padding: 20px 30px;
-            margin-bottom: 20px;
+            padding: 12px 25px;
+            margin-bottom: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .theme-toggle {
+            background: #667eea;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .theme-toggle:hover {
+            background: #764ba2;
+            transform: scale(1.05);
         }
         
         h1 {
             color: #667eea;
-            font-size: 28px;
-            margin-bottom: 5px;
+            font-size: 24px;
+            margin-bottom: 3px;
         }
         
         .subtitle {
-            color: #666;
-            font-size: 14px;
+            color: var(--text-secondary);
+            font-size: 12px;
         }
         
         .stats-grid {
@@ -50,15 +94,67 @@
         }
         
         .stat-card {
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--card-bg);
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 1;
+        }
+        
+        [data-theme="dark"] .stat-card {
+            border: 1px solid rgba(255,255,255,0.1);
         }
         
         .stat-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        
+        /* 紧凑统计条悬浮放大效果 */
+        .stat-card[style*="padding: 10px"] {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        
+        .stat-card[style*="padding: 10px"]:hover {
+            transform: scale(1.15);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+            z-index: 100;
+        }
+        
+        /* 任务卡片悬浮效果 */
+        .task-item {
+            transition: all 0.2s ease;
+        }
+        
+        .task-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.25);
+        }
+        
+        /* 技能卡片悬浮放大效果 */
+        #skillsList > div > div {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        
+        #skillsList > div > div:hover {
+            transform: scale(1.03);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+        
+        /* 模型卡片悬浮效果 */
+        #modelConfigList > div > div > div {
+            transition: all 0.2s ease;
+        }
+        
+        #modelConfigList > div > div > div:hover {
+            transform: translateX(3px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
         }
         
         .stat-value {
@@ -86,10 +182,32 @@
         }
         
         .panel {
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--card-bg);
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        [data-theme="dark"] .panel {
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* 任务详情弹窗样式 */
+        #taskDetailModal {
+            background: rgba(0,0,0,0.5);
+        }
+        
+        [data-theme="dark"] #taskDetailModal {
+            background: rgba(0,0,0,0.8);
+        }
+        
+        #taskDetailModal > div {
+            background: var(--card-bg);
+            color: var(--text-primary);
+        }
+        
+        [data-theme="dark"] #taskDetailModal > div {
+            border: 1px solid rgba(255,255,255,0.1);
         }
         
         .panel-header {
@@ -129,10 +247,15 @@
         
         .task-item {
             padding: 15px;
-            border: 1px solid #e0e0e0;
+            border: 1px solid rgba(0,0,0,0.1);
             border-radius: 10px;
             margin-bottom: 10px;
             transition: all 0.3s ease;
+            background: var(--card-bg);
+        }
+        
+        [data-theme="dark"] .task-item {
+            border-color: rgba(255,255,255,0.1);
         }
         
         .task-item:hover {
@@ -243,12 +366,17 @@
         }
         
         .stage.active {
-            background: #667eea;
+            background: #f59e0b;
             color: white;
         }
         
         .stage.completed {
-            background: #28a745;
+            background: #10b981;
+            color: white;
+        }
+        
+        .stage.pending {
+            background: #3b82f6;
             color: white;
         }
         
@@ -308,29 +436,123 @@
 <body>
     <div class="container">
         <header>
-            <h1>🚀 灵犀数据看板</h1>
-            <div class="subtitle">
-                Lingxi Dashboard - 实时监控任务执行情况
-                <span class="connection-status" style="margin-left: 15px;">
-                    <span class="status-dot" id="wsStatus"></span>
-                    <span id="wsStatusText">连接中...</span>
-                </span>
+            <div class="header-left">
+                <h1>🚀 灵犀数据看板</h1>
+                <div class="subtitle">
+                    Lingxi Dashboard - 实时监控任务执行情况
+                    <span class="connection-status" style="margin-left: 15px;">
+                        <span class="status-dot" id="wsStatus"></span>
+                        <span id="wsStatusText">连接中...</span>
+                    </span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div id="realtimeClock" style="padding: 8px 16px; border-radius: 20px; background: rgba(255,255,255,0.1); color: white; font-size: 12px; font-weight: 600; font-family: monospace;">--:--:--</div>
+                    <select id="timezoneSelect" onchange="changeTimezone()" style="padding: 8px 12px; border-radius: 20px; border: none; background: #667eea; color: white; font-size: 12px; cursor: pointer;">
+                        <option value="Asia/Shanghai">🕐 北京时间</option>
+                        <option value="Asia/Tokyo">🕐 东京时间</option>
+                        <option value="Asia/Singapore">🕐 新加坡时间</option>
+                        <option value="UTC">🕐 UTC</option>
+                    </select>
+                </div>
+                <button class="theme-toggle" onclick="toggleTheme()">🌙 暗夜模式</button>
             </div>
         </header>
         
-        <div class="stats-grid" id="statsGrid">
+        <!-- 任务总数统计（分时间维度） -->
+        <div class="stats-grid" id="statsGrid" style="margin-bottom: 15px;">
             <div class="loading">
                 <div class="spinner"></div>
                 加载统计数据...
             </div>
         </div>
         
+        <!-- 紧凑统计条（LLM/Token/定时任务 - 三个独立卡片） -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; position: relative;">
+            <!-- 悬浮提示 -->
+            <div style="position: absolute; top: -22px; right: 0; font-size: 9px; color: #999; background: rgba(255,255,255,0.9); padding: 2px 6px; border-radius: 8px; pointer-events: none;">
+                💡 悬浮放大
+            </div>
+            
+            <!-- LLM 调用卡片 -->
+            <div class="stat-card" style="padding: 12px 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="font-size: 13px; color: #666; font-weight: 600;">🤖 LLM 调用</div>
+                    <select id="llmTimeRange" onchange="loadLLMStats()" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); cursor: pointer;">
+                        <option value="today">今日</option>
+                        <option value="yesterday">昨日</option>
+                        <option value="week">7 天</option>
+                        <option value="all">所有</option>
+                    </select>
+                </div>
+                <div id="llmStats" class="loading" style="font-size: 16px;">加载中...</div>
+            </div>
+            
+            <!-- Token 消耗卡片 -->
+            <div class="stat-card" style="padding: 12px 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="font-size: 13px; color: #666; font-weight: 600;">📝 Token 消耗</div>
+                    <select id="tokenTimeRange" onchange="loadTokenStats()" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); cursor: pointer;">
+                        <option value="today">今日</option>
+                        <option value="yesterday">昨日</option>
+                        <option value="week">7 天</option>
+                        <option value="all">所有</option>
+                    </select>
+                </div>
+                <div id="tokenStats" class="loading" style="font-size: 16px;">加载中...</div>
+            </div>
+            
+            <!-- 定时任务卡片 -->
+            <div class="stat-card" style="padding: 12px 15px;">
+                <div style="font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 600;">⏰ 定时任务</div>
+                <div id="scheduledTaskStats" class="loading" style="font-size: 16px;">加载中...</div>
+            </div>
+        </div>
+        
         <div class="main-content">
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title">📋 最近任务</div>
+                    <div class="panel-title">📋 任务列表</div>
                     <button class="refresh-btn" onclick="loadTasks()">🔄 刷新</button>
                 </div>
+                
+                <!-- 筛选控件 -->
+                <div class="filter-bar" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <select id="filterTaskType" onchange="loadTasks()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="">📋 所有类型</option>
+                        <option value="scheduled">⏰ 定时任务</option>
+                        <option value="realtime">⚡ 实时任务</option>
+                    </select>
+                    
+                    <select id="filterChannel" onchange="loadTasks()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="">📱 所有渠道</option>
+                        <option value="feishu">📘 飞书</option>
+                        <option value="qqbot">💬 QQ</option>
+                        <option value="wecom">🟢 企微</option>
+                        <option value="dingtalk">🔵 钉钉</option>
+                        <option value="wechat">💚 微信</option>
+                    </select>
+                    
+                    <select id="filterStatus" onchange="loadTasks()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="">✅ 所有状态</option>
+                        <option value="processing">🔄 进行中</option>
+                        <option value="completed">✅ 已完成</option>
+                        <option value="failed">❌ 失败</option>
+                        <option value="pending">⏳ 等待中</option>
+                    </select>
+                    
+                    <select id="filterDateRange" onchange="loadTasks()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="all">📅 全部时间</option>
+                        <option value="today">今日</option>
+                        <option value="7d">最近 7 天</option>
+                        <option value="30d">最近 30 天</option>
+                    </select>
+                    
+                    <input type="text" id="filterScheduleName" placeholder="🔍 定时任务名称" onchange="loadTasks()" 
+                           style="padding: 8px; border-radius: 6px; border: 1px solid #ddd; min-width: 150px;">
+                </div>
+                
                 <div class="task-list" id="taskList">
                     <div class="loading">
                         <div class="spinner"></div>
@@ -341,10 +563,49 @@
             
             <div class="panel">
                 <div class="panel-header">
+                    <div class="panel-title">⏰ 定时任务</div>
+                    <button class="refresh-btn" onclick="loadScheduledTasks()">🔄 刷新</button>
+                </div>
+                <div id="scheduledTaskPanel" style="margin-bottom: 20px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        加载定时任务...
+                    </div>
+                </div>
+                
+                <div class="panel-header" style="border-top: 2px solid #f0f0f0; padding-top: 15px;">
                     <div class="panel-title">⚠️ 最近错误</div>
+                    <button class="refresh-btn" onclick="loadErrors()">🔄 刷新</button>
                 </div>
                 <div class="error-panel" id="errorPanel">
                     <div class="empty-state">暂无错误</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 技能列表和大模型配置 -->
+        <div class="stats-grid" style="grid-template-columns: 2fr 1fr; margin-top: 20px;">
+            <!-- 技能列表 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">🔧 技能列表</div>
+                    <button class="refresh-btn" onclick="loadSkillsList()">🔄 刷新</button>
+                </div>
+                <div id="skillsList" class="loading" style="padding: 15px;">
+                    <div class="spinner"></div>
+                    加载技能列表...
+                </div>
+            </div>
+            
+            <!-- 大模型配置 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">🧠 大模型配置</div>
+                    <button class="refresh-btn" onclick="loadModelConfig()">🔄 刷新</button>
+                </div>
+                <div id="modelConfigList" class="loading" style="padding: 15px;">
+                    <div class="spinner"></div>
+                    加载模型配置...
                 </div>
             </div>
         </div>
@@ -361,24 +622,41 @@
         
         // WebSocket 连接（带 Token）
         function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}/ws?token=${TOKEN}`);
-            
-            ws.onopen = () => {
-                document.getElementById('wsStatus').classList.remove('disconnected');
-                document.getElementById('wsStatusText').textContent = '实时连接中';
-            };
-            
-            ws.onclose = () => {
-                document.getElementById('wsStatus').classList.add('disconnected');
-                document.getElementById('wsStatusText').textContent = '已断开';
-                setTimeout(connectWebSocket, 3000);
-            };
-            
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleWebSocketMessage(data);
-            };
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                ws = new WebSocket(`${protocol}//${window.location.host}/ws?token=${TOKEN}`);
+                
+                ws.onopen = () => {
+                    document.getElementById('wsStatus').classList.remove('disconnected');
+                    document.getElementById('wsStatusText').textContent = '实时连接中';
+                };
+                
+                ws.onclose = () => {
+                    document.getElementById('wsStatus').classList.add('disconnected');
+                    document.getElementById('wsStatusText').textContent = '已断开';
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.log('WebSocket 连接失败，使用轮询模式');
+                    document.getElementById('wsStatus').classList.add('disconnected');
+                    document.getElementById('wsStatusText').textContent = '轮询模式';
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                    
+                    // 收到任务更新时，立即刷新任务列表
+                    if (data.type === 'task_started' || data.type === 'task_updated' || data.type === 'task_completed') {
+                        console.log('🔄 收到任务更新，刷新列表:', data.type);
+                        loadTasks();
+                        loadStats();
+                    }
+                };
+            } catch (e) {
+                console.log('WebSocket 初始化失败:', e);
+            }
         }
         
         function handleWebSocketMessage(data) {
@@ -389,48 +667,305 @@
             }
         }
         
-        // 加载统计数据
+        // 加载统计数据（多时间维度）
         async function loadStats() {
             try {
-                const response = await fetch(`${API_BASE}/api/stats?hours=24&token=${TOKEN}`);
-                const stats = await response.json();
+                // 并行请求多个时间维度的数据
+                const [stats24h, stats7d, stats30d, statsAll] = await Promise.all([
+                    fetch(`${API_BASE}/api/stats?hours=24&token=${TOKEN}`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/stats?hours=168&token=${TOKEN}`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/stats?hours=720&token=${TOKEN}`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/stats?hours=87600&token=${TOKEN}`).then(r => r.json())
+                ]);
                 
+                // 渲染任务总数统计卡片
                 document.getElementById('statsGrid').innerHTML = `
                     <div class="stat-card">
-                        <div class="stat-value">${stats.total_tasks || 0}</div>
-                        <div class="stat-label">总任务数 (24h)</div>
+                        <div class="stat-value" style="color: #667eea;">${stats24h.total_tasks || 0}</div>
+                        <div class="stat-label">📅 今日任务</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${stats.llm_calls || 0}</div>
-                        <div class="stat-label">LLM 调用次数</div>
+                        <div class="stat-value" style="color: #764ba2;">${stats7d.total_tasks || 0}</div>
+                        <div class="stat-label">📆 最近 7 天</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${(stats.avg_response_ms || 0).toFixed(1)}ms</div>
-                        <div class="stat-label">平均响应时间</div>
+                        <div class="stat-value" style="color: #f093fb;">${stats30d.total_tasks || 0}</div>
+                        <div class="stat-label">📊 最近 30 天</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${(stats.error_rate || 0).toFixed(1)}%</div>
-                        <div class="stat-label">错误率</div>
+                        <div class="stat-value" style="color: #4facfe;">${statsAll.total_tasks || 0}</div>
+                        <div class="stat-label">📈 所有任务</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${(stats.llm_cost || 0).toFixed(4)}</div>
-                        <div class="stat-label">LLM 成本 ($)</div>
+                        <div class="stat-value">${(stats24h.avg_execution_ms || 0).toFixed(0)}ms</div>
+                        <div class="stat-label">⚡ 平均执行时间</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">${stats.llm_tokens_in || 0}</div>
-                        <div class="stat-label">输入 Tokens</div>
+                        <div class="stat-value">${(100 - (stats24h.error_rate || 0)).toFixed(1)}%</div>
+                        <div class="stat-label">✅ 成功率</div>
                     </div>
                 `;
+                
+                // 加载 LLM 统计
+                loadLLMStats(stats24h);
+                
+                // 加载定时任务统计
+                loadScheduledTaskStats();
+                
+                // 加载技能列表
+                loadSkillsList();
+                
+                // 加载模型配置
+                loadModelConfig();
+                
             } catch (error) {
                 console.error('加载统计数据失败:', error);
             }
         }
         
-        // 加载任务列表
+        // 加载 LLM 统计
+        function loadLLMStats(stats) {
+            document.getElementById('llmStats').innerHTML = `
+                <div style="margin-bottom: 4px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                        <span style="font-size: 13px; color: #333;">调用次数</span>
+                        <span style="font-size: 17px; font-weight: bold; color: #667eea;">${stats.llm_calls || 0}</span>
+                    </div>
+                </div>
+                <div style="margin-bottom: 4px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                        <span style="font-size: 13px; color: #333;">调用成本</span>
+                        <span style="font-size: 17px; color: #f093fb;">$${(stats.llm_cost || 0).toFixed(3)}</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-size: 13px; color: #333;">平均响应</span>
+                        <span style="font-size: 17px; color: #4ade80;">${(stats.avg_response_ms || 0).toFixed(0)}ms</span>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('tokenStats').innerHTML = `
+                <div style="margin-bottom: 4px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                        <span style="font-size: 13px; color: #333;">输入 Tokens</span>
+                        <span style="font-size: 17px; font-weight: bold; color: #667eea;">${(stats.llm_tokens_in || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+                <div style="margin-bottom: 4px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                        <span style="font-size: 13px; color: #333;">输出 Tokens</span>
+                        <span style="font-size: 17px; color: #f093fb;">${(stats.llm_tokens_out || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-size: 13px; color: #333;">总计</span>
+                        <span style="font-size: 17px; color: #4ade80;">${((stats.llm_tokens_in || 0) + (stats.llm_tokens_out || 0)).toLocaleString()}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 加载定时任务统计
+        async function loadScheduledTaskStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/scheduled-tasks?token=${TOKEN}`);
+                const data = await response.json();
+                
+                const tasks = data.scheduled_tasks || [];
+                const total = tasks.length;
+                const active = tasks.filter(t => t.status === 'active').length;
+                
+                document.getElementById('scheduledTaskStats').innerHTML = `
+                    <div style="margin-bottom: 4px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span style="font-size: 13px; color: #333;">总任务</span>
+                            <span style="font-size: 17px; font-weight: bold; color: #667eea;">${total}</span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 4px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span style="font-size: 13px; color: #333;">运行中</span>
+                            <span style="font-size: 17px; color: #4ade80;">${active}</span>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('加载定时任务统计失败:', error);
+                document.getElementById('scheduledTaskStats').innerHTML = '<div style="color: #f87171; font-size: 13px;">加载失败</div>';
+            }
+        }
+        
+        // 加载技能列表
+        async function loadSkillsList() {
+            try {
+                const response = await fetch(`${API_BASE}/api/skills?token=${TOKEN}`);
+                const data = await response.json();
+                
+                const skills = data.skills || [];
+                const container = document.getElementById('skillsList');
+                
+                let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;">';
+                
+                skills.forEach(skill => {
+                    // 根据使用频率决定颜色：常用绿色，不常用红色
+                    const usage = skill.usage_24h || 0;
+                    let bgColor, borderColor, textColor, statusText;
+                    
+                    if (usage > 5) {
+                        // 高频使用 - 绿色
+                        bgColor = '#f0fdf4';
+                        borderColor = '#4ade80';
+                        textColor = '#166534';
+                        statusText = '🟢 常用';
+                    } else if (usage > 0) {
+                        // 偶尔使用 - 黄色
+                        bgColor = '#fef3c7';
+                        borderColor = '#fbbf24';
+                        textColor = '#92400e';
+                        statusText = '🟡 偶用';
+                    } else {
+                        // 未使用 - 红色
+                        bgColor = '#fef2f2';
+                        borderColor = '#f87171';
+                        textColor = '#991b1b';
+                        statusText = '🔴 未用';
+                    }
+                    
+                    html += `
+                        <div style="background: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 6px; padding: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <span style="font-weight: 600; color: ${textColor}; font-size: 13px;">${skill.emoji} ${skill.name}</span>
+                                <span style="font-size: 10px; color: #333;">${statusText}</span>
+                            </div>
+                            <div style="font-size: 10px; color: #666; margin-bottom: 5px; min-height: 24px;">${skill.description}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+                                <div style="font-size: 10px;">
+                                    <div style="color: #666; margin-bottom: 2px;">🧠 模型</div>
+                                    <div style="font-weight: 600; color: #667eea;">${skill.model}</div>
+                                    <div style="font-size: 9px; color: #999;">${skill.model_provider}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 10px; color: #666; margin-bottom: 2px;">24h 调用</div>
+                                    <div style="font-weight: 600; color: #667eea;">${skill.usage_24h}</div>
+                                    <div style="font-size: 9px; color: #999;">${(skill.tokens_24h / 1000).toFixed(0)}k tokens</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                
+                container.innerHTML = html;
+                
+            } catch (error) {
+                console.error('加载技能列表失败:', error);
+                document.getElementById('skillsList').innerHTML = '<div style="color: #f87171; font-size: 12px;">加载失败</div>';
+            }
+        }
+        
+        // 加载模型配置
+        async function loadModelConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/api/models?token=${TOKEN}`);
+                const data = await response.json();
+                
+                const container = document.getElementById('modelConfigList');
+                
+                let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+                
+                // 正在使用的模型
+                html += '<div>';
+                html += '<div style="font-size: 12px; font-weight: 600; color: #4ade80; margin-bottom: 8px;">🟢 正在使用</div>';
+                (data.active_models || []).forEach(model => {
+                    html += `
+                        <div style="background: #f0fdf4; border: 1px solid #4ade80; border-radius: 6px; padding: 8px; margin-bottom: 6px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-weight: 600; color: #166534; font-size: 12px;">${model.name}</span>
+                                <span style="font-size: 9px; background: #4ade80; color: white; padding: 2px 5px; border-radius: 3px;">${model.provider}</span>
+                            </div>
+                            <div style="font-size: 9px; color: #666; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🔧 ${(model.skills || []).join(', ')}</div>
+                            <div style="display: flex; gap: 8px; font-size: 9px; color: #333;">
+                                <span>📊 ${model.usage_count || 0}</span>
+                                <span>📝 ${((model.tokens_used || 0) / 1000).toFixed(0)}k</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                // 备用模型
+                html += '<div>';
+                html += '<div style="font-size: 12px; font-weight: 600; color: #fbbf24; margin-bottom: 8px;">🟡 备用模型</div>';
+                (data.backup_models || []).forEach(model => {
+                    html += `
+                        <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 6px; padding: 8px; margin-bottom: 6px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-weight: 600; color: #92400e; font-size: 12px;">${model.name}</span>
+                                <span style="font-size: 9px; background: #fbbf24; color: white; padding: 2px 5px; border-radius: 3px;">${model.provider}</span>
+                            </div>
+                            <div style="font-size: 9px; color: #666; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🔧 ${(model.skills || []).join(', ')}</div>
+                            <div style="font-size: 9px; color: #999;">待机中</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                html += '</div>';
+                
+                container.innerHTML = html;
+                
+            } catch (error) {
+                console.error('加载模型配置失败:', error);
+                document.getElementById('modelConfigList').innerHTML = '<div style="color: #f87171; font-size: 12px;">加载失败</div>';
+            }
+        }
+        
+        // 加载任务列表（支持筛选）
         async function loadTasks() {
             try {
-                const response = await fetch(`${API_BASE}/api/tasks?limit=20&token=${TOKEN}`);
+                // 获取筛选条件
+                const taskType = document.getElementById('filterTaskType').value;
+                const channel = document.getElementById('filterChannel').value;
+                const status = document.getElementById('filterStatus').value;
+                const dateRange = document.getElementById('filterDateRange').value;
+                const scheduleName = document.getElementById('filterScheduleName').value;
+                
+                // 构建查询参数
+                const params = new URLSearchParams({
+                    limit: '50',
+                    token: TOKEN
+                });
+                
+                // task_type 筛选改为在前端过滤（因为数据库里 task_type 不准确）
+                // 定时任务通过 schedule_name 判断
+                if (channel) params.append('channel', channel);
+                if (status) params.append('status', status);
+                if (dateRange && dateRange !== 'all') params.append('date_range', dateRange);
+                if (scheduleName) params.append('schedule_name', scheduleName);
+                
+                const response = await fetch(`${API_BASE}/api/tasks?${params.toString()}`);
                 const data = await response.json();
+                
+                // 更新最后刷新时间（如果元素存在）
+                const now = new Date();
+                const lastRefreshEl = document.getElementById('lastRefreshTime');
+                if (lastRefreshEl) {
+                    lastRefreshEl.textContent = `更新于：${now.toLocaleTimeString('zh-CN', {hour: '2-digit', minute:'2-digit', second:'2-digit'})}`;
+                }
+                
+                // 前端过滤任务类型（因为数据库里 task_type 不准确，定时任务通过 schedule_name 判断）
+                let tasks = data.tasks || [];
+                if (taskType === 'scheduled') {
+                    // 定时任务：schedule_name 不为空
+                    tasks = tasks.filter(t => t.schedule_name && t.schedule_name.trim() !== '');
+                } else if (taskType === 'realtime') {
+                    // 实时任务：schedule_name 为空
+                    tasks = tasks.filter(t => !t.schedule_name || t.schedule_name.trim() === '');
+                }
                 
                 const taskList = document.getElementById('taskList');
                 
@@ -442,14 +977,49 @@
                 taskList.innerHTML = data.tasks.map(task => `
                     <div class="task-item">
                         <div class="task-header">
-                            <span class="task-id">${task.id}</span>
+                            <span class="task-id" style="cursor: pointer; color: #667eea; text-decoration: underline;" onclick="showTaskDetails('${task.id}')">${task.id}</span>
+                            <span class="task-type-badge" style="font-size: 9px; padding: 2px 6px; border-radius: 4px; background: ${task.schedule_name && task.schedule_name.trim() !== '' ? '#fef3c7' : '#dbeafe'}; color: ${task.schedule_name && task.schedule_name.trim() !== '' ? '#92400e' : '#1e40af'}; font-weight: 600;">
+                                ${task.schedule_name && task.schedule_name.trim() !== '' ? '⏰ 定时' : '⚡ 实时'}
+                            </span>
                             <span class="task-status status-${task.status}">${getStatusText(task.status)}</span>
+                            ${task.status === 'failed' ? `
+                                <button class="retry-btn" onclick="retryTask('${task.id}')" style="margin-left: auto; padding: 3px 8px; font-size: 10px; background: #fbbf24; color: white; border: none; border-radius: 4px; cursor: pointer;" title="重新执行">🔄 重试</button>
+                            ` : ''}
                         </div>
-                        <div class="task-input">${escapeHtml(task.user_input)}</div>
+                        <div class="task-input">${escapeHtml(task.title || task.user_input || '无任务描述')}</div>
+                        
+                        <!-- 时间信息 -->
+                        <div class="task-times" style="display: flex; gap: 15px; margin: 8px 0; padding: 6px 0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0; font-size: 10px; color: #333;">
+                            <div>
+                                <div style="color: #999; margin-bottom: 2px;">📥 收到命令</div>
+                                <div>${formatTime(task.created_at)}</div>
+                            </div>
+                            ${task.started_at ? `
+                            <div>
+                                <div style="color: #999; margin-bottom: 2px;">🚀 开始执行</div>
+                                <div>${formatTime(task.started_at)}</div>
+                            </div>
+                            ` : ''}
+                            ${task.completed_at ? `
+                            <div>
+                                <div style="color: #999; margin-bottom: 2px;">✅ 执行完成</div>
+                                <div>${formatTime(task.completed_at)}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        
+                        ${task.error_message ? `
+                        <div style="background: #fef2f2; border-left: 3px solid #f87171; padding: 6px; margin: 6px 0; border-radius: 4px; font-size: 10px; color: #7f1d1d;">
+                            <strong>错误：</strong>${escapeHtml(task.error_message)}
+                        </div>
+                        ` : ''}
+                        
                         <div class="task-meta">
                             <span class="meta-item">📱 ${task.channel}</span>
-                            <span class="meta-item">⏱️ ${(task.execution_time_ms || 0).toFixed(1)}ms</span>
-                            ${task.llm_called ? '<span class="llm-badge">🤖 LLM</span>' : ''}
+                            <span class="meta-item">⏱️ ${(parseFloat(task.execution_time_ms) || 0).toFixed(0)}ms</span>
+                            ${task.llm_called ? `
+                                <span class="meta-item" style="color: #667eea;">📝 ${(task.llm_tokens_in + task.llm_tokens_out).toLocaleString()} tokens</span>
+                            ` : ''}
                             ${task.llm_model ? `<span class="meta-item">🧠 ${task.llm_model}</span>` : ''}
                         </div>
                         <div class="stage-indicator">
@@ -459,6 +1029,50 @@
                 `).join('');
             } catch (error) {
                 console.error('加载任务列表失败:', error);
+            }
+        }
+        
+        // 加载定时任务列表
+        async function loadScheduledTasks() {
+            try {
+                // 获取最近 50 个任务，然后在前端过滤出定时任务
+                const response = await fetch(`${API_BASE}/api/tasks?limit=50&token=${TOKEN}`);
+                const responseData = await response.json();
+                
+                const panel = document.getElementById('scheduledTaskPanel');
+                // 从专用 API 获取定时任务
+                const schedResponse = await fetch(`${API_BASE}/api/scheduled-tasks?token=${TOKEN}`);
+                const schedData = await schedResponse.json();
+                
+                const tasks = schedData.scheduled_tasks || [];
+                
+                if (tasks.length === 0) {
+                    panel.innerHTML = '<div class="empty-state">暂无定时任务</div>';
+                    return;
+                }
+                
+                let html = '<div style="display: flex; flex-direction: column; gap: 6px;">';
+                
+                tasks.forEach(task => {
+                    const statusIcon = task.status === 'active' ? '✅' : '⏸️';
+                    
+                    html += `
+                        <div style="background: rgba(0,0,0,0.03); border-radius: 6px; padding: 8px; font-size: 11px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                                <span style="font-weight: 600; color: #333;">${statusIcon} ${task.name || '未命名'}</span>
+                                <span style="font-size: 10px; color: #999;">${task.schedule || ''}</span>
+                            </div>
+                            <div style="color: #666; font-size: 10px;">${escapeHtml(task.description || '')}</div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                panel.innerHTML = html;
+                
+            } catch (error) {
+                console.error('加载定时任务失败:', error);
+                document.getElementById('scheduledTaskPanel').innerHTML = '<div style="color: #f87171; font-size: 11px;">加载失败</div>';
             }
         }
         
@@ -475,17 +1089,28 @@
                     return;
                 }
                 
-                errorPanel.innerHTML = data.errors.map(error => `
-                    <div class="error-item">
-                        <div class="error-type">${escapeHtml(error.error_type)}</div>
-                        <div class="error-message">${escapeHtml(error.error_message)}</div>
-                        <div style="font-size: 11px; color: #999; margin-top: 5px;">
-                            ${formatTime(error.created_at)}
+                let html = '<div style="display: flex; flex-direction: column; gap: 6px;">';
+                
+                data.errors.forEach(error => {
+                    const errorTime = error.created_at ? formatTime(error.created_at) : '-';
+                    
+                    html += `
+                        <div style="background: #fef2f2; border-left: 3px solid #f87171; border-radius: 6px; padding: 8px; font-size: 11px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                                <span style="font-weight: 600; color: #991b1b;">❌ ${escapeHtml(error.error_type)}</span>
+                                <span style="font-size: 10px; color: #999;">${errorTime}</span>
+                            </div>
+                            <div style="color: #7f1d1d; font-size: 10px;">${escapeHtml(error.user_input)}</div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                });
+                
+                html += '</div>';
+                errorPanel.innerHTML = html;
+                
             } catch (error) {
                 console.error('加载错误列表失败:', error);
+                errorPanel.innerHTML = '<div style="color: #f87171; font-size: 11px;">加载失败</div>';
             }
         }
         
@@ -500,25 +1125,191 @@
             return statusMap[status] || status;
         }
         
+        // 显示任务详情
+        async function showTaskDetails(taskId) {
+            try {
+                const modal = document.getElementById('taskDetailModal');
+                const content = document.getElementById('taskDetailContent');
+                
+                modal.style.display = 'flex';
+                content.innerHTML = '<div class="loading"><div class="spinner"></div>加载任务详情...</div>';
+                
+                // 获取任务详情
+                const response = await fetch(`${API_BASE}/api/tasks/${taskId}?token=${TOKEN}`);
+                const task = await response.json();
+                
+                if (!task.id) {
+                    content.innerHTML = '<div style="color: #f87171;">任务详情加载失败</div>';
+                    return;
+                }
+                
+                content.innerHTML = `
+                    <div style="display: grid; gap: 15px;">
+                        <!-- 基本信息 -->
+                        <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">📋 基本信息</h3>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 13px;">
+                                <div><strong style="color: #333;">任务 ID:</strong> ${task.id}</div>
+                                <div><strong>状态:</strong> <span class="task-status status-${task.status}">${getStatusText(task.status)}</span></div>
+                                <div><strong>类型:</strong> ${task.schedule_name ? '⏰ 定时任务' : '⚡ 实时任务'} ${task.schedule_name ? `(${task.schedule_name})` : ''}</div>
+                                <div><strong>渠道:</strong> 📱 ${task.channel}</div>
+                                <div><strong>用户 ID:</strong> ${task.user_id}</div>
+                                <div style="grid-column: span 2;"><strong>阶段:</strong> ${getStageIndicator(task.stage)}
+                                    <div style="font-size: 11px; color: #999; margin-top: 5px;">
+                                        ${task.created_at ? `📥 接受：${formatTime(task.created_at)}` : ''}
+                                        ${task.started_at ? ` · 🚀 执行：${formatTime(task.started_at)}` : ''}
+                                        ${task.completed_at ? ` · ✅ 完成：${formatTime(task.completed_at)}` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 任务内容 -->
+                        <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">📝 任务内容</h3>
+                            <div style="font-size: 13px; line-height: 1.6; color: #333;">${escapeHtml(task.full_message || task.title || task.user_input || '无任务描述')}</div>
+                        </div>
+                        
+                        <!-- 对话历史 -->
+                        ${task.conversations && task.conversations.length > 0 ? `
+                        <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">💬 对话历史</h3>
+                            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; max-height: 300px; overflow-y: auto;">
+                                ${task.conversations.map(c => `
+                                    <div style="padding: 8px; border-radius: 6px; background: ${c.is_user ? '#e0f2fe' : '#f0fdf4'};">
+                                        <div style="font-weight: 600; margin-bottom: 4px; color: ${c.is_user ? '#0369a1' : '#166534'};">${c.role}</div>
+                                        <div style="color: #333; white-space: pre-wrap; word-break: break-all;">${escapeHtml(c.content)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <!-- 技能和大模型 -->
+                        <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">🤖 技能和大模型</h3>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 13px;">
+                                <div><strong>调用技能:</strong> ${task.skill_name || '未指定'}</div>
+                                <div><strong>Agent:</strong> ${task.skill_agent || '未指定'}</div>
+                                <div><strong>LLM 模型:</strong> ${task.llm_model || '未使用'}</div>
+                                <div><strong>LLM 调用:</strong> ${task.llm_called ? '✅ 是' : '❌ 否'}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Token 和成本 -->
+                        ${(task.llm_called || task.execution_time_ms) ? `
+                        <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">⚡ 性能指标</h3>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 13px;">
+                                <div><strong>输入 Tokens:</strong> ${task.llm_tokens_in || 0}</div>
+                                <div><strong>输出 Tokens:</strong> ${task.llm_tokens_out || 0}</div>
+                                <div><strong>总 Tokens:</strong> ${(task.llm_tokens_in || 0) + (task.llm_tokens_out || 0)}</div>
+                                <div><strong>LLM 成本:</strong> $${(task.llm_cost || 0).toFixed(4)}</div>
+                                <div><strong>执行时间:</strong> ${(task.execution_time_ms || 0).toFixed(0)}ms</div>
+                                <div><strong>响应时间:</strong> ${(task.response_time_ms || 0).toFixed(0)}ms</div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <!-- 时间线 -->
+                        <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">⏱️ 时间线</h3>
+                            <div style="display: grid; gap: 8px; font-size: 13px;">
+                                <div><strong>📥 收到命令:</strong> ${task.created_at ? formatTime(task.created_at) : '-'}</div>
+                                ${task.started_at ? `<div><strong>🚀 开始执行:</strong> ${formatTime(task.started_at)}</div>` : ''}
+                                ${task.completed_at ? `<div><strong>✅ 执行完成:</strong> ${formatTime(task.completed_at)}</div>` : ''}
+                                ${task.updated_at ? `<div><strong>🔄 最后更新:</strong> ${formatTime(task.updated_at)}</div>` : ''}
+                            </div>
+                        </div>
+                        
+                        <!-- 错误信息 -->
+                        ${task.error_message ? `
+                        <div style="background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #f87171;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #991b1b;">❌ 错误信息</h3>
+                            <div style="font-size: 13px; color: #7f1d1d;">
+                                <div><strong>错误类型:</strong> ${escapeHtml(task.error_type)}</div>
+                                <div style="margin-top: 5px;"><strong>错误详情:</strong> ${escapeHtml(task.error_message)}</div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <!-- 执行结果 -->
+                        ${task.final_output ? `
+                        <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; border-left: 4px solid #4ade80;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #166534;">✅ 执行结果</h3>
+                            <div style="font-size: 13px; color: #166534; line-height: 1.6; max-height: 200px; overflow-y: auto;">${escapeHtml(task.final_output)}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('加载任务详情失败:', error);
+                document.getElementById('taskDetailContent').innerHTML = '<div style="color: #f87171;">加载失败：' + error.message + '</div>';
+            }
+        }
+        
+        // 关闭任务详情弹窗
+        function closeTaskDetails() {
+            document.getElementById('taskDetailModal').style.display = 'none';
+        }
+        
+        // 点击弹窗背景关闭
+        document.getElementById('taskDetailModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTaskDetails();
+            }
+        });
+        
+        // 重试失败任务
+        async function retryTask(taskId) {
+            if (!confirm(`确定要重新执行任务 ${taskId} 吗？`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/tasks/${taskId}/retry?token=${TOKEN}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}`);
+                    loadTasks(); // 刷新任务列表
+                } else {
+                    alert(`❌ 重试失败：${data.detail || '未知错误'}`);
+                }
+            } catch (error) {
+                console.error('重试任务失败:', error);
+                alert('❌ 重试失败，请检查网络连接');
+            }
+        }
+        
         function getStageIndicator(currentStage) {
-            const stages = ['received', 'intent_analysis', 'task_decomposition', 'executing', 'aggregating', 'completed'];
-            const currentIndex = stages.indexOf(currentStage);
+            // 简化为三个阶段：接受、执行、完成
+            const stages = ['received', 'executing', 'completed'];
+            const stageNames = {
+                'received': '接受',
+                'executing': '执行', 
+                'completed': '完成'
+            };
+            
+            // 映射原始阶段到简化阶段
+            let simplifiedStage = 'received';
+            if (['executing', 'intent_analysis', 'task_decomposition', 'aggregating'].includes(currentStage)) {
+                simplifiedStage = 'executing';
+            } else if (currentStage === 'completed') {
+                simplifiedStage = 'completed';
+            }
+            
+            const currentIndex = stages.indexOf(simplifiedStage);
             
             return stages.map((stage, index) => {
                 let className = 'stage';
                 if (index < currentIndex) className += ' completed';
                 if (index === currentIndex) className += ' active';
                 
-                const stageNames = {
-                    'received': '接收',
-                    'intent_analysis': '分析',
-                    'task_decomposition': '拆解',
-                    'executing': '执行',
-                    'aggregating': '汇总',
-                    'completed': '完成'
-                };
-                
-                return `<div class="${className}">${stageNames[stage] || stage}</div>`;
+                return `<div class="${className}">${stageNames[stage]}</div>`;
             }).join('');
         }
         
@@ -528,28 +1319,262 @@
             return div.innerHTML;
         }
         
-        function formatTime(timestamp) {
-            const date = new Date(timestamp * 1000);
-            return date.toLocaleString('zh-CN');
+        function formatTime(timestamp, showDate = false) {
+            if (!timestamp) return '-';
+            const ts = timestamp > 10000000000 ? timestamp : timestamp * 1000;
+            const date = new Date(ts);
+            const now = new Date();
+            const diff = (now - date) / 1000;
+            const timezone = getUserTimezone();
+            
+            if (!showDate && diff < 86400 && date.getDate() === now.getDate()) {
+                return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: timezone });
+            } else {
+                return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', timeZone: timezone }) + ' ' + 
+                       date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', timeZone: timezone });
+            }
         }
         
         // 初始化
         function init() {
-            connectWebSocket();
-            loadStats();
-            loadTasks();
-            loadErrors();
+            try {
+                connectWebSocket();
+            } catch (e) {
+                console.log('WebSocket初始化失败:', e);
+            }
+            
+            // 延迟加载数据，确保页面渲染完成
+            setTimeout(() => {
+                loadStats();
+                loadTasks();
+                loadScheduledTasks();
+                loadErrors();
+            }, 100);
             
             // 定时刷新
             refreshInterval = setInterval(() => {
                 loadStats();
                 loadTasks();
+                loadScheduledTasks();
                 loadErrors();
             }, 5000); // 每 5 秒刷新
         }
         
+        // 获取用户时区
+        function getUserTimezone() {
+            const saved = localStorage.getItem('lingxi_timezone');
+            return saved || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }
+        
+        // 更新实时时钟
+        function updateClock() {
+            const clockEl = document.getElementById('realtimeClock');
+            if (!clockEl) return;
+            const timezone = getUserTimezone();
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: timezone });
+            const dateStr = now.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', timeZone: timezone });
+            clockEl.textContent = `${dateStr} ${timeStr}`;
+        }
+        
+        // 启动时钟
+        function startClock() {
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+        
+        // 时区切换
+        function changeTimezone() {
+            const select = document.getElementById('timezoneSelect');
+            const timezone = select.value;
+            localStorage.setItem('lingxi_timezone', timezone);
+            updateClock();
+            loadTasks();
+        }
+        
+        // 加载保存的时区
+        function loadTimezone() {
+            const saved = localStorage.getItem('lingxi_timezone');
+            if (saved) {
+                const select = document.getElementById('timezoneSelect');
+                if (select) select.value = saved;
+            }
+        }
+        
+        // 主题切换
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.querySelector('.theme-toggle');
+            
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                btn.textContent = '🌙 暗夜模式';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                btn.textContent = '☀️ 白天模式';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // 加载保存的主题
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                const btn = document.querySelector('.theme-toggle');
+                if (btn) btn.textContent = '☀️ 白天模式';
+            }
+        }
+        
         // 启动
+        function init() {
+            try {
+                connectWebSocket();
+            } catch (e) {
+                console.log('WebSocket 初始化失败:', e);
+            }
+            loadTheme();
+            loadTimezone();
+            startClock();
+            setTimeout(() => {
+                loadStats();
+                loadTasks();
+                loadScheduledTasks();
+                loadErrors();
+            }, 100);
+            refreshInterval = setInterval(() => {
+                loadStats();
+                loadTasks();
+                loadScheduledTasks();
+                loadErrors();
+            }, 5000);
+        }
+        
         init();
+    </script>
+    <!-- 任务详情弹窗 -->
+    <div id="taskDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 12px; padding: 25px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0;">
+                <h2 style="margin: 0; color: #667eea; font-size: 20px;">📋 任务详情</h2>
+                <button onclick="closeTaskDetails()" style="background: #f0f0f0; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 14px;">✕ 关闭</button>
+            </div>
+            <div id="taskDetailContent">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    加载任务详情...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    // 显示任务详情
+    async function showTaskDetails(taskId) {
+        try {
+            const modal = document.getElementById('taskDetailModal');
+            const content = document.getElementById('taskDetailContent');
+            
+            modal.style.display = 'flex';
+            content.innerHTML = '<div class="loading"><div class="spinner"></div>加载任务详情...</div>';
+            
+            const response = await fetch(`${API_BASE}/api/tasks/${taskId}?token=${TOKEN}`);
+            const task = await response.json();
+            
+            if (!task.id) {
+                content.innerHTML = '<div style="color: #f87171;">任务详情加载失败</div>';
+                return;
+            }
+            
+            content.innerHTML = `
+                <div style="display: grid; gap: 15px;">
+                    <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">📋 基本信息</h3>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 13px;">
+                            <div><strong>任务 ID:</strong> ${task.id}</div>
+                            <div><strong>状态:</strong> <span class="task-status status-${task.status}">${getStatusText(task.status)}</span></div>
+                            <div><strong>类型:</strong> ${task.schedule_name ? '⏰ 定时任务' : '⚡ 实时任务'} ${task.schedule_name ? `(${task.schedule_name})` : ''}</div>
+                            <div><strong>渠道:</strong> 📱 ${task.channel}</div>
+                            <div><strong>用户 ID:</strong> ${task.user_id}</div>
+                            <div><strong>阶段:</strong> ${getStageIndicator(task.stage)}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">📝 任务内容</h3>
+                        <div style="font-size: 13px; line-height: 1.6; color: #333;">${escapeHtml(task.user_input)}</div>
+                    </div>
+                    
+                    <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">🤖 技能和大模型</h3>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 13px;">
+                            <div><strong>调用技能:</strong> ${task.skill_name || '未指定'}</div>
+                            <div><strong>Agent:</strong> ${task.skill_agent || '未指定'}</div>
+                            <div><strong>LLM 模型:</strong> ${task.llm_model || '未使用'}</div>
+                            <div><strong>LLM 调用:</strong> ${task.llm_called ? '✅ 是' : '❌ 否'}</div>
+                        </div>
+                    </div>
+                    
+                    ${(task.llm_called || task.execution_time_ms) ? `
+                    <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">⚡ 性能指标</h3>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 13px;">
+                            <div><strong>输入 Tokens:</strong> ${task.llm_tokens_in || 0}</div>
+                            <div><strong>输出 Tokens:</strong> ${task.llm_tokens_out || 0}</div>
+                            <div><strong>总 Tokens:</strong> ${(task.llm_tokens_in || 0) + (task.llm_tokens_out || 0)}</div>
+                            <div><strong>LLM 成本:</strong> $${(task.llm_cost || 0).toFixed(4)}</div>
+                            <div><strong>执行时间:</strong> ${(task.execution_time_ms || 0).toFixed(0)}ms</div>
+                            <div><strong>响应时间:</strong> ${(task.response_time_ms || 0).toFixed(0)}ms</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div style="background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #333;">⏱️ 时间线</h3>
+                        <div style="display: grid; gap: 8px; font-size: 13px;">
+                            <div><strong>📥 收到命令:</strong> ${task.created_at ? formatTime(task.created_at) : '-'}</div>
+                            ${task.started_at ? `<div><strong>🚀 开始执行:</strong> ${formatTime(task.started_at)}</div>` : ''}
+                            ${task.completed_at ? `<div><strong>✅ 执行完成:</strong> ${formatTime(task.completed_at)}</div>` : ''}
+                        </div>
+                    </div>
+                    
+                    ${task.error_message ? `
+                    <div style="background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #f87171;">
+                        <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #991b1b;">❌ 错误信息</h3>
+                        <div style="font-size: 13px; color: #7f1d1d;">
+                            <div><strong>错误类型:</strong> ${escapeHtml(task.error_type)}</div>
+                            <div style="margin-top: 5px;"><strong>错误详情:</strong> ${escapeHtml(task.error_message)}</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${task.final_output ? `
+                    <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; border-left: 4px solid #4ade80;">
+                        <h3 style="margin: 0 0 10px 0; font-size: 14px; color: #166534;">✅ 执行结果</h3>
+                        <div style="font-size: 13px; color: #166534; line-height: 1.6; max-height: 200px; overflow-y: auto;">${escapeHtml(task.final_output)}</div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            
+        } catch (error) {
+            console.error('加载任务详情失败:', error);
+            document.getElementById('taskDetailContent').innerHTML = '<div style="color: #f87171;">加载失败</div>';
+        }
+    }
+    
+    // 关闭任务详情弹窗
+    function closeTaskDetails() {
+        document.getElementById('taskDetailModal').style.display = 'none';
+    }
+    
+    // 点击弹窗背景关闭
+    document.getElementById('taskDetailModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeTaskDetails();
+        }
+    });
     </script>
 </body>
 </html>

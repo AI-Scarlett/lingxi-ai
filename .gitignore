@@ -5,3 +5,9 @@ __pycache__/
 authorized_users.json
 companies/
 task-state.json
+
+# Dashboard
+dashboard/__pycache__/
+dashboard/*.bak
+dashboard/*.broken
+dashboard/index.html.v2

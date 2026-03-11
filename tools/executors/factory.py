@@ -65,6 +65,7 @@ class ExecutorFactory:
             "运营专家": GenericExecutor,
             "搜索专家": GenericExecutor,
             "翻译专家": GenericExecutor,
+            "爬虫专家": GenericExecutor,  # Scrapling 爬虫
             # 英文角色名
             "image_expert": ImageExpertExecutor,
             "copywriter": CopywriterExecutor,
@@ -74,6 +75,7 @@ class ExecutorFactory:
             "operator": GenericExecutor,
             "searcher": GenericExecutor,
             "translator": GenericExecutor,
+            "crawler": GenericExecutor,  # Scrapling 爬虫
         }
         
         executor_class = executors_map.get(role)

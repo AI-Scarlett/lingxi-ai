@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-灵犀 (Lingxi) - 智慧调度系统核心
-心有灵犀，一点就通
-多Agent协作架构，丝佳丽作为主控Agent，负责任务拆解、分配、汇总、评分
-"""
+import sys
+from pathlib import Path
+# 导入心跳同步器
+sys.path.insert(0, str(Path(__file__).parent))
+from heartbeat_task_sync import get_heartbeat_sync
+
+# 导入 Dashboard 记录器（可选）
+try:
+    # 使用绝对路径，避免__file__在某些环境下不正确
+    DASHBOARD_PATH = Path("/root/.openclaw/skills/lingxi/dashboard")
+    sys.path.insert(0, str(DASHBOARD_PATH))
+    from server import record_task_start, record_task_stage, record_task_complete, record_task_error
+    DASHBOARD_AVAILABLE = True
+    print(f"✅ Dashboard 模块已加载 (DASHBOARD_AVAILABLE=True)")
+except Exception as e:
+    print(f"⚠️  Dashboard 模块不可用：{e}")
+    DASHBOARD_AVAILABLE = False
+
 
 import json
 import asyncio
@@ -398,6 +410,7 @@ class SmartOrchestrator:
         self.system_name = "Lingxi"
         self.role = "指挥家"
         self.task_history: List[TaskResult] = []
+        self.heartbeat_sync = get_heartbeat_sync()  # 心跳同步器
     
     async def execute(self, user_input: str, user_id: str = None) -> TaskResult:
         """执行用户任务
@@ -409,6 +422,33 @@ class SmartOrchestrator:
         print(f"\n🎭 {self.name}（{self.role}）: 收到任务，开始分析...\n")
         if user_id:
             print(f"👤 用户 ID: {user_id}")
+        
+        # 生成任务 ID
+        task_id = f"task_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # 注册任务到心跳同步器
+        self.heartbeat_sync.add_task(
+            task_id=task_id,
+            description=user_input[:100],
+            channel="feishu",
+            user_id=user_id or "unknown"
+        )
+        print(f"📝 任务已注册到心跳系统：{task_id}")
+        
+        # 记录到 Dashboard（如果可用）
+        if DASHBOARD_AVAILABLE:
+            try:
+                await record_task_start(
+                    task_id=task_id,
+                    user_id=user_id or "unknown",
+                    channel="feishu",
+                    user_input=user_input,
+                    task_type='scheduled' if schedule_name else 'realtime',
+                    schedule_name=schedule_name
+                )
+                print(f"📊 任务已记录到 Dashboard (定时任务：{schedule_name if schedule_name else '否'})")
+            except Exception as e:
+                print(f"⚠️  Dashboard 记录失败：{e}")
         
         # 1. 解析意图
         intent = parse_intent(user_input, user_id)
@@ -444,6 +484,59 @@ class SmartOrchestrator:
             final_output=summary
         )
         self.task_history.append(result)
+        
+        # 通知心跳同步器任务完成
+        self.heartbeat_sync.complete_task(result.task_id)
+        print(f"✅ 任务已完成并同步到心跳系统：{result.task_id}")
+        
+        # 记录到 Dashboard（如果可用）
+        if DASHBOARD_AVAILABLE:
+            try:
+                # 统计 LLM 调用数据
+                llm_called = any(st.llm_called for st in result.subtasks)
+                llm_tokens_in = sum(st.llm_tokens_in or 0 for st in result.subtasks)
+                llm_tokens_out = sum(st.llm_tokens_out or 0 for st in result.subtasks)
+                llm_cost = sum(st.llm_cost or 0 for st in result.subtasks)
+                llm_model = result.subtasks[0].llm_model if result.subtasks and result.subtasks[0].llm_model else ""
+                
+                # 提取技能和 Agent 信息
+                skill_name = ""
+                skill_agent = ""
+                if result.subtasks:
+                    # 从第一个子任务中提取技能信息
+                    first_subtask = result.subtasks[0]
+                    skill_name = getattr(first_subtask, 'skill_name', '')
+                    skill_agent = getattr(first_subtask, 'agent_name', '')
+                
+                # 构建执行上下文
+                execution_context = {
+                    "skill_name": skill_name,
+                    "skill_agent": skill_agent,
+                    "intent_types": result.intent_types if hasattr(result, 'intent_types') else [],
+                    "subtask_count": len(result.subtasks),
+                    "original_input": result.original_input if hasattr(result, 'original_input') else user_input
+                }
+                
+                await record_task_complete(
+                    task_id=result.task_id,
+                    result={
+                        "final_output": result.final_output[:500],
+                        "total_score": result.total_score,
+                        "subtask_count": len(result.subtasks),
+                        "execution_time_ms": (datetime.now() - result.created_at).total_seconds() * 1000,
+                        "llm_called": llm_called,
+                        "llm_tokens_in": llm_tokens_in,
+                        "llm_tokens_out": llm_tokens_out,
+                        "llm_cost": llm_cost,
+                        "llm_model": llm_model,
+                        "skill_name": skill_name,
+                        "skill_agent": skill_agent,
+                        "execution_context": json.dumps(execution_context, ensure_ascii=False)
+                    }
+                )
+                print(f"📊 任务已完成记录到 Dashboard (技能：{skill_name}, LLM: {llm_called}, Tokens: {llm_tokens_in + llm_tokens_out})")
+            except Exception as e:
+                print(f"⚠️  Dashboard 完成记录失败：{e}")
         
         return result
     

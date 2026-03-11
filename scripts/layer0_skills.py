@@ -122,6 +122,18 @@ LAYER0_SKILLS = {
         "action": "emotional_love",
         "reply": "嘿嘿～ 我也爱老板！💋💋💋"
     },
+    
+    # ========== 🕷️ Scrapling 爬虫技能 ==========
+    "scrapling_fetch": {
+        "patterns": ["抓取", "爬取", "爬虫", "抓取网页", "爬一下"],
+        "action": "scrapling_fetch",
+        "reply": "🕷️ 爬虫专家就位～ 老板要抓取哪个网址？🔗"
+    },
+    "scrapling_extract": {
+        "patterns": ["提取", "提取内容", "抓取内容"],
+        "action": "scrapling_extract",
+        "reply": "📝 内容提取准备～ 请提供 URL 和要提取的内容类型？"
+    },
 }
 
 

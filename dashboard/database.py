@@ -57,6 +57,11 @@ class TaskRecord:
     started_at: Optional[float] = None
     completed_at: Optional[float] = None
     
+    # 任务类型
+    task_type: str = 'realtime'         # scheduled=定时任务，realtime=实时任务
+    schedule_name: str = ''             # 定时任务名称
+    cron_expr: str = ''                 # Cron 表达式
+    
     # 性能指标
     response_time_ms: float = 0.0       # 首次响应时间
     execution_time_ms: float = 0.0      # 总执行时间
@@ -137,6 +142,9 @@ class DashboardDatabase:
                 channel TEXT NOT NULL,
                 user_input TEXT NOT NULL,
                 status TEXT NOT NULL,
+                task_type TEXT DEFAULT 'realtime',  -- 任务类型：scheduled=定时任务，realtime=实时任务
+                schedule_name TEXT DEFAULT '',      -- 定时任务名称
+                cron_expr TEXT DEFAULT '',          -- Cron 表达式
                 stage TEXT NOT NULL,
                 created_at REAL NOT NULL,
                 updated_at REAL NOT NULL,
@@ -225,7 +233,14 @@ class DashboardDatabase:
     async def get_tasks(self, limit: int = 50, offset: int = 0,
                        user_id: str = None, status: str = None,
                        channel: str = None) -> List[TaskRecord]:
-        """获取任务列表"""
+        """获取任务列表（旧版，保留兼容性）"""
+        return await self.get_tasks_v2(limit, offset, user_id, status, channel)
+    
+    async def get_tasks_v2(self, limit: int = 50, offset: int = 0,
+                          user_id: str = None, status: str = None,
+                          channel: str = None, task_type: str = None,
+                          time_filter: str = None, schedule_name: str = None) -> List[TaskRecord]:
+        """获取任务列表（支持多条件筛选）"""
         query = 'SELECT * FROM tasks'
         conditions = []
         params = []
@@ -239,6 +254,31 @@ class DashboardDatabase:
         if channel:
             conditions.append('channel = ?')
             params.append(channel)
+        if task_type:
+            conditions.append('task_type = ?')
+            params.append(task_type)
+        if schedule_name:
+            conditions.append('schedule_name = ?')
+            params.append(schedule_name)
+        
+        # 时间筛选
+        now = time.time()
+        if time_filter:
+            if time_filter == 'today':
+                # 当天 0 点
+                import datetime
+                today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                cutoff = today.timestamp()
+                conditions.append('created_at > ?')
+                params.append(cutoff)
+            elif time_filter == '7d':
+                cutoff = now - (7 * 24 * 3600)
+                conditions.append('created_at > ?')
+                params.append(cutoff)
+            elif time_filter == '30d':
+                cutoff = now - (30 * 24 * 3600)
+                conditions.append('created_at > ?')
+                params.append(cutoff)
         
         if conditions:
             query += ' WHERE ' + ' AND '.join(conditions)
@@ -249,6 +289,55 @@ class DashboardDatabase:
         async with self._db.execute(query, params) as cursor:
             rows = await cursor.fetchall()
             return [self._row_to_task(row) for row in rows]
+    
+    async def count_tasks(self, user_id: str = None, status: str = None,
+                         channel: str = None, task_type: str = None,
+                         time_filter: str = None, schedule_name: str = None) -> int:
+        """统计任务数量（支持筛选）"""
+        query = 'SELECT COUNT(*) FROM tasks'
+        conditions = []
+        params = []
+        
+        if user_id:
+            conditions.append('user_id = ?')
+            params.append(user_id)
+        if status:
+            conditions.append('status = ?')
+            params.append(status)
+        if channel:
+            conditions.append('channel = ?')
+            params.append(channel)
+        if task_type:
+            conditions.append('task_type = ?')
+            params.append(task_type)
+        if schedule_name:
+            conditions.append('schedule_name = ?')
+            params.append(schedule_name)
+        
+        # 时间筛选
+        now = time.time()
+        if time_filter:
+            if time_filter == 'today':
+                import datetime
+                today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                cutoff = today.timestamp()
+                conditions.append('created_at > ?')
+                params.append(cutoff)
+            elif time_filter == '7d':
+                cutoff = now - (7 * 24 * 3600)
+                conditions.append('created_at > ?')
+                params.append(cutoff)
+            elif time_filter == '30d':
+                cutoff = now - (30 * 24 * 3600)
+                conditions.append('created_at > ?')
+                params.append(cutoff)
+        
+        if conditions:
+            query += ' WHERE ' + ' AND '.join(conditions)
+        
+        async with self._db.execute(query, params) as cursor:
+            result = await cursor.fetchone()
+            return result[0] if result else 0
     
     async def get_stats(self, hours: int = 24) -> Dict:
         """获取统计数据"""

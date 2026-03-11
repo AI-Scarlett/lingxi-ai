@@ -58,6 +58,14 @@ except ImportError as e:
     print(f"⚠️  自动学习层未启用：{e}")
     AUTO_LEARNING_ENABLED = False
 
+# ==================== 📊 Dashboard 客户端 ====================
+try:
+    from scripts.dashboard_client import record_to_dashboard, get_dashboard_client
+    DASHBOARD_CLIENT_ENABLED = True
+except ImportError as e:
+    DASHBOARD_CLIENT_ENABLED = False
+    print(f"⚠️  Dashboard 客户端未启用：{e}")
+
 # ==================== 导入学习层 ====================
 try:
     from scripts.learning_layer import get_learning_layer
@@ -876,6 +884,27 @@ class SmartOrchestrator:
             
             # 8. 保存统计信息
             self._save_stats()
+            
+            # 9. 记录到 Dashboard
+            if DASHBOARD_CLIENT_ENABLED:
+                # 提取模型信息
+                model_used = ""
+                for st in subtasks:
+                    if hasattr(st, 'model_used') and st.model_used:
+                        model_used = st.model_used
+                        break
+                
+                record_to_dashboard(
+                    user_input=user_input,
+                    user_id=user_id or "unknown",
+                    channel=getattr(self, '_channel', 'unknown'),
+                    llm_model=model_used or "qwen3.5-plus",
+                    skill_name="lingxi",
+                    skill_agent="orchestrator_v2",
+                    status="completed",
+                    response_time_ms=total_elapsed,
+                    final_output=summary[:500] if summary else ""
+                )
             
             # ✅ 返回确认消息 + 执行结果
             final_output = f"{confirm_output}\n\n{summary}"
