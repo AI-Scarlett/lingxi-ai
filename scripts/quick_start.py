@@ -41,16 +41,37 @@ def check_env():
             import shutil
             shutil.copy(example_file, env_file)
             print(f"{GREEN}✅ 已创建 .env 文件{NC}")
-            print(f"\n{YELLOW}请编辑 .env 文件，填写你的 API 密钥：{NC}")
-            print("  nano .env")
-            print("\n必须配置：")
-            print("  - DASHSCOPE_API_KEY（图像生成）")
-            print("  - QWEN_API_KEY（LLM 调用）")
-            
-            input("\n按回车键继续...")
         else:
             print(f"{RED}❌ 错误：未找到 .env.example{NC}")
             sys.exit(1)
+    
+    # 读取 .env 文件
+    env_content = env_file.read_text()
+    
+    # 检查必需的 API 密钥
+    required_keys = ["DASHSCOPE_API_KEY", "QWEN_API_KEY"]
+    missing_keys = []
+    
+    for key in required_keys:
+        if key not in env_content or f"{key}=" not in env_content:
+            missing_keys.append(key)
+        elif f"{key}=sk-your" in env_content or f"{key}=your" in env_content:
+            missing_keys.append(key)
+    
+    if missing_keys:
+        print(f"\n{RED}❌ 错误：以下 API 密钥未配置：{NC}")
+        for key in missing_keys:
+            print(f"   - {key}")
+        
+        print(f"\n{YELLOW}请编辑 .env 文件，填写你的 API 密钥：{NC}")
+        print("  nano .env")
+        print("\n获取 API 密钥：")
+        print("  - DashScope: https://dashscope.console.aliyun.com/apiKey")
+        print("  - Qwen: 同上（阿里云账号）")
+        print("\n配置完成后重新运行：")
+        print("  python3 scripts/quick_start.py")
+        
+        sys.exit(1)
     
     print(f"{GREEN}✅ 配置检查完成{NC}\n")
 

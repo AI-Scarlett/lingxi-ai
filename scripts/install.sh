@@ -6,7 +6,7 @@
 set -e
 
 echo "🦞 ======================================="
-echo "🦞 灵犀 v3.3.3 - 养龙虾的最佳助手
+echo "🦞 灵犀 v3.3.3 - 养龙虾的最佳助手"
 echo "🦞 ======================================="
 echo ""
 echo "✨ 专为新手小白设计，一键安装启动！"
@@ -51,9 +51,22 @@ fi
 
 cd "$INSTALL_DIR/lingxi-ai"
 
+# 创建虚拟环境
+echo "📦 创建 Python 虚拟环境..."
+if [ ! -d "$INSTALL_DIR/lingxi-ai/venv" ]; then
+    python3 -m venv "$INSTALL_DIR/lingxi-ai/venv"
+    echo -e "${GREEN}✅ 虚拟环境已创建${NC}"
+else
+    echo -e "${GREEN}✅ 虚拟环境已存在${NC}"
+fi
+
+# 激活虚拟环境
+source "$INSTALL_DIR/lingxi-ai/venv/bin/activate"
+echo -e "${GREEN}✅ 虚拟环境已激活${NC}"
+
 # 安装依赖
-echo "📦 安装依赖..."
-pip3 install -r requirements.txt -q
+echo "📦 安装依赖（虚拟环境中）..."
+pip install -r requirements.txt -q
 echo -e "${GREEN}✅ 依赖安装完成${NC}"
 
 # 创建环境变量文件
