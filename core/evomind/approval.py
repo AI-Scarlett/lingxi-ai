@@ -146,7 +146,7 @@ class ApprovalCard:
             "tag": "button",
             "text": "📊 查看详情",
             "type": "default",
-            "url": "http://106.52.101.202:8765/improvements"
+            "url": "http://localhost:8765/improvements"
         })
         
         return {

@@ -257,7 +257,7 @@ config.set_public_url(public_url)
 ## 📞 联系方式
 
 - **GitHub:** https://github.com/AI-Scarlett/lingxi-ai
-- **Dashboard:** http://106.52.101.202:8765
+- **Dashboard:** 本地访问 http://localhost:8765
 - **文档：** https://github.com/AI-Scarlett/lingxi-ai/wiki
 
 ---

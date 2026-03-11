@@ -42,7 +42,8 @@ uvicorn server:app --host 0.0.0.0 --port 8765
 
 - **本地:** http://localhost:8765
 - **域名:** http://dashboard.ailoveai.love:8765
-- **IP:** http://106.52.101.202:8765
+- **本地访问:** http://localhost:8765
+- **公网访问:** 配置远程访问后生成
 
 Token 在 `/root/.openclaw/workspace/.lingxi/dashboard_token.txt`
 

@@ -1,13 +1,50 @@
+# Git 忽略文件
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
 .env
+.venv
+venv/
+ENV/
+
+# 数据库和配置
+*.db
+*.sqlite
+*.json
+!.gitignore
+
+# 日志
 *.log
-authorized_users.json
-companies/
-task-state.json
+
+# 临时文件
+*.bak
+*.tmp
+*.broken
 
 # Dashboard
-dashboard/__pycache__/
 dashboard/*.bak
 dashboard/*.broken
 dashboard/index.html.v2
+
+# 敏感信息
+authorized_users.json
+task-state.json
+companies/
+cookie_pool.json
+remote_access.json
+improvement_config.json
+dashboard_token.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
