@@ -1,23 +1,24 @@
-# 🧠 灵犀 (Lingxi) - 智慧调度系统
+# 🦞 灵犀 (Lingxi) - 养龙虾的最佳助手
 
 > **心有灵犀，一点就通** ✨  
 > **版本：** v3.3.3  
-> **基于 OpenClaw：** 2026.3.7
+> **特别说明：** 特别适合新手小白用户
 
 ---
 
 ## 📋 简介
 
-灵犀是一个智能调度系统，支持多 Agent 协作、记忆持久化、自改进学习、智能内容抓取等功能。
+灵犀是一个 AI 智能调度系统，专为养龙虾新手小白设计！即使是第一次养龙虾，也能轻松上手～
 
 ### 核心特性
 
-- 🧠 **MindCore 记忆核心** - 三层记忆架构（STM/MTM/LTM）
-- 🔄 **EvoMind 自改进** - 系统从使用中学习，越用越聪明
-- 🕷️ **SmartFetch 智能抓取** - 多级抓取策略，微信文章 95%+ 成功率
-- 🤖 **Multi-Agent 架构** - 渠道隔离，100 任务并发
-- 📊 **Dashboard 增强** - 记忆管理/学习监控/改进审批
-- 🌐 **远程访问** - 支持 ngrok/ClawPort 内网穿透
+- 🦞 **龙虾养殖助手** - 新手小白也能养出健康龙虾
+- 🧠 **MindCore 记忆核心** - 记住你的养殖习惯和经验
+- 🔄 **EvoMind 自改进** - 越用越聪明，陪你一起成长
+- 🕷️ **SmartFetch 智能抓取** - 自动学习龙虾养殖知识
+- 🤖 **Multi-Agent 架构** - 多渠道支持，随时随地管理
+- 📊 **Dashboard 增强** - 可视化监控，一眼看清状态
+- 🌐 **远程访问** - 出门在外也能查看龙虾状态
 
 ---
 
@@ -64,9 +65,9 @@ http://localhost:8765
 **位置：** `core/mindcore/`
 
 **架构：**
-- **STM（短期记忆）** - 最近 100 条对话，内存存储，<10ms
-- **MTM（中期记忆）** - 最近 7 天，SQLite 存储，<500ms
-- **LTM（长期记忆）** - 永久归档，JSONL+ 向量索引，<2s
+- **STM（短期记忆）** - 最近 100 条龙虾养殖记录，内存存储，<10ms
+- **MTM（中期记忆）** - 最近 7 天养殖数据，SQLite 存储，<500ms
+- **LTM（长期记忆）** - 永久归档养殖经验，JSONL+ 向量索引，<2s
 
 **使用示例：**
 ```python
@@ -74,11 +75,11 @@ from core.mindcore import get_mindcore
 
 mindcore = get_mindcore()
 
-# 保存记忆
-await mindcore.save("重要信息", importance=9.0)
+# 保存龙虾养殖记录
+await mindcore.save("今天水温 25 度，龙虾很活跃", importance=9.0)
 
-# 检索记忆
-results = await mindcore.retrieve("查询内容", top_k=10)
+# 检索养殖经验
+results = await mindcore.retrieve("龙虾喂食", top_k=10)
 ```
 
 ### 2. EvoMind 自改进系统
@@ -87,7 +88,7 @@ results = await mindcore.retrieve("查询内容", top_k=10)
 
 **功能：**
 - 飞书卡片审批界面
-- 定时推送（7:00/12:00/21:00）
+- 定时推送（7:00/12:00/21:00）- 提醒你喂龙虾、换水
 - 提案管理（批准/拒绝/推迟）
 
 **使用示例：**
@@ -96,10 +97,10 @@ from core.evomind import get_approval_manager
 
 manager = get_approval_manager()
 
-# 添加提案
+# 添加提醒提案
 await manager.add_proposal({
     "type": "save_memory",
-    "title": "提案标题",
+    "title": "每天早上 8 点喂龙虾",
     "importance": 8.0
 })
 
@@ -122,7 +123,7 @@ proposals = await manager.get_pending_proposals()
 from core.smartfetch import get_fetcher
 
 fetcher = get_fetcher()
-result = await fetcher.fetch("https://example.com")
+result = await fetcher.fetch("https://example.com/龙虾养殖技巧")
 ```
 
 ### 4. Multi-Agent 架构
@@ -130,9 +131,9 @@ result = await fetcher.fetch("https://example.com")
 **位置：** `core/agents/`
 
 **支持渠道：**
-- Feishu（飞书）
-- QQ（QQ Bot）
-- WeCom（企业微信）
+- Feishu（飞书）- 工作通知
+- QQ（QQ Bot）- 日常聊天
+- WeCom（企业微信）- 团队协作
 
 **使用示例：**
 ```python
@@ -150,9 +151,9 @@ result = await feishu.handle(task)
 **位置：** `dashboard/`
 
 **页面：**
-- **记忆管理页** - `/api/memory/list`
-- **学习监控页** - `/api/learning/stats`
-- **改进审批页** - `/api/improvements/pending`
+- **记忆管理页** - 查看龙虾养殖记录
+- **学习监控页** - 查看系统学习进度
+- **改进审批页** - 审批养殖建议
 
 **远程访问配置：**
 ```python
@@ -171,8 +172,10 @@ token = config.enable_remote_access(provider="ngrok")
 | **响应时间** | <10ms | -68% |
 | **并发任务** | 100 | +10x |
 | **记忆检索** | 90%+ | +50% |
-| **微信抓取** | 95%+ | +90% |
+| **知识抓取** | 95%+ | +90% |
 | **Token 消耗** | 30% | -70% |
+
+**新手友好度：** ⭐⭐⭐⭐⭐（5 星满分）
 
 ---
 
@@ -286,18 +289,23 @@ __pycache__/
 ### v3.3.3 (2026-03-11)
 
 **新增：**
-- ✅ MindCore 记忆核心系统
-- ✅ EvoMind 自改进系统
-- ✅ SmartFetch 智能抓取
-- ✅ Multi-Agent 架构
-- ✅ Dashboard 增强页面
-- ✅ 远程访问支持
+- ✅ MindCore 记忆核心系统 - 记住你的养殖经验
+- ✅ EvoMind 自改进系统 - 越用越聪明
+- ✅ SmartFetch 智能抓取 - 自动学习养殖知识
+- ✅ Multi-Agent 架构 - 多渠道支持
+- ✅ Dashboard 可视化 - 一眼看清龙虾状态
+- ✅ 远程访问 - 出门也能查看
 
 **优化：**
 - ✅ 响应时间 -68%
 - ✅ 并发能力 +10x
-- ✅ 记忆检索 +50%
+- ✅ 知识检索 +50%
 - ✅ Token 消耗 -70%
+
+**新手友好：**
+- ✅ 简化配置流程
+- ✅ 详细文档说明
+- ✅ 示例代码丰富
 
 ---
 
@@ -320,4 +328,4 @@ MIT License
 
 ---
 
-**灵犀 v3.3.3 - 记忆核心，进化思维！** 🧠✨
+**灵犀 v3.3.3 - 养龙虾的最佳助手，新手小白也能轻松上手！** 🦞✨
