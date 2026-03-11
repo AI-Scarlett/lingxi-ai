@@ -571,14 +571,14 @@ python3 start_dashboard.py
 ### 访问地址
 
 - **本地：** http://localhost:8765
-- **公网：** http://106.52.101.202:8765
+- **公网：** http://IP:8765
 - **移动端：** 自动适配
 
-**访问 Token：** `1e4c2a9af43cd7001d00ce08b1a16d1a3d32b9de7d0e08ae4b63082fe1ff7bf6`
+**访问 Token：** `xxxxxxxxx`
 
 **完整链接：**
 ```
-http://106.52.101.202:8765/?token=1e4c2a9af43cd7001d00ce08b1a16d1a3d32b9de7d0e08ae4b63082fe1ff7bf6
+http://IP:8765/?token=xxxxxxxxx
 ```
 
 ### 核心功能
