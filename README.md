@@ -24,7 +24,18 @@
 
 ## 🚀 快速开始
 
-### 安装
+### 一键安装（推荐）
+
+**新手小白专用！只需一个命令：**
+
+```bash
+# 下载安装脚本并执行
+curl -fsSL https://raw.githubusercontent.com/AI-Scarlett/lingxi-ai/main/scripts/install.sh | bash
+```
+
+安装完成后会自动启动 Dashboard，并显示访问地址！
+
+### 手动安装
 
 ```bash
 # 克隆仓库
@@ -35,16 +46,37 @@ cd lingxi-ai
 pip install -r requirements.txt
 ```
 
+### 快速启动
+
+**安装后启动 Dashboard：**
+
+```bash
+# 方法 1：使用快速启动脚本（推荐）
+python3 scripts/quick_start.py
+
+# 方法 2：直接启动
+python3 dashboard/server.py
+```
+
 ### 配置
 
 ```bash
-# 初始化配置
-python3 scripts/init.py
+# 复制环境变量模板
+cp .env.example .env
 
-# 配置 API 密钥（根据需要）
-export QWEN_API_KEY="your_api_key"
-export PERPLEXITY_API_KEY="your_api_key"  # 可选
+# 编辑 .env 文件，填写你的 API 密钥
+nano .env
+
+# 必须配置：
+# - DASHSCOPE_API_KEY（图像生成）
+# - QWEN_API_KEY（LLM 调用）
+
+# 可选配置：
+# - PERPLEXITY_API_KEY（搜索）
+# - NGROK_AUTH_TOKEN（远程访问）
 ```
+
+**⚠️ 重要：** `.env` 文件包含敏感信息，已加入 `.gitignore`，不要提交到 Git！
 
 ### 启动 Dashboard
 
