@@ -8,7 +8,7 @@
 
 ## 📋 简介
 
-灵犀是一个 AI 智能调度系统，专为养龙虾新手小白设计！即使是第一次养龙虾，也能轻松上手～
+灵犀是一个 AI 智能调度工具，专为养龙虾新手小白设计！即使是第一次养龙虾，也能轻松上手～
 
 ### 核心特性
 
@@ -29,33 +29,23 @@
 **新手小白专用！只需一个命令：**
 
 ```bash
-# 下载安装脚本并执行
-curl -fsSL https://raw.githubusercontent.com/AI-Scarlett/lingxi-ai/main/scripts/install.sh | bash
+curl -Ls https://raw.githubusercontent.com/AI-Scarlett/lingxi-ai/main/scripts/install.sh | bash
 ```
 
-安装完成后会自动启动 Dashboard，并显示访问地址！
+安装完成后会自动启动，并显示访问地址！
 
 ### 手动安装
 
 ```bash
-# 克隆仓库
 git clone https://github.com/AI-Scarlett/lingxi-ai.git
 cd lingxi-ai
-
-# 安装依赖
 pip install -r requirements.txt
 ```
 
 ### 快速启动
 
-**安装后启动 Dashboard：**
-
 ```bash
-# 方法 1：使用快速启动脚本（推荐）
 python3 scripts/quick_start.py
-
-# 方法 2：直接启动
-python3 dashboard/server.py
 ```
 
 ### 配置
@@ -92,7 +82,7 @@ http://localhost:8765
 
 ## 📦 模块说明
 
-### 1. MindCore 记忆核心系统
+### 1. MindCore 记忆核心
 
 **位置：** `core/mindcore/`
 
@@ -114,7 +104,7 @@ await mindcore.save("今天水温 25 度，龙虾很活跃", importance=9.0)
 results = await mindcore.retrieve("龙虾喂食", top_k=10)
 ```
 
-### 2. EvoMind 自改进系统
+### 2. EvoMind 自改进
 
 **位置：** `core/evomind/`
 
@@ -184,7 +174,7 @@ result = await feishu.handle(task)
 
 **页面：**
 - **记忆管理页** - 查看龙虾养殖记录
-- **学习监控页** - 查看系统学习进度
+- **学习监控页** - 查看学习进度
 - **改进审批页** - 审批养殖建议
 
 **远程访问配置：**
@@ -244,8 +234,8 @@ Orchestrator: ✅ PASS
 ```
 lingxi-ai/
 ├── core/
-│   ├── mindcore/           # 记忆核心系统
-│   ├── evomind/            # 自改进系统
+│   ├── mindcore/           # 记忆核心
+│   ├── evomind/            # 自改进
 │   ├── smartfetch/         # 智能抓取
 │   ├── agents/             # Multi-Agent
 │   ├── orchestrator/       # 任务分发
@@ -259,7 +249,7 @@ lingxi-ai/
 ├── scripts/                # 脚本工具
 ├── docs/                   # 文档
 ├── README.md               # 本文档
-└── RELEASE_v4.0.0.md       # 发布说明
+└── RELEASE_v3.3.3.md       # 发布说明
 ```
 
 ---
@@ -342,6 +332,22 @@ __pycache__/
 ---
 
 ## 🙏 致谢
+
+感谢以下开源项目和技能的启发与支持：
+
+**OpenClaw 生态：**
+- [OpenClaw](https://github.com/openclaw/openclaw) - 基础框架
+- [Self-Improving](https://github.com/openclaw/self-improving) - 自改进机制
+- [MemOS](https://github.com/memtensor/memos-lite-openclaw-plugin) - 记忆系统
+- [Find Skills](https://github.com/openclaw/find-skills) - 技能发现
+
+**AI 模型：**
+- [Qwen](https://github.com/QwenLM/Qwen) - 通义千问大模型
+- [Scrapling](https://github.com/D4Vinci/Scrapling) - 智能网页抓取
+
+**Dashboard：**
+- [FastAPI](https://github.com/tiangolo/fastapi) - API 框架
+- [Chart.js](https://github.com/chartjs/Chart.js) - 图表库
 
 感谢所有参与开发和测试的开发者！
 

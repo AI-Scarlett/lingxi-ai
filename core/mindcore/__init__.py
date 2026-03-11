@@ -8,7 +8,7 @@
 - MTM (Mid-Term Memory) - 中期记忆：最近 7 天，SQLite 存储，<500ms
 - LTM (Long-Term Memory) - 长期记忆：永久归档，JSONL+ 向量索引，<2s
 
-版本：v4.0.0
+版本：v3.3.3
 创建时间：2026-03-11
 """
 
