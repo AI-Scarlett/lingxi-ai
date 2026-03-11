@@ -19,7 +19,10 @@ class ImageExpertExecutor:
         self.model = "qwen-image-edit-plus"
         self.backup_model = "qwen-image-max"
         self.reference_image = "https://i.imgs.ovh/2026/02/24/y15adq.png"
-        self.api_key = "sk-d84ce7d711c14942af76aa5722cbd037"
+        # 从环境变量读取 API 密钥，避免硬编码
+        self.api_key = os.environ.get("DASHSCOPE_API_KEY")
+        if not self.api_key:
+            raise ValueError("请设置环境变量 DASHSCOPE_API_KEY")
         self.endpoint = "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation"
     
     async def execute(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
