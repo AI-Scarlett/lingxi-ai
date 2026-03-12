@@ -367,15 +367,19 @@ class DatabaseManager:
         ''', (cutoff,))
         row = cursor.fetchone()
         
-        # LLM 统计
-        cursor = conn.execute('''
+        # LLM 统计 - 查询所有时间或按时间范围
+        llm_query = '''
             SELECT 
-                SUM(llm_tokens_in) as tokens_in,
-                SUM(llm_tokens_out) as tokens_out,
-                SUM(llm_cost) as cost,
+                COALESCE(SUM(llm_tokens_in), 0) as tokens_in,
+                COALESCE(SUM(llm_tokens_out), 0) as tokens_out,
+                COALESCE(SUM(llm_cost), 0) as cost,
                 COUNT(CASE WHEN llm_called = 1 THEN 1 END) as llm_calls
-            FROM tasks WHERE created_at > ?
-        ''', (cutoff,))
+            FROM tasks
+        '''
+        if cutoff > 0:
+            llm_query += f' WHERE created_at > {cutoff}'
+        
+        cursor = conn.execute(llm_query)
         llm_row = cursor.fetchone()
         
         # 渠道分布
