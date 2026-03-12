@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵犀 Dashboard v3.3.4</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        [v-cloak] { display: none; }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        
+        /* 动画 */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s ease;
+        }
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+        
+        .slide-enter-active, .slide-leave-active {
+            transition: transform 0.3s ease;
+        }
+        .slide-enter-from {
+            transform: translateX(-100%);
+        }
+        .slide-leave-to {
+            transform: translateX(-100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div id="app" v-cloak>
+        <!-- 侧边栏 -->
+        <aside 
+            :class="[
+                'fixed left-0 top-0 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 z-20',
+                sidebarCollapsed ? 'w-16' : 'w-64'
+            ]"
+        >
+            <!-- Logo -->
+            <div class="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
+                <span class="text-2xl">🚀</span>
+                <span v-if="!sidebarCollapsed" class="ml-2 font-bold text-lg text-primary-600">灵犀 v3.3.4</span>
+            </div>
+            
+            <!-- 导航菜单 -->
+            <nav class="p-2 space-y-1">
+                <a 
+                    v-for="item in menuItems" 
+                    :key="item.key"
+                    @click.prevent="currentView = item.key"
+                    :class="[
+                        'flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-colors',
+                        currentView === item.key 
+                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' 
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ]"
+                >
+                    <i :class="item.icon" class="text-xl"></i>
+                    <span v-if="!sidebarCollapsed" class="ml-3 font-medium">{{ item.label }}</span>
+                </a>
+            </nav>
+            
+            <!-- 底部操作 -->
+            <div class="absolute bottom-0 left-0 right-0 p-2 border-t border-gray-200 dark:border-gray-700">
+                <button 
+                    @click="sidebarCollapsed = !sidebarCollapsed"
+                    class="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                    <i :class="sidebarCollapsed ? 'ph-caret-right' : 'ph-caret-left'" class="text-xl text-gray-500"></i>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- 主内容区 -->
+        <main 
+            :class="[
+                'transition-all duration-300 min-h-screen',
+                sidebarCollapsed ? 'ml-16' : 'ml-64'
+            ]"
+        >
+            <!-- 顶部栏 -->
+            <header class="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 sticky top-0 z-10">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-semibold">{{ pageTitle }}</h1>
+                    <span class="ml-3 text-xs text-gray-400">v3.3.4</span>
+                    <span 
+                        :class="[
+                            'ml-3 px-2 py-0.5 text-xs rounded-full',
+                            wsConnected 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        ]"
+                    >
+                        {{ wsConnected ? '实时连接' : '离线' }}
+                    </span>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- 搜索 -->
+                    <div class="relative">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input 
+                            v-model="globalSearch"
+                            type="text" 
+                            placeholder="全局搜索..."
+                            class="pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary-500 w-64"
+                        >
+                    </div>
+                    
+                    <!-- 主题切换 -->
+                    <button 
+                        @click="toggleTheme"
+                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        <i :class="isDark ? 'ph-sun' : 'ph-moon'" class="text-xl"></i>
+                    </button>
+                    
+                    <!-- 刷新 -->
+                    <button 
+                        @click="refreshAll"
+                        :class="[
+                            'p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+                            loading && 'animate-spin'
+                        ]"
+                    >
+                        <i class="ph ph-arrows-clockwise text-xl"></i>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- 页面内容 -->
+            <div class="p-6">
+                <!-- 概览页 -->
+                <div v-if="currentView === 'overview'" class="space-y-6">
+                    <!-- 统计卡片 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div 
+                            v-for="stat in overviewStats" 
+                            :key="stat.key"
+                            class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ stat.label }}</p>
+                                    <p class="text-2xl font-bold mt-1">{{ stat.value }}</p>
+                                </div>
+                                <div :class="['p-3 rounded-lg', stat.bgClass]">
+                                    <i :class="stat.icon" class="text-2xl" :class="stat.iconClass"></i>
+                                </div>
+                            </div>
+                            <div v-if="stat.trend" class="mt-3 flex items-center text-sm">
+                                <span :class="stat.trend > 0 ? 'text-green-500' : 'text-red-500'">
+                                    <i :class="stat.trend > 0 ? 'ph-trend-up' : 'ph-trend-down'"></i>
+                                    {{ Math.abs(stat.trend) }}%
+                                </span>
+                                <span class="text-gray-400 ml-2">较昨日</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 图表区域 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- 任务趋势 -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-semibold">任务趋势</h3>
+                                <select 
+                                    v-model="trendDays" 
+                                    @change="loadTrends"
+                                    class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 bg-transparent"
+                                >
+                                    <option :value="7">最近7天</option>
+                                    <option :value="14">最近14天</option>
+                                    <option :value="30">最近30天</option>
+                                </select>
+                            </div>
+                            <div ref="trendChart" class="h-64"></div>
+                        </div>
+                        
+                        <!-- 渠道分布 -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                            <h3 class="font-semibold mb-4">渠道分布</h3>
+                            <div ref="channelChart" class="h-64"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 最近任务 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                            <h3 class="font-semibold">最近任务</h3>
+                            <button 
+                                @click="currentView = 'tasks'"
+                                class="text-sm text-primary-600 hover:text-primary-700"
+                            >
+                                查看全部 →
+                            </button>
+                        </div>
+                        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <div 
+                                v-for="task in recentTasks" 
+                                :key="task.id"
+                                class="px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                                @click="showTaskDetail(task)"
+                            >
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <span :class="getStatusBadgeClass(task.status)">
+                                            {{ getStatusText(task.status) }}
+                                        </span>
+                                        <span class="font-medium truncate max-w-md">{{ task.user_input }}</span>
+                                    </div>
+                                    <span class="text-sm text-gray-400">{{ formatTime(task.created_at) }}</span>
+                                </div>
+                                <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+                                    <span><i class="ph ph-hash"></i> {{ task.id }}</span>
+                                    <span><i class="ph ph-chat-circle"></i> {{ task.channel }}</span>
+                                    <span v-if="task.llm_model"><i class="ph ph-brain"></i> {{ task.llm_model }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 任务管理页 -->
+                <div v-if="currentView === 'tasks'" class="space-y-4">
+                    <!-- 筛选栏 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 flex flex-wrap gap-3">
+                        <select 
+                            v-model="taskFilters.status" 
+                            @change="loadTasks"
+                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent text-sm"
+                        >
+                            <option value="">全部状态</option>
+                            <option value="pending">等待中</option>
+                            <option value="processing">处理中</option>
+                            <option value="completed">已完成</option>
+                            <option value="failed">失败</option>
+                        </select>
+                        
+                        <select 
+                            v-model="taskFilters.channel" 
+                            @change="loadTasks"
+                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent text-sm"
+                        >
+                            <option value="">全部渠道</option>
+                            <option value="qq">QQ</option>
+                            <option value="feishu">飞书</option>
+                            <option value="wecom">企微</option>
+                            <option value="dingtalk">钉钉</option>
+                            <option value="web">Web</option>
+                        </select>
+                        
+                        <select 
+                            v-model="taskFilters.task_type" 
+                            @change="loadTasks"
+                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent text-sm"
+                        >
+                            <option value="">全部类型</option>
+                            <option value="realtime">实时任务</option>
+                            <option value="scheduled">定时任务</option>
+                        </select>
+                        
+                        <div class="flex-1"></div>
+                        
+                        <button 
+                            @click="showCreateTaskModal = true"
+                            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center"
+                        >
+                            <i class="ph ph-plus mr-1"></i>
+                            新建任务
+                        </button>
+                    </div>
+                    
+                    <!-- 任务表格 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50 dark:bg-gray-700/50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">任务</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">状态</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">渠道</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">模型</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">耗时</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">时间</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr 
+                                        v-for="task in tasks" 
+                                        :key="task.id"
+                                        class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                    >
+                                        <td class="px-4 py-3">
+                                            <div class="font-medium truncate max-w-xs">{{ task.user_input }}</div>
+                                            <div class="text-xs text-gray-400 mt-0.5">{{ task.id }}</div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span :class="getStatusBadgeClass(task.status)">
+                                                {{ getStatusText(task.status) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm">{{ task.channel }}</td>
+                                        <td class="px-4 py-3 text-sm">{{ task.llm_model || '-' }}</td>
+                                        <td class="px-4 py-3 text-sm">{{ formatDuration(task.execution_time_ms) }}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-500">{{ formatTime(task.created_at) }}</td>
+                                        <td class="px-4 py-3 text-right">
+                                            <button 
+                                                @click="showTaskDetail(task)"
+                                                class="text-primary-600 hover:text-primary-700 text-sm"
+                                            >
+                                                详情
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- 分页 -->
+                        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                            <span class="text-sm text-gray-500">
+                                显示 {{ tasks.length }} / {{ taskTotal }} 条
+                            </span>
+                            <div class="flex items-center space-x-2">
+                                <button 
+                                    @click="taskOffset = Math.max(0, taskOffset - taskLimit); loadTasks()"
+                                    :disabled="taskOffset === 0"
+                                    class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm disabled:opacity-50"
+                                >
+                                    上一页
+                                </button>
+                                <button 
+                                    @click="taskOffset += taskLimit; loadTasks()"
+                                    :disabled="taskOffset + taskLimit >= taskTotal"
+                                    class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm disabled:opacity-50"
+                                >
+                                    下一页
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 技能中心页 -->
+                <div v-if="currentView === 'skills'" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div 
+                            v-for="skill in skills" 
+                            :key="skill.name"
+                            class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all group"
+                        >
+                            <div class="flex items-start justify-between">
+                                <div class="text-3xl">{{ skill.emoji }}</div>
+                                <span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
+                                    {{ skill.status }}
+                                </span>
+                            </div>
+                            <h3 class="font-semibold mt-3">{{ skill.name }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{{ skill.description || '暂无描述' }}</p>
+                            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-sm text-gray-500">
+                                <span>使用次数</span>
+                                <span class="font-medium">{{ skill.usage_count || 0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 数据分析页 -->
+                <div v-if="currentView === 'analytics'" class="space-y-6">
+                    <!-- LLM 统计 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                            <h3 class="font-semibold mb-4">Token 消耗</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-gray-500">输入 Tokens</span>
+                                        <span class="font-medium">{{ formatNumber(stats.llm?.tokens_in || 0) }}</span>
+                                    </div>
+                                    <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-primary-500 rounded-full" style="width: 60%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-gray-500">输出 Tokens</span>
+                                        <span class="font-medium">{{ formatNumber(stats.llm?.tokens_out || 0) }}</span>
+                                    </div>
+                                    <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-green-500 rounded-full" style="width: 40%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                            <h3 class="font-semibold mb-4">成本分析</h3>
+                            <div class="text-center py-4">
+                                <div class="text-4xl font-bold text-primary-600">${{ stats.llm?.cost?.toFixed(4) || '0.0000' }}</div>
+                                <div class="text-sm text-gray-500 mt-1">24小时总成本</div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-500">LLM 调用次数</span>
+                                    <span class="font-medium">{{ stats.llm?.calls || 0 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                            <h3 class="font-semibold mb-4">性能指标</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">平均响应时间</span>
+                                    <span class="font-medium">{{ Math.round(stats.avg_response_ms || 0) }}ms</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">平均执行时间</span>
+                                    <span class="font-medium">{{ Math.round(stats.avg_execution_ms || 0) }}ms</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">成功率</span>
+                                    <span class="font-medium text-green-600">{{ (stats.success_rate || 0).toFixed(1) }}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 模型使用分布 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                        <h3 class="font-semibold mb-4">模型使用分布</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                            <div 
+                                v-for="(count, model) in stats.models" 
+                                :key="model"
+                                class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                            >
+                                <div class="font-medium truncate">{{ model }}</div>
+                                <div class="text-2xl font-bold text-primary-600 mt-1">{{ count }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 系统设置页 -->
+                <div v-if="currentView === 'settings'" class="max-w-2xl space-y-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                        <h3 class="font-semibold mb-4">外观设置</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium">深色模式</div>
+                                    <div class="text-sm text-gray-500">切换浅色/深色主题</div>
+                                </div>
+                                <button 
+                                    @click="toggleTheme"
+                                    :class="[
+                                        'w-12 h-6 rounded-full transition-colors relative',
+                                        isDark ? 'bg-primary-600' : 'bg-gray-300'
+                                    ]"
+                                >
+                                    <span 
+                                        :class="[
+                                            'absolute top-1 w-4 h-4 bg-white rounded-full transition-transform',
+                                            isDark ? 'translate-x-7' : 'translate-x-1'
+                                        ]"
+                                    ></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                        <h3 class="font-semibold mb-4">数据管理</h3>
+                        <div class="space-y-3">
+                            <button 
+                                @click="syncData"
+                                :disabled="syncing"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center"
+                            >
+                                <i :class="['ph ph-arrows-clockwise mr-2', syncing && 'animate-spin']"></i>
+                                {{ syncing ? '同步中...' : '手动同步 OpenClaw 数据' }}
+                            </button>
+                            <button 
+                                @click="exportData"
+                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center"
+                            >
+                                <i class="ph ph-download mr-2"></i>
+                                导出数据 (JSON)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                        <h3 class="font-semibold mb-4">系统信息</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">版本</span>
+                                <span>v4.0.0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">WebSocket 状态</span>
+                                <span :class="wsConnected ? 'text-green-500' : 'text-red-500'">
+                                    {{ wsConnected ? '已连接' : '未连接' }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">数据路径</span>
+                                <span class="font-mono text-xs">~/.openclaw/workspace/.lingxi/</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 任务详情弹窗 -->
+        <div 
+            v-if="selectedTask"
+            class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            @click.self="selectedTask = null"
+        >
+            <div class="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-2xl">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h3 class="font-semibold text-lg">任务详情</h3>
+                    <button @click="selectedTask = null" class="text-gray-400 hover:text-gray-600">
+                        <i class="ph ph-x text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto max-h-[60vh]">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm text-gray-500">任务 ID</label>
+                            <div class="font-mono text-sm mt-1">{{ selectedTask.id }}</div>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-500">用户输入</label>
+                            <div class="mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">{{ selectedTask.user_input }}</div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm text-gray-500">状态</label>
+                                <div class="mt-1">
+                                    <span :class="getStatusBadgeClass(selectedTask.status)">
+                                        {{ getStatusText(selectedTask.status) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-sm text-gray-500">渠道</label>
+                                <div class="mt-1">{{ selectedTask.channel }}</div>
+                            </div>
+                        </div>
+                        <div v-if="selectedTask.llm_model" class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm text-gray-500">LLM 模型</label>
+                                <div class="mt-1">{{ selectedTask.llm_model }}</div>
+                            </div>
+                            <div>
+                                <label class="text-sm text-gray-500">Tokens</label>
+                                <div class="mt-1">{{ selectedTask.llm_tokens_in + selectedTask.llm_tokens_out }}</div>
+                            </div>
+                        </div>
+                        <div v-if="selectedTask.error_message" class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                            <label class="text-sm text-red-600">错误信息</label>
+                            <div class="text-sm text-red-700 mt-1">{{ selectedTask.error_message }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 创建任务弹窗 -->
+        <div 
+            v-if="showCreateTaskModal"
+            class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            @click.self="showCreateTaskModal = false"
+        >
+            <div class="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full shadow-2xl">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-lg">新建任务</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">任务内容</label>
+                        <textarea 
+                            v-model="newTask.user_input"
+                            rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
+                            placeholder="输入任务内容..."
+                        ></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">渠道</label>
+                            <select 
+                                v-model="newTask.channel"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
+                            >
+                                <option value="web">Web</option>
+                                <option value="qq">QQ</option>
+                                <option value="feishu">飞书</option>
+                                <option value="wecom">企微</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">类型</label>
+                            <select 
+                                v-model="newTask.task_type"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-transparent"
+                            >
+                                <option value="realtime">实时任务</option>
+                                <option value="scheduled">定时任务</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+                    <button 
+                        @click="showCreateTaskModal = false"
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800"
+                    >
+                        取消
+                    </button>
+                    <button 
+                        @click="createTask"
+                        :disabled="!newTask.user_input"
+                        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                    >
+                        创建
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const { createApp, ref, computed, onMounted, onUnmounted, watch, nextTick } = Vue;
+        
+        createApp({
+            setup() {
+                // 状态
+                const sidebarCollapsed = ref(false);
+                const currentView = ref('overview');
+                const isDark = ref(false);
+                const loading = ref(false);
+                const wsConnected = ref(false);
+                const globalSearch = ref('');
+                
+                // 数据
+                const stats = ref({});
+                const tasks = ref([]);
+                const recentTasks = ref([]);
+                const skills = ref([]);
+                const trends = ref([]);
+                const taskTotal = ref(0);
+                
+                // 分页
+                const taskOffset = ref(0);
+                const taskLimit = ref(20);
+                const trendDays = ref(7);
+                
+                // 筛选
+                const taskFilters = ref({
+                    status: '',
+                    channel: '',
+                    task_type: ''
+                });
+                
+                // 弹窗
+                const selectedTask = ref(null);
+                const showCreateTaskModal = ref(false);
+                const newTask = ref({
+                    user_input: '',
+                    channel: 'web',
+                    task_type: 'realtime'
+                });
+                
+                // 图表引用
+                const trendChart = ref(null);
+                const channelChart = ref(null);
+                let trendChartInstance = null;
+                let channelChartInstance = null;
+                
+                // WebSocket
+                let ws = null;
+                let wsReconnectTimer = null;
+                
+                // 菜单
+                const menuItems = [
+                    { key: 'overview', label: '概览', icon: 'ph-squares-four' },
+                    { key: 'tasks', label: '任务管理', icon: 'ph-check-square' },
+                    { key: 'skills', label: '技能中心', icon: 'ph-lightning' },
+                    { key: 'analytics', label: '数据分析', icon: 'ph-chart-line' },
+                    { key: 'settings', label: '系统设置', icon: 'ph-gear' }
+                ];
+                
+                // 计算属性
+                const pageTitle = computed(() => {
+                    const item = menuItems.find(i => i.key === currentView.value);
+                    return item?.label || 'Dashboard';
+                });
+                
+                const overviewStats = computed(() => [
+                    {
+                        key: 'tasks',
+                        label: '今日任务',
+                        value: stats.value.total_tasks || 0,
+                        icon: 'ph-check-circle',
+                        bgClass: 'bg-blue-100 dark:bg-blue-900/30',
+                        iconClass: 'text-blue-600'
+                    },
+                    {
+                        key: 'success',
+                        label: '成功率',
+                        value: (stats.value.success_rate || 0).toFixed(1) + '%',
+                        icon: 'ph-trend-up',
+                        bgClass: 'bg-green-100 dark:bg-green-900/30',
+                        iconClass: 'text-green-600'
+                    },
+                    {
+                        key: 'tokens',
+                        label: 'Token 消耗',
+                        value: formatNumber(stats.value.llm?.total_tokens || 0),
+                        icon: 'ph-coins',
+                        bgClass: 'bg-purple-100 dark:bg-purple-900/30',
+                        iconClass: 'text-purple-600'
+                    },
+                    {
+                        key: 'cost',
+                        label: '今日成本',
+                        value: '$' + (stats.value.llm?.cost || 0).toFixed(4),
+                        icon: 'ph-currency-dollar',
+                        bgClass: 'bg-orange-100 dark:bg-orange-900/30',
+                        iconClass: 'text-orange-600'
+                    }
+                ]);
+                
+                // 方法
+                const formatNumber = (num) => {
+                    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                    return num.toString();
+                };
+                
+                const formatTime = (timestamp) => {
+                    if (!timestamp) return '-';
+                    const date = new Date(timestamp * 1000);
+                    const now = new Date();
+                    const diff = (now - date) / 1000;
+                    
+                    if (diff < 60) return '刚刚';
+                    if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+                    if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+                    return date.toLocaleDateString('zh-CN');
+                };
+                
+                const formatDuration = (ms) => {
+                    if (!ms) return '-';
+                    if (ms < 1000) return Math.round(ms) + 'ms';
+                    return (ms / 1000).toFixed(1) + 's';
+                };
+                
+                const getStatusText = (status) => {
+                    const map = {
+                        pending: '等待中',
+                        processing: '处理中',
+                        completed: '已完成',
+                        failed: '失败',
+                        cancelled: '已取消'
+                    };
+                    return map[status] || status;
+                };
+                
+                const getStatusBadgeClass = (status) => {
+                    const map = {
+                        pending: 'px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                        processing: 'px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                        completed: 'px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                        failed: 'px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                        cancelled: 'px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
+                    };
+                    return map[status] || map.pending;
+                };
+                
+                // API 调用
+                const API_BASE = '';
+                const TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+                
+                const fetchAPI = async (endpoint, options = {}) => {
+                    const url = `${API_BASE}${endpoint}${endpoint.includes('?') ? '&' : '?'}token=${TOKEN}`;
+                    const res = await fetch(url, options);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                };
+                
+                const loadStats = async () => {
+                    try {
+                        const data = await fetchAPI('/api/stats?hours=24');
+                        stats.value = data;
+                    } catch (e) {
+                        console.error('加载统计失败:', e);
+                    }
+                };
+                
+                const loadTasks = async () => {
+                    try {
+                        loading.value = true;
+                        const params = new URLSearchParams({
+                            limit: taskLimit.value,
+                            offset: taskOffset.value
+                        });
+                        if (taskFilters.value.status) params.append('status', taskFilters.value.status);
+                        if (taskFilters.value.channel) params.append('channel', taskFilters.value.channel);
+                        if (taskFilters.value.task_type) params.append('task_type', taskFilters.value.task_type);
+                        
+                        const data = await fetchAPI(`/api/tasks?${params}`);
+                        tasks.value = data.tasks;
+                        taskTotal.value = data.total;
+                    } catch (e) {
+                        console.error('加载任务失败:', e);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+                
+                const loadRecentTasks = async () => {
+                    try {
+                        const data = await fetchAPI('/api/tasks?limit=5');
+                        recentTasks.value = data.tasks;
+                    } catch (e) {
+                        console.error('加载最近任务失败:', e);
+                    }
+                };
+                
+                const loadSkills = async () => {
+                    try {
+                        const data = await fetchAPI('/api/skills');
+                        skills.value = data.skills;
+                    } catch (e) {
+                        console.error('加载技能失败:', e);
+                    }
+                };
+                
+                const loadTrends = async () => {
+                    try {
+                        const data = await fetchAPI(`/api/stats/trends?days=${trendDays.value}`);
+                        trends.value = data.trends;
+                        updateCharts();
+                    } catch (e) {
+                        console.error('加载趋势失败:', e);
+                    }
+                };
+                
+                const createTask = async () => {
+                    try {
+                        await fetchAPI('/api/tasks', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(newTask.value)
+                        });
+                        showCreateTaskModal.value = false;
+                        newTask.value = { user_input: '', channel: 'web', task_type: 'realtime' };
+                        loadTasks();
+                    } catch (e) {
+                        alert('创建任务失败: ' + e.message);
+                    }
+                };
+                
+                // WebSocket
+                const connectWebSocket = () => {
+                    if (ws) ws.close();
+                    
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    ws = new WebSocket(`${protocol}//${window.location.host}/ws?token=${TOKEN}`);
+                    
+                    ws.onopen = () => {
+                        wsConnected.value = true;
+                        console.log('[WS] 已连接');
+                    };
+                    
+                    ws.onclose = () => {
+                        wsConnected.value = false;
+                        console.log('[WS] 断开，3秒后重连...');
+                        wsReconnectTimer = setTimeout(connectWebSocket, 3000);
+                    };
+                    
+                    ws.onmessage = (event) => {
+                        const msg = JSON.parse(event.data);
+                        if (msg.type === 'task_created') {
+                            tasks.value.unshift(msg.data);
+                            recentTasks.value.unshift(msg.data);
+                        }
+                    };
+                };
+                
+                // 图表
+                const updateCharts = () => {
+                    nextTick(() => {
+                        if (trendChart.value) {
+                            if (trendChartInstance) trendChartInstance.dispose();
+                            trendChartInstance = echarts.init(trendChart.value);
+                            trendChartInstance.setOption({
+                                tooltip: { trigger: 'axis' },
+                                xAxis: { 
+                                    type: 'category', 
+                                    data: trends.value.map(t => t.date),
+                                    axisLine: { lineStyle: { color: '#9ca3af' } }
+                                },
+                                yAxis: { 
+                                    type: 'value',
+                                    axisLine: { lineStyle: { color: '#9ca3af' } },
+                                    splitLine: { lineStyle: { color: '#e5e7eb' } }
+                                },
+                                series: [{
+                                    name: '任务数',
+                                    type: 'line',
+                                    smooth: true,
+                                    data: trends.value.map(t => t.tasks),
+                                    areaStyle: {
+                                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                            { offset: 0, color: 'rgba(99, 102, 241, 0.3)' },
+                                            { offset: 1, color: 'rgba(99, 102, 241, 0.05)' }
+                                        ])
+                                    },
+                                    lineStyle: { color: '#6366f1' },
+                                    itemStyle: { color: '#6366f1' }
+                                }]
+                            });
+                        }
+                        
+                        if (channelChart.value && stats.value.channels) {
+                            if (channelChartInstance) channelChartInstance.dispose();
+                            channelChartInstance = echarts.init(channelChart.value);
+                            const data = Object.entries(stats.value.channels).map(([name, value]) => ({ name, value }));
+                            channelChartInstance.setOption({
+                                tooltip: { trigger: 'item' },
+                                series: [{
+                                    type: 'pie',
+                                    radius: ['40%', '70%'],
+                                    avoidLabelOverlap: false,
+                                    itemStyle: {
+                                        borderRadius: 10,
+                                        borderColor: '#fff',
+                                        borderWidth: 2
+                                    },
+                                    label: { show: false },
+                                    data: data
+                                }]
+                            });
+                        }
+                    });
+                };
+                
+                // 主题
+                const toggleTheme = () => {
+                    isDark.value = !isDark.value;
+                    document.documentElement.classList.toggle('dark', isDark.value);
+                    localStorage.setItem('theme', isDark.value ? 'dark' : 'light');
+                };
+                
+                // 其他操作
+                const refreshAll = async () => {
+                    loading.value = true;
+                    await Promise.all([
+                        loadStats(),
+                        loadTasks(),
+                        loadRecentTasks(),
+                        loadSkills(),
+                        loadTrends()
+                    ]);
+                    loading.value = false;
+                };
+                
+                const showTaskDetail = (task) => {
+                    selectedTask.value = task;
+                };
+                
+                const syncing = ref(false);
+                const syncData = async () => {
+                    syncing.value = true;
+                    try {
+                        await fetchAPI('/api/sync', { method: 'POST' });
+                        await refreshAll();
+                        alert('同步完成');
+                    } catch (e) {
+                        alert('同步失败: ' + e.message);
+                    } finally {
+                        syncing.value = false;
+                    }
+                };
+                
+                const exportData = async () => {
+                    try {
+                        const data = await fetchAPI('/api/tasks?limit=1000');
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `dashboard-export-${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                    } catch (e) {
+                        alert('导出失败: ' + e.message);
+                    }
+                };
+                
+                // 生命周期
+                onMounted(() => {
+                    // 加载主题
+                    const savedTheme = localStorage.getItem('theme');
+                    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                        isDark.value = true;
+                        document.documentElement.classList.add('dark');
+                    }
+                    
+                    // 加载数据
+                    refreshAll();
+                    
+                    // 连接 WebSocket
+                    connectWebSocket();
+                    
+                    // 窗口大小变化时重绘图表
+                    window.addEventListener('resize', () => {
+                        trendChartInstance?.resize();
+                        channelChartInstance?.resize();
+                    });
+                });
+                
+                onUnmounted(() => {
+                    if (ws) ws.close();
+                    if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+                });
+                
+                // 监听视图变化
+                watch(currentView, (view) => {
+                    if (view === 'overview') {
+                        nextTick(updateCharts);
+                    }
+                });
+                
+                return {
+                    sidebarCollapsed,
+                    currentView,
+                    isDark,
+                    loading,
+                    wsConnected,
+                    globalSearch,
+                    stats,
+                    tasks,
+                    recentTasks,
+                    skills,
+                    taskTotal,
+                    taskOffset,
+                    taskLimit,
+                    trendDays,
+                    taskFilters,
+                    selectedTask,
+                    showCreateTaskModal,
+                    newTask,
+                    trendChart,
+                    channelChart,
+                    menuItems,
+                    pageTitle,
+                    overviewStats,
+                    syncing,
+                    formatNumber,
+                    formatTime,
+                    formatDuration,
+                    getStatusText,
+                    getStatusBadgeClass,
+                    toggleTheme,
+                    refreshAll,
+                    loadTasks,
+                    loadTrends,
+                    createTask,
+                    showTaskDetail,
+                    syncData,
+                    exportData
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
