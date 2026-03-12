@@ -1004,6 +1004,54 @@ async def get_skills(token: str = ""):
     return {"skills": skills, "total": len(skills)}
 
 
+@app.get("/api/models")
+async def get_models(token: str = ""):
+    """获取所有使用的 LLM 模型"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    conn = sqlite3.connect(str(Config.DB_PATH))
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT llm_model, COUNT(*) as count, 
+               SUM(llm_tokens_in) as tokens_in,
+               SUM(llm_tokens_out) as tokens_out
+        FROM tasks 
+        WHERE llm_model != '' AND llm_model IS NOT NULL
+        GROUP BY llm_model
+    """)
+    
+    models = []
+    for row in cursor.fetchall():
+        models.append({
+            "model": row[0],
+            "count": row[1],
+            "tokens_in": row[2] or 0,
+            "tokens_out": row[3] or 0
+        })
+    
+    conn.close()
+    
+    return {"models": models, "total": len(models)}
+
+
+@app.get("/api/scheduled-tasks")
+async def get_scheduled_tasks(token: str = ""):
+    """获取定时任务列表"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    # 读取 cron 配置或返回固定的定时任务
+    scheduled = [
+        {"name": "灵犀每小时进度汇报", "schedule": "0 * * * *", "next_run": "下一小时整点"},
+        {"name": "Hunter 每日商机报告", "schedule": "0 8 * * *", "next_run": "明天 08:00"},
+        {"name": "OpenClaw 资讯搜集", "schedule": "0 7,12,21 * * *", "next_run": "21:00"}
+    ]
+    
+    return {"tasks": scheduled, "total": len(scheduled)}
+
+
 @app.get("/api/features")
 async def get_features(token: str = ""):
     """获取核心功能状态"""

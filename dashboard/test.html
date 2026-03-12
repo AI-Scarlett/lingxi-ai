@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard 数据测试</title>
+</head>
+<body>
+    <h1>Dashboard 数据测试</h1>
+    <h2>API 返回的原始数据：</h2>
+    <pre id="api-data">加载中...</pre>
+    
+    <h2>解析后的任务列表：</h2>
+    <ul id="task-list"></ul>
+    
+    <script>
+        const TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+        
+        fetch(`/api/tasks?limit=7&token=${TOKEN}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('api-data').textContent = JSON.stringify(data, null, 2);
+                
+                const list = document.getElementById('task-list');
+                if (data.tasks && data.tasks.length > 0) {
+                    data.tasks.forEach(task => {
+                        const li = document.createElement('li');
+                        li.textContent = `${task.id}: ${task.title} - ${task.completed_at}`;
+                        list.appendChild(li);
+                    });
+                } else {
+                    list.innerHTML = '<li>没有任务数据</li>';
+                }
+            })
+            .catch(err => {
+                document.getElementById('api-data').textContent = '错误：' + err.message;
+            });
+    </script>
+</body>
+</html>

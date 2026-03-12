@@ -615,6 +615,31 @@
                         </div>
                     </div>
                     
+                    <!-- Layer0 边缘部署 -->
+                    <div class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl p-6 text-white cursor-pointer hover:from-purple-600 hover:to-indigo-700 transition-all" @click="showLayer0Config = true">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold">Layer0 边缘部署</h3>
+                                <p class="text-sm text-purple-100">全球 CDN 加速 + 边缘计算</p>
+                            </div>
+                            <span class="px-2 py-1 bg-white/20 text-white text-xs rounded-full">⚙️ 配置</span>
+                        </div>
+                        <div class="mt-4 grid grid-cols-3 gap-4">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold">{{ features.layer0?.cached || 0 }}</div>
+                                <div class="text-xs text-purple-200">缓存</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold">{{ features.layer0?.requests || 0 }}</div>
+                                <div class="text-xs text-purple-200">请求</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold">{{ features.layer0?.speed || '--' }}ms</div>
+                                <div class="text-xs text-purple-200">延迟</div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- 提案管理 -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between mb-4">
@@ -756,6 +781,23 @@
                                         ]"
                                     ></span>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                        <h3 class="font-semibold mb-4">时区设置</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">选择时区</label>
+                                <select v-model="timezone" @change="saveTimezone" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
+                                    <option value="Asia/Shanghai">中国标准时间 (UTC+8)</option>
+                                    <option value="UTC">世界协调时间 (UTC+0)</option>
+                                    <option value="America/New_York">美国东部时间 (UTC-5)</option>
+                                    <option value="Europe/London">英国时间 (UTC+0)</option>
+                                    <option value="Asia/Tokyo">日本时间 (UTC+9)</option>
+                                </select>
+                                <div class="text-sm text-gray-500 mt-1">当前时间: {{ currentTime }}</div>
                             </div>
                         </div>
                     </div>
@@ -936,6 +978,9 @@
                 const loading = ref(false);
                 const wsConnected = ref(false);
                 const globalSearch = ref('');
+                const timezone = ref(localStorage.getItem('dashboard_timezone') || 'Asia/Shanghai');
+                const currentTime = ref('');
+                const showLayer0Config = ref(false);
                 
                 // 数据
                 const stats = ref({});
@@ -1334,6 +1379,20 @@
                 };
                 
                 // 生命周期
+                // 更新时间
+                const updateCurrentTime = () => {
+                    const now = new Date();
+                    const options = { timeZone: timezone.value, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+                    currentTime.value = now.toLocaleTimeString('zh-CN', options);
+                };
+                setInterval(updateCurrentTime, 1000);
+                updateCurrentTime();
+                
+                const saveTimezone = () => {
+                    localStorage.setItem('dashboard_timezone', timezone.value);
+                    updateCurrentTime();
+                };
+                
                 onMounted(() => {
                     // 加载主题
                     const savedTheme = localStorage.getItem('theme');
