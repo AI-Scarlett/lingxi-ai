@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-灵犀 Dashboard v4.0 - 后端服务
+灵犀 Dashboard v3.3.5 - 后端服务
 现代化重构版本
 
 特性：
@@ -34,7 +34,7 @@ class Config:
     """Dashboard 配置"""
     # 数据路径 (从环境变量读取，默认使用标准路径)
     DATA_DIR = Path(__file__).parent.parent.parent / "data"
-    DB_PATH = DATA_DIR / "dashboard_v4.db"
+    DB_PATH = DATA_DIR / "dashboard_v3.db"
     
     # OpenClaw 路径 (可配置)
     OPENCLAW_DIR = Path.home() / ".openclaw"
@@ -783,7 +783,7 @@ async def root():
     frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
     if frontend_path.exists():
         return FileResponse(str(frontend_path), headers={"Cache-Control": "no-cache"})
-    return {"message": "灵犀 Dashboard v4.0 API", "docs": "/docs"}
+    return {"message": "灵犀 Dashboard v3.3.5 API", "docs": "/docs"}
 
 
 @app.get("/api/health")
@@ -791,7 +791,7 @@ async def health_check():
     """健康检查"""
     return {
         "status": "healthy",
-        "version": "4.0.0",
+        "version": "3.3.5",
         "timestamp": time.time()
     }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-灵犀 Dashboard v4.0 启动脚本
+灵犀 Dashboard v3.3.5 启动脚本
 
 使用方法:
     python start.py              # 默认模式
@@ -18,7 +18,7 @@ backend_path = Path(__file__).parent / "backend"
 sys.path.insert(0, str(backend_path))
 
 def main():
-    parser = argparse.ArgumentParser(description="灵犀 Dashboard v4.0")
+    parser = argparse.ArgumentParser(description="灵犀 Dashboard v3.3.5")
     parser.add_argument("--host", default="0.0.0.0", help="监听地址 (默认: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=8765, help="监听端口 (默认: 8765)")
     parser.add_argument("--dev", action="store_true", help="开发模式")
@@ -29,7 +29,7 @@ def main():
     print("""
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
-║   🚀 灵犀 Dashboard v4.0                                     ║
+║   🚀 灵犀 Dashboard v3.3.5                                   ║
 ║                                                              ║
 ║   现代化 AI 助手数据看板                                      ║
 ║                                                              ║
