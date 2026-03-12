@@ -780,9 +780,9 @@ class TaskUpdateRequest(BaseModel):
 @app.get("/")
 async def root():
     """根路径 - 返回前端页面"""
-    frontend_path = Path(__file__).parent.parent / "frontend" / "dist" / "index.html"
+    frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
     if frontend_path.exists():
-        return FileResponse(str(frontend_path))
+        return FileResponse(str(frontend_path), headers={"Cache-Control": "no-cache"})
     return {"message": "灵犀 Dashboard v4.0 API", "docs": "/docs"}
 
 

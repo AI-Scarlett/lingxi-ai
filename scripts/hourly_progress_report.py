@@ -21,10 +21,17 @@
 import json
 import asyncio
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+
+# 时区配置 - 北京时区 (UTC+8)
+TZ_BEIJING = timezone(timedelta(hours=8))
+
+def now_beijing():
+    """获取北京时间"""
+    return datetime.now(TZ_BEIJING)
 
 # 导入心跳同步器
 from heartbeat_task_sync import get_heartbeat_sync
@@ -194,7 +201,7 @@ class HourlyProgressReporter:
     
     def generate_report(self, period_hours: int = 1) -> ProgressReport:
         """生成进度报告"""
-        now = datetime.now()
+        now = now_beijing()
         period_start = now - timedelta(hours=period_hours)
         
         # 从 Dashboard 获取真实数据
@@ -266,7 +273,7 @@ class HourlyProgressReporter:
             "status": "healthy" if dashboard_healthy else "degraded",
             "dashboard_status": "online" if dashboard_healthy else "offline",
             "uptime_hours": 24.5,
-            "last_restart": (datetime.now() - timedelta(hours=24.5)).isoformat(),
+            "last_restart": (now_beijing() - timedelta(hours=24.5)).isoformat(),
             "active_agents": ["灵犀主控", "文案专家", "搜索专家", "运营专家"],
             "memory_usage_mb": 256,
             "cpu_usage_percent": 15.3
