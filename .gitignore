@@ -53,3 +53,7 @@ dashboard_token.txt
 # OS
 .DS_Store
 Thumbs.db
+*.sh
+*.patch
+*.bundle
+*.tar.gz

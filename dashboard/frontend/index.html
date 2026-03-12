@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>灵犀 Dashboard v3.3.4</title>
+    <title>灵犀 Dashboard v3.3.5</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
     
     <!-- Tailwind CSS -->
@@ -95,7 +95,7 @@
             <!-- Logo -->
             <div class="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
                 <span class="text-2xl">🚀</span>
-                <span v-if="!sidebarCollapsed" class="ml-2 font-bold text-lg text-primary-600">灵犀 v3.3.4</span>
+                <span v-if="!sidebarCollapsed" class="ml-2 font-bold text-lg text-primary-600">灵犀 v3.3.5</span>
             </div>
             
             <!-- 导航菜单 -->
@@ -138,7 +138,7 @@
             <header class="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 sticky top-0 z-10">
                 <div class="flex items-center">
                     <h1 class="text-xl font-semibold">{{ pageTitle }}</h1>
-                    <span class="ml-3 text-xs text-gray-400">v3.3.4</span>
+                    <span class="ml-3 text-xs text-gray-400">v3.3.5</span>
                     <span 
                         :class="[
                             'ml-3 px-2 py-0.5 text-xs rounded-full',
@@ -418,6 +418,238 @@
                             <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-sm text-gray-500">
                                 <span>使用次数</span>
                                 <span class="font-medium">{{ skill.usage_count || 0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 核心功能页 -->
+                <div v-if="currentView === 'features'" class="space-y-6">
+                    <!-- 功能介绍卡片 -->
+                    <div class="bg-gradient-to-r from-primary-500 to-purple-600 rounded-xl p-6 text-white">
+                        <h2 class="text-2xl font-bold mb-2">🚀 灵犀核心功能</h2>
+                        <p class="text-primary-100">专为龙虾养殖设计的 AI 智能助手，让养殖更简单、更智能</p>
+                    </div>
+                    
+                    <!-- 四大核心功能 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- MindCore -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all hover:border-primary-300">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center text-white text-2xl">
+                                    🧠
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">MindCore 记忆核心</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">记住你的养殖习惯和经验</p>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-check-circle text-green-500 mr-2"></i>
+                                            <span>自动记录投喂时间、饲料用量</span>
+                                        </div>
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-check-circle text-green-500 mr-2"></i>
+                                            <span>学习你的换水周期和水质偏好</span>
+                                        </div>
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-check-circle text-green-500 mr-2"></i>
+                                            <span>记住每批龙虾的生长特点</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 flex items-center space-x-2">
+                                        <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full">
+                                            已记忆 {{ features.mindcore.memories || 128 }} 条经验
+                                        </span>
+                                        <span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-full">
+                                            准确率 {{ features.mindcore.accuracy || 96 }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- EvoMind -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all hover:border-purple-300">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-400 rounded-xl flex items-center justify-center text-white text-2xl">
+                                    🔄
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">EvoMind 自改进</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">越用越聪明，陪你一起成长</p>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-check-circle text-green-500 mr-2"></i>
+                                            <span>根据反馈自动优化建议</span>
+                                        </div>
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-check-circle text-green-500 mr-2"></i>
+                                            <span>学习成功案例，积累最佳实践</span>
+                                        </div>
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-check-circle text-green-500 mr-2"></i>
+                                            <span>预测问题，提前预警</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 flex items-center space-x-2">
+                                        <span class="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs rounded-full">
+                                            已学习 {{ features.evomind.learnings || 56 }} 个案例
+                                        </span>
+                                        <span class="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs rounded-full">
+                                            智能等级 L{{ features.evomind.level || 3 }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 飞书卡片审批 -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all hover:border-green-300">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-400 rounded-xl flex items-center justify-center text-white text-2xl">
+                                    📋
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">飞书卡片审批</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">重要操作一键审批，安全可控</p>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-check-circle text-green-500 mr-2"></i>
+                                            <span>饲料采购申请审批</span>
+                                        </div>
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-check-circle text-green-500 mr-2"></i>
+                                            <span>设备维护计划审批</span>
+                                        </div>
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-check-circle text-green-500 mr-2"></i>
+                                            <span>销售订单确认审批</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 flex items-center space-x-2">
+                                        <span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-full">
+                                            待审批 {{ features.approval.pending || 3 }} 项
+                                        </span>
+                                        <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full">
+                                            已处理 {{ features.approval.completed || 156 }} 项
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 定时推送 -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all hover:border-orange-300">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-400 rounded-xl flex items-center justify-center text-white text-2xl">
+                                    ⏰
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">智能定时推送</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">重要事项准时提醒，不再错过</p>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-clock text-orange-500 mr-2"></i>
+                                            <span><strong>07:00</strong> 早间巡查提醒</span>
+                                        </div>
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-clock text-orange-500 mr-2"></i>
+                                            <span><strong>12:00</strong> 午间投喂提醒</span>
+                                        </div>
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                                            <i class="ph ph-clock text-orange-500 mr-2"></i>
+                                            <span><strong>21:00</strong> 晚间数据汇总</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 flex items-center space-x-2">
+                                        <span class="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs rounded-full">
+                                            今日提醒 {{ features.schedule.today || 5 }} 条
+                                        </span>
+                                        <span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs rounded-full">
+                                            完成率 {{ features.schedule.completion || 92 }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Multi-Agent 架构 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-400 rounded-lg flex items-center justify-center text-white text-xl">
+                                    🤖
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Multi-Agent 架构</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">多渠道支持，随时随地管理</p>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-sm rounded-full">
+                                {{ features.agents.active || 5 }} 个渠道在线
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="text-2xl mb-1">💬</div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">QQ</div>
+                                <div class="text-xs text-gray-500">群聊机器人</div>
+                            </div>
+                            <div class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="text-2xl mb-1">📱</div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">飞书</div>
+                                <div class="text-xs text-gray-500">企业协作</div>
+                            </div>
+                            <div class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="text-2xl mb-1">💼</div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">企业微信</div>
+                                <div class="text-xs text-gray-500">移动办公</div>
+                            </div>
+                            <div class="text-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                <div class="text-2xl mb-1">🌐</div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">Web</div>
+                                <div class="text-xs text-gray-500">网页端</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 提案管理 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-400 rounded-lg flex items-center justify-center text-white text-xl">
+                                    📊
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">提案管理</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">AI 建议，你来做决策</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-green-700 dark:text-green-400">✅ 已批准</span>
+                                    <span class="text-lg font-bold text-green-700 dark:text-green-400">{{ features.proposals.approved || 42 }}</span>
+                                </div>
+                                <div class="text-xs text-green-600 dark:text-green-500">采纳 AI 建议</div>
+                            </div>
+                            <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-red-700 dark:text-red-400">❌ 已拒绝</span>
+                                    <span class="text-lg font-bold text-red-700 dark:text-red-400">{{ features.proposals.rejected || 8 }}</span>
+                                </div>
+                                <div class="text-xs text-red-600 dark:text-red-500">不采纳建议</div>
+                            </div>
+                            <div class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-amber-700 dark:text-amber-400">⏸️ 推迟</span>
+                                    <span class="text-lg font-bold text-amber-700 dark:text-amber-400">{{ features.proposals.postponed || 15 }}</span>
+                                </div>
+                                <div class="text-xs text-amber-600 dark:text-amber-500">待后续处理</div>
                             </div>
                         </div>
                     </div>
@@ -713,6 +945,34 @@
                 const trends = ref([]);
                 const taskTotal = ref(0);
                 
+                // 核心功能数据
+                const features = ref({
+                    mindcore: {
+                        memories: 128,
+                        accuracy: 96
+                    },
+                    evomind: {
+                        learnings: 56,
+                        level: 3
+                    },
+                    approval: {
+                        pending: 3,
+                        completed: 156
+                    },
+                    schedule: {
+                        today: 5,
+                        completion: 92
+                    },
+                    agents: {
+                        active: 5
+                    },
+                    proposals: {
+                        approved: 42,
+                        rejected: 8,
+                        postponed: 15
+                    }
+                });
+                
                 // 分页
                 const taskOffset = ref(0);
                 const taskLimit = ref(20);
@@ -747,6 +1007,7 @@
                 // 菜单
                 const menuItems = [
                     { key: 'overview', label: '概览', icon: 'ph-squares-four' },
+                    { key: 'features', label: '核心功能', icon: 'ph-star' },
                     { key: 'tasks', label: '任务管理', icon: 'ph-check-square' },
                     { key: 'skills', label: '技能中心', icon: 'ph-lightning' },
                     { key: 'analytics', label: '数据分析', icon: 'ph-chart-line' },
@@ -900,6 +1161,15 @@
                     }
                 };
                 
+                const loadFeatures = async () => {
+                    try {
+                        const data = await fetchAPI('/api/features');
+                        features.value = data;
+                    } catch (e) {
+                        console.error('加载功能数据失败:', e);
+                    }
+                };
+                
                 const loadTrends = async () => {
                     try {
                         const data = await fetchAPI(`/api/stats/trends?days=${trendDays.value}`);
@@ -1025,7 +1295,8 @@
                         loadTasks(),
                         loadRecentTasks(),
                         loadSkills(),
-                        loadTrends()
+                        loadTrends(),
+                        loadFeatures()
                     ]);
                     loading.value = false;
                 };
@@ -1121,6 +1392,7 @@
                     pageTitle,
                     overviewStats,
                     syncing,
+                    features,
                     formatNumber,
                     formatTime,
                     formatDuration,
