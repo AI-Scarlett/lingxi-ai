@@ -721,8 +721,11 @@ sync = OpenClawSync(db)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    # 启动时执行一次同步
+    # 启动时执行一次完整同步（忽略时间戳检查）
     print("[Startup] 同步 OpenClaw 数据...")
+    
+    # 强制完整同步
+    sync._last_sync = 0
     count = sync.sync_from_sessions()
     print(f"[Startup] 同步完成，新增 {count} 条记录")
     
