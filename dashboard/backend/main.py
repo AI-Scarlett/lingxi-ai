@@ -795,11 +795,37 @@ async def root():
 
 @app.get("/api/health")
 async def health_check():
-    """健康检查"""
+    """健康检查 - 增强版"""
+    import os
+    import psutil
+    
+    # 检查数据库连接
+    db_status = "connected"
+    try:
+        db.get_stats(1)
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    # 系统资源
+    try:
+        process = psutil.Process(os.getpid())
+        memory_mb = process.memory_info().rss / 1024 / 1024
+        cpu_percent = process.cpu_percent()
+    except:
+        memory_mb = 0
+        cpu_percent = 0
+    
     return {
         "status": "healthy",
-        "version": "3.3.5",
-        "timestamp": time.time()
+        "version": "v3.3.6",
+        "timestamp": time.time(),
+        "datetime": datetime.now().isoformat(),
+        "uptime_seconds": time.time() - app.state.start_time if hasattr(app.state, 'start_time') else 0,
+        "database": db_status,
+        "system": {
+            "memory_mb": round(memory_mb, 2),
+            "cpu_percent": cpu_percent
+        }
     }
 
 
