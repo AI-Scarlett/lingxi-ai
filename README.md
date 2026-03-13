@@ -119,7 +119,7 @@ lingxi-ai-latest/
 ### 访问地址
 
 - **本地访问：** http://localhost:8765/?token=YOUR_TOKEN
-- **远程访问：** http://49.232.250.180:8765/?token=YOUR_TOKEN
+- **远程访问：** http://YOUR_SERVER_IP:8765/?token=YOUR_TOKEN（需配置防火墙和域名）
 
 ---
 
@@ -283,7 +283,7 @@ function formatTimeBeijing(ts) {
 
 **问题现象：**
 - 本地访问正常（http://127.0.0.1:8765）
-- 公网访问拒绝连接（http://49.232.250.180:8765）
+- 公网访问拒绝连接（检查防火墙和服务器 IP 配置）
 
 **解决方案：**
 

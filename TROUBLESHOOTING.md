@@ -38,13 +38,13 @@ Cmd + Shift + R (Mac)
 
 ### 方案 3：使用测试页面
 
-访问：`http://106.52.101.202:8765/test.html?token=YOUR_TOKEN`
+访问：`http://localhost:8765/test.html?token=YOUR_TOKEN`
 
 这个页面直接显示 API 返回的原始数据，不受缓存影响。
 
 ### 方案 4：添加版本号
 
-访问：`http://106.52.101.202:8765/?token=YOUR_TOKEN&v=3.3.3`
+访问：`http://localhost:8765/?token=YOUR_TOKEN&v=3.3.3`
 
 ---
 
@@ -63,7 +63,7 @@ Cmd + Shift + R (Mac)
 
 ## 🧪 验证步骤
 
-1. 访问测试页面：`http://106.52.101.202:8765/test.html?token=1e4c2a9af43cd7001d00ce08b1a16d1a3d32b9de7d0e08ae4b63082fe1ff7bf6`
+1. 访问测试页面：`http://localhost:8765/test.html?token=YOUR_TOKEN`
 2. 查看是否显示 7 个任务
 3. 如果测试页面正常，说明是缓存问题
 4. 清除缓存后刷新主页面
