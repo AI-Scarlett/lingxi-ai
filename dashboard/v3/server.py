@@ -687,7 +687,7 @@ async def get_tasks(page: int = 1, limit: int = 20, status: str = "", channel: s
             cursor = conn.cursor()
             
             # 构建查询
-            query = "SELECT id, user_id, channel, user_input, status, task_type, created_at, completed_at, skill_name FROM tasks WHERE 1=1"
+            query = "SELECT id, user_id, channel, user_input, summary, status, task_type, created_at, completed_at, skill_name FROM tasks WHERE 1=1"
             params = []
             
             if status and status != 'all':
@@ -732,25 +732,37 @@ async def get_tasks(page: int = 1, limit: int = 20, status: str = "", channel: s
                 # 注意：灵犀后端写入的时间戳有 8 小时误差，需要额外 +8 小时修正
                 created_at_beijing = ""
                 completed_at_beijing = ""
-                if row[6]:
-                    # 服务器时区已是 CST (UTC+8)，直接使用
-                    dt_beijing = datetime.fromtimestamp(row[6])
-                    created_at_beijing = dt_beijing.strftime('%Y-%m-%d %H:%M:%S')
-                if row[7]:
-                    dt_beijing = datetime.fromtimestamp(row[7])
-                    completed_at_beijing = dt_beijing.strftime('%Y-%m-%d %H:%M:%S')
+                try:
+                    # 处理 created_at（row[7] - 第 8 列）
+                    created_at_val = row[7]
+                    if created_at_val:
+                        if isinstance(created_at_val, str):
+                            created_at_val = float(created_at_val)
+                        dt_beijing = datetime.fromtimestamp(created_at_val)
+                        created_at_beijing = dt_beijing.strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # 处理 completed_at（row[8] - 第 9 列）
+                    completed_at_val = row[8]
+                    if completed_at_val:
+                        if isinstance(completed_at_val, str):
+                            completed_at_val = float(completed_at_val)
+                        dt_beijing = datetime.fromtimestamp(completed_at_val)
+                        completed_at_beijing = dt_beijing.strftime('%Y-%m-%d %H:%M:%S')
+                except Exception as e:
+                    print(f"时间转换失败：{e}")
+                    pass
                 
                 tasks.append({
                     "id": row[0],
                     "user_id": row[1],
                     "channel": row[2],
                     "user_input": row[3],
-                    "title": row[3][:80] if row[3] else "未命名任务",
-                    "status": row[4],
-                    "task_type": row[5] or "realtime",
+                    "summary": row[4],
+                    "status": row[5],
+                    "task_type": row[6] or "realtime",
                     "created_at": created_at_beijing,
                     "completed_at": completed_at_beijing,
-                    "skill_name": row[8]
+                    "skill_name": row[9]
                 })
             
             conn.close()
@@ -801,12 +813,68 @@ async def get_skills(token: str = ""):
 # ─── Layer0 Rule APIs ───
 @app.get("/api/layer0/rules")
 async def get_rules(page: int = 1, limit: int = 20, token: str = ""):
-    """获取 Layer0 规则列表"""
+    """获取 Layer0 规则列表（带调用次数统计）"""
     if not verify_token(token):
         raise HTTPException(status_code=401, detail="Token 无效")
     
+    import re
+    from datetime import datetime, timedelta
+    
     rules = get_layer0_rules()
     rules.sort(key=lambda x: x.get('priority', 0), reverse=True)
+    
+    # 从数据库读取任务记录，统计规则调用次数
+    db_path = LINGXI_AI_DIR / "data" / "dashboard_v3.db"
+    conn = sqlite3.connect(str(db_path))
+    cursor = conn.cursor()
+    
+    now = datetime.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    day7_start = (now - timedelta(days=7)).timestamp()
+    day30_start = (now - timedelta(days=30)).timestamp()
+    
+    # 获取所有任务记录
+    cursor.execute('SELECT user_input, created_at FROM tasks')
+    tasks = cursor.fetchall()
+    conn.close()
+    
+    # 为每个规则统计调用次数
+    for rule in rules:
+        pattern = rule.get('pattern', '')
+        if not pattern:
+            rule['usage_today'] = 0
+            rule['usage_7days'] = 0
+            rule['usage_30days'] = 0
+            continue
+        
+        try:
+            regex = re.compile(pattern, re.IGNORECASE)
+        except:
+            rule['usage_today'] = 0
+            rule['usage_7days'] = 0
+            rule['usage_30days'] = 0
+            continue
+        
+        today_count = 0
+        day7_count = 0
+        day30_count = 0
+        
+        for user_input, created_at in tasks:
+            if not user_input:
+                continue
+            
+            # 检查是否匹配规则
+            if regex.search(user_input):
+                if created_at >= today_start:
+                    today_count += 1
+                if created_at >= day7_start:
+                    day7_count += 1
+                if created_at >= day30_start:
+                    day30_count += 1
+        
+        rule['usage_today'] = today_count
+        rule['usage_7days'] = day7_count
+        rule['usage_30days'] = day30_count
     
     total = len(rules)
     total_pages = max(1, (total + limit - 1) // limit)
