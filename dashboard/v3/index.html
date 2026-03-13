@@ -161,6 +161,16 @@ button{cursor:pointer;font-family:inherit;font-size:inherit}input,textarea,selec
     <div class="brand"><span class="icon">🦞</span><span>灵犀<span class="sub">Dashboard v3.3.6</span></span></div>
     <div class="topbar-center"></div>
     <div class="actions">
+      <div style="display:flex;align-items:center;gap:8px;margin-right:12px">
+        <span style="font-size:12px;color:#fff;opacity:.85">🔄</span>
+        <select id="refreshSelect" onchange="setRefreshInterval(this.value)" style="padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:12px;cursor:pointer">
+          <option value="60">1 分钟</option>
+          <option value="300">5 分钟</option>
+          <option value="600">10 分钟</option>
+          <option value="custom">自定义</option>
+        </select>
+        <input type="number" id="customRefresh" onchange="setCustomRefresh(this.value)" min="1" max="60" placeholder="分钟" style="width:60px;padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:12px;display:none">
+      </div>
       <div id="clockDisplay" style="font-size:12px;color:#fff;opacity:.85;font-family:monospace;margin-right:8px">--</div>
       <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
       <button class="btn btn-sm btn-ghost" onclick="loadAll()">🔄</button>
@@ -407,7 +417,8 @@ button{cursor:pointer;font-family:inherit;font-size:inherit}input,textarea,selec
 <script>
 var currentView='overview',memoryPage=1,taskPage=1,rulePage=1,memoryRoleFilter='all',taskStatusFilter='all',skillTypeFilter='all',editingMemoryId=null,editingRuleId=null,editingRuleData=null;
 var API_TOKEN=new URLSearchParams(window.location.search).get('token')||'';
-document.addEventListener('DOMContentLoaded',function(){initTheme();updateClock();setInterval(updateClock,1000);loadAll();});function updateClock(){var now=new Date();var tz='Asia/Beijing';var timeStr=now.toLocaleTimeString('zh-CN',{hour12:false});var dateStr=now.toLocaleDateString('zh-CN');var el=document.getElementById('clockDisplay');if(el){el.innerHTML=tz+' '+dateStr+' '+timeStr;}}
+var refreshInterval=60;var refreshTimer=null;
+document.addEventListener('DOMContentLoaded',function(){initTheme();updateClock();setInterval(updateClock,1000);loadAll();startAutoRefresh();});function updateClock(){var now=new Date();var tz='Asia/Beijing';var timeStr=now.toLocaleTimeString('zh-CN',{hour12:false});var dateStr=now.toLocaleDateString('zh-CN');var el=document.getElementById('clockDisplay');if(el){el.innerHTML=tz+' '+dateStr+' '+timeStr;}}function setRefreshInterval(value){if(value==='custom'){document.getElementById('refreshSelect').value='custom';document.getElementById('customRefresh').style.display='block';}else{document.getElementById('customRefresh').style.display='none';var interval=parseInt(value);if(interval>0){refreshInterval=interval;localStorage.setItem('lingxi-refresh-interval',interval);startAutoRefresh();toast('刷新间隔已设置为 '+interval+' 秒','success');}}}function setCustomRefresh(minutes){var mins=parseInt(minutes);if(mins>=1&&mins<=60){refreshInterval=mins*60;localStorage.setItem('lingxi-refresh-interval',refreshInterval);startAutoRefresh();toast('刷新间隔已设置为 '+mins+' 分钟','success');}else{toast('请输入 1-60 之间的数字','error');}}function startAutoRefresh(){if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(function(){loadAll();console.log('🔄 自动刷新数据');},refreshInterval*1000);}
 function initTheme(){var saved=localStorage.getItem('lingxi-theme')||'dark';document.documentElement.setAttribute('data-theme',saved);document.getElementById('themeSelect').value=saved;var tzSaved=localStorage.getItem('lingxi-timezone')||'Asia/Beijing';document.getElementById('timezoneSelect').value=tzSaved;}
 function toggleTheme(){var cur=document.documentElement.getAttribute('data-theme')||'dark';setTheme(cur==='dark'?'light':'dark');}
 function setTheme(theme){document.documentElement.setAttribute('data-theme',theme);localStorage.setItem('lingxi-theme',theme);document.getElementById('themeSelect').value=theme;}

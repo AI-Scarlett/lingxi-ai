@@ -13,7 +13,12 @@ import json
 import re
 import os
 import time
+import sqlite3
 from datetime import datetime, timedelta
+
+# 性能监控配置
+SLOW_QUERY_THRESHOLD = 1.0  # 秒
+ENABLE_QUERY_LOGGING = True
 
 app = FastAPI(title="灵犀 Dashboard v3.3.6")
 
@@ -43,6 +48,32 @@ ANALYTICS_FILE = LINGXI_DIR / "analytics.json"
 
 # 灵犀数据源
 LAYER0_RULES_FILE = LINGXI_AI_DIR / "dashboard" / "backend" / "layer0_all_rules.json"
+
+# 数据库连接池（简化版）
+_db_connections = {}
+
+def get_db_connection():
+    """获取数据库连接（带缓存）"""
+    db_path_str = str(DB_PATH)
+    if db_path_str not in _db_connections:
+        conn = sqlite3.connect(db_path_str, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        _db_connections[db_path_str] = conn
+    return _db_connections[db_path_str]
+
+def execute_query(cursor, query, params=None):
+    """执行 SQL 并记录慢查询"""
+    if not ENABLE_QUERY_LOGGING:
+        return cursor.execute(query, params)
+    
+    start = time.time()
+    result = cursor.execute(query, params)
+    duration = time.time() - start
+    
+    if duration > SLOW_QUERY_THRESHOLD:
+        print(f"⚠️ 慢查询：{duration:.2f}s - {query[:100]}")
+    
+    return result
 SESSIONS_DIR = Path("/root/.openclaw/agents/main/sessions")
 CORE_DIR = LINGXI_AI_DIR / "core"
 
