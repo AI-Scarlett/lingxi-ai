@@ -297,82 +297,91 @@ def get_sessions_data():
 
 
 def get_memories_from_sessions():
-    """从会话中提取记忆数据"""
+    """从 OpenClaw 每日记忆文件中读取真实记忆数据（最近 30 天）"""
     memories = []
+    memory_dir = Path.home() / ".openclaw" / "workspace" / "memory"
     
-    if not SESSIONS_DIR.exists():
+    if not memory_dir.exists():
         return memories
     
-    for session_file in SESSIONS_DIR.glob("*.jsonl"):
-        if '.reset.' in str(session_file):
+    import re
+    from datetime import datetime, timedelta
+    
+    # 只读取最近 30 天的每日记忆文件
+    cutoff_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+    
+    daily_files = []
+    for md_file in memory_dir.glob("*.md"):
+        # 只处理每日记忆文件（2026-XX-XX.md 格式）
+        date_match = re.match(r'(\d{4}-\d{2}-\d{2})\.md$', md_file.name)
+        if not date_match:
             continue
         
+        date_str = date_match.group(1)
+        
+        # 跳过太旧的文件（只保留最近 30 天）
+        if date_str < cutoff_date:
+            continue
+        
+        # 跳过特殊文件
+        if 'HEARTBEAT' in md_file.name or 'CREDENTIALS' in md_file.name:
+            continue
+        
+        daily_files.append((date_str, md_file))
+    
+    # 按日期倒序排序（最新的在前）
+    daily_files.sort(reverse=True)
+    
+    # 读取记忆
+    for date_str, md_file in daily_files:
         try:
-            with open(session_file, 'r', encoding='utf-8') as f:
-                session_id = session_file.stem
-                lines = f.readlines()
+            content = md_file.read_text(encoding='utf-8')
+            
+            # 提取 ## 标题和对应内容
+            sections = re.split(r'\n##+ ', content)
+            for i, section in enumerate(sections[1:], 1):  # 跳过第一个空章节
+                lines = section.split('\n')
+                title = lines[0].strip() if lines else '无标题'
+                content_text = '\n'.join(lines[1:]).strip()
                 
-                for line in lines:
-                    try:
-                        msg = json.loads(line.strip())
-                        msg_type = msg.get('type', '')
-                        
-                        if msg_type == 'message':
-                            message_data = msg.get('message', {})
-                            role = message_data.get('role', '')
-                            content_list = message_data.get('content', [])
-                            
-                            content = ''
-                            if isinstance(content_list, list):
-                                for item in content_list:
-                                    if isinstance(item, dict) and item.get('type') == 'text':
-                                        content += item.get('text', '')
-                            elif isinstance(content_list, str):
-                                content = content_list
-                            
-                            timestamp = msg.get('timestamp', '')
-                            
-                            if content and len(content) > 20:
-                                # 根据内容长度判断记忆层级
-                                importance = 'low'
-                                memory_layer = 'STM'
-                                if len(content) > 200:
-                                    importance = 'high'
-                                    memory_layer = 'LTM'
-                                elif len(content) > 100:
-                                    importance = 'medium'
-                                    memory_layer = 'MTM'
-                                
-                                memories.append({
-                                    "id": generate_id(),
-                                    "session_key": session_id,
-                                    "role": role,
-                                    "content": content,
-                                    "summary": content[:100],
-                                    "kind": "paragraph",
-                                    "created_at": timestamp or datetime.now().isoformat(),
-                                    "updated_at": timestamp or datetime.now().isoformat(),
-                                    "dedup_status": "active",
-                                    "merge_count": 0,
-                                    "merge_history": [],
-                                    "owner": "agent:main",
-                                    "importance": importance,
-                                    "layer": memory_layer
-                                })
-                    except:
-                        continue
-        except:
+                if len(content_text) < 10:  # 跳过太短的内容
+                    continue
+                
+                # 根据内容长度判断记忆层级
+                importance = 'low'
+                memory_layer = 'STM'
+                if len(content_text) > 500:
+                    importance = 'high'
+                    memory_layer = 'LTM'
+                elif len(content_text) > 200:
+                    importance = 'medium'
+                    memory_layer = 'MTM'
+                
+                memories.append({
+                    "id": f"{date_str}_{i:04d}",
+                    "session_key": date_str,
+                    "role": "system",
+                    "content": content_text[:1000],  # 限制长度
+                    "summary": title[:100],
+                    "kind": "daily_memory",
+                    "created_at": f"{date_str}T23:59:59",
+                    "updated_at": f"{date_str}T23:59:59",
+                    "dedup_status": "active",
+                    "merge_count": 0,
+                    "merge_history": [],
+                    "owner": "openclaw",
+                    "importance": importance,
+                    "layer": memory_layer,
+                    "source_file": md_file.name
+                })
+        except Exception as e:
+            print(f"读取记忆文件失败 {md_file}: {e}")
             continue
     
-    seen = set()
-    unique_memories = []
-    for m in memories:
-        content_hash = hash(m['content'])
-        if content_hash not in seen:
-            seen.add(content_hash)
-            unique_memories.append(m)
+    # 按时间倒序排序（已经是倒序，这里确保）
+    memories.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     
-    return unique_memories[:500]
+    return memories  # 返回最近 30 天的真实记忆
 
 
 def get_core_features():
@@ -472,9 +481,25 @@ async def get_stats(token: str = ""):
     # 定时任务数 = 数据库中的 scheduled + HEARTBEAT.md 配置
     scheduled_count = max(scheduled_count, heartbeat_scheduled_count)
     
+    # 从 OpenClaw 每日记忆文件实时统计（真实数据）
+    memory_dir = Path.home() / ".openclaw" / "workspace" / "memory"
+    total_memories = 0
+    if memory_dir.exists():
+        import re
+        for md_file in memory_dir.glob("*.md"):
+            if 'HEARTBEAT' in md_file.name or 'CREDENTIALS' in md_file.name:
+                continue
+            try:
+                content = md_file.read_text(encoding='utf-8')
+                # 统计 ## 标题数量（每个标题是一条记忆）
+                headers = re.findall(r'\n##+ ', content)
+                total_memories += len(headers)
+            except:
+                continue
+    
     return {
-        "total_memories": len(memories),
-        "active_memories": len([m for m in memories if m.get('dedup_status') == 'active']),
+        "total_memories": total_memories,
+        "active_memories": total_memories,  # 简化处理
         "total_tasks": len(tasks),
         "scheduled_tasks": scheduled_count,
         "realtime_tasks": realtime_count,

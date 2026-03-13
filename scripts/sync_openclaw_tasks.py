@@ -136,6 +136,56 @@ def scan_sessions() -> List[Dict]:
     
     return tasks
 
+def generate_readable_summary(text: str) -> str:
+    """生成通俗易懂的摘要"""
+    if not text or len(text) < 50:
+        return text[:100] if text else ''
+    
+    text_lower = text.lower()
+    
+    # 1. Skills store policy
+    if 'skills store policy' in text_lower:
+        return "📦 配置技能商店策略"
+    
+    # 2. System prompt
+    if 'system prompt' in text_lower or '系统提示' in text:
+        return "⚙️ 系统配置更新"
+    
+    # 3. Code snippets
+    if any(kw in text_lower for kw in ['import ', 'def ', 'class ', 'function ']):
+        return "💻 代码文件操作"
+    
+    # 4. API/HTTP requests
+    if any(kw in text_lower for kw in ['http://', 'https://', 'api.', 'curl']):
+        return "🌐 网络请求处理"
+    
+    # 5. Database operations
+    if any(kw in text_lower for kw in ['sqlite', 'insert', 'select', 'update', 'delete']):
+        return "💾 数据库操作"
+    
+    # 6. Git operations
+    if any(kw in text_lower for kw in ['git ', 'commit', 'push', 'pull', 'merge']):
+        return "🔀 代码版本管理"
+    
+    # 7. File operations
+    if any(kw in text_lower for kw in ['read ', 'write ', 'open(', 'close(']):
+        return "📄 文件操作"
+    
+    # 8. Configuration
+    if any(kw in text_lower for kw in ['config', '配置', 'settings']):
+        return "⚙️ 系统配置"
+    
+    # 9. Error/Exception
+    if any(kw in text_lower for kw in ['error', 'exception', 'failed', '失败']):
+        return "⚠️ 错误处理"
+    
+    # 10. 太长内容截取
+    if len(text) > 200:
+        return text[:100] + "..."
+    
+    return text[:100]
+
+
 def sync_to_dashboard(tasks: List[Dict]) -> int:
     """同步任务到 Dashboard"""
     if not tasks:
@@ -167,16 +217,21 @@ def sync_to_dashboard(tasks: List[Dict]) -> int:
             # 使用任务自带的 task_type（如果存在）
             task_type = task.get('task_type', 'realtime')
             
+            # 生成通俗易懂的摘要
+            user_input = task['user_input']
+            summary = generate_readable_summary(user_input)
+            
             cursor.execute("""
                 INSERT OR REPLACE INTO tasks (
-                    id, user_id, channel, user_input, status, task_type,
+                    id, user_id, channel, user_input, summary, status, task_type,
                     created_at, updated_at, completed_at, skill_name, llm_model, schedule_name
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [
                 task_id,
                 task['user_id'],
                 task['channel'],
-                task['user_input'],
+                user_input,
+                summary,
                 'completed',
                 task_type,
                 created_at_val,
