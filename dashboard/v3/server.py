@@ -455,17 +455,22 @@ async def get_stats(token: str = ""):
         except Exception as e:
             print(f"Load stats from DB failed: {e}")
     
-    # 如果数据库没有数据，回退到会话文件
-    if not tasks:
-        tasks = get_sessions_data()
-        for task in tasks:
-            content = task.get('user_input', '').lower()
-            if '定时' in content or 'cron' in content.lower() or '每天' in content or '每小时' in content:
-                scheduled_count += 1
-            else:
-                realtime_count += 1
-            channel = task.get('channel', 'other')
-            channel_stats[channel] = channel_stats.get(channel, 0) + 1
+    # 从 HEARTBEAT.md 读取定时任务配置（方案 1）
+    heartbeat_path = Path.home() / ".openclaw" / "workspace" / "HEARTBEAT.md"
+    heartbeat_scheduled_count = 0
+    if heartbeat_path.exists():
+        try:
+            content = heartbeat_path.read_text(encoding='utf-8')
+            import re
+            # 统计 HEARTBEAT.md 中的定时任务配置
+            matches = re.findall(r'- ⏰ \*\*(.*?)\*\*:.*?周期：(.*?)\n.*?状态：✅', content, re.DOTALL)
+            heartbeat_scheduled_count = len(matches)
+            print(f"✅ 从 HEARTBEAT.md 读取到 {heartbeat_scheduled_count} 个定时任务配置")
+        except Exception as e:
+            print(f"读取 HEARTBEAT.md 失败：{e}")
+    
+    # 定时任务数 = 数据库中的 scheduled + HEARTBEAT.md 配置
+    scheduled_count = max(scheduled_count, heartbeat_scheduled_count)
     
     return {
         "total_memories": len(memories),

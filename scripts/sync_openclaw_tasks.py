@@ -171,23 +171,27 @@ def sync_to_dashboard(tasks: List[Dict]) -> int:
                 except:
                     created_at_val = now
             
+            # 使用任务自带的 task_type（如果存在）
+            task_type = task.get('task_type', 'realtime')
+            
             cursor.execute("""
                 INSERT OR REPLACE INTO tasks (
                     id, user_id, channel, user_input, status, task_type,
-                    created_at, updated_at, completed_at, skill_name, llm_model
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    created_at, updated_at, completed_at, skill_name, llm_model, schedule_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [
                 task_id,
                 task['user_id'],
                 task['channel'],
                 task['user_input'],
                 'completed',
-                'realtime',
+                task_type,
                 created_at_val,
                 now,
                 now,
                 'openclaw',
-                'qwen3.5-plus'
+                'qwen3.5-plus',
+                'heartbeat' if task_type == 'scheduled' else None
             ])
             
             # 标记为已同步
