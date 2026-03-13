@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务详情 - 灵犀 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; padding: 10px 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-decoration: none; color: #333; }
+        .back-btn:hover { background: #f8f9fa; }
+        
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 20px; color: #333; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; }
+        
+        .status-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-processing { background: #d1ecf1; color: #0c5460; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        
+        .info-box { padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .info-value { font-size: 15px; color: #333; font-weight: 500; word-break: break-all; }
+        
+        .stat-box { padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 13px; opacity: 0.9; }
+        
+        .timeline { position: relative; padding-left: 30px; }
+        .timeline-item { position: relative; padding-bottom: 25px; border-left: 3px solid #667eea; padding-left: 20px; }
+        .timeline-item::before { content: ''; position: absolute; left: -8px; top: 0; width: 13px; height: 13px; border-radius: 50%; background: #667eea; }
+        .timeline-item:last-child { border-left-color: transparent; }
+        .timeline-time { font-size: 12px; color: #999; }
+        .timeline-content { background: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 8px; }
+        .timeline-title { font-weight: 600; color: #333; }
+        .timeline-desc { font-size: 13px; color: #666; margin-top: 5px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #333; font-size: 14px; }
+        tr:hover { background: #f8f9fa; }
+        
+        .code-block { background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; }
+        
+        .loading { text-align: center; padding: 60px; color: #666; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .error-box { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .error-title { font-weight: 600; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="javascript:history.back()" class="back-btn">← 返回列表</a>
+            <h1 id="page-title">任务详情</h1>
+        </div>
+        <div id="content" class="loading"><div class="spinner"></div>加载中...</div>
+    </div>
+
+    <script>
+        const formatTime = ts => { if (!ts) return '-'; const d = new Date(ts * 1000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); };
+        const formatDuration = ms => {
+            if (!ms) return '-';
+            if (ms < 1000) return ms.toFixed(0) + 'ms';
+            if (ms < 60000) return (ms/1000).toFixed(2) + 's';
+            return (ms/60000).toFixed(2) + 'min';
+        };
+        const getStatusClass = s => ({completed:'completed',success:'completed',processing:'processing',running:'processing',pending:'pending',failed:'failed',error:'failed',cancelled:'failed'}[s]||'pending');
+        
+        async function loadTaskDetail(id) {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const r = await fetch('/api/tasks/' + id + (token ? '?token=' + token : ''));
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        async function loadTimeline(id) {
+            try {
+                const r = await fetch('/api/tasks/' + id + '/timeline');
+                if (r.ok) return await r.json();
+            } catch(e) {}
+            return {timeline: []};
+        }
+        
+        function renderTask(task) {
+            const statusClass = getStatusClass(task.status);
+            const subtasksHtml = task.subtasks && task.subtasks.length > 0 ? `
+                <div class="card">
+                    <h3>子任务 (${task.subtask_count})</h3>
+                    <table>
+                        <thead><tr><th>名称</th><th>状态</th><th>Agent</th><th>技能</th><th>耗时</th><th>结果</th></tr></thead>
+                        <tbody>
+                            ${task.subtasks.map(st => `
+                                <tr>
+                                    <td><strong>${st.name||'-'}</strong><br><small style="color:#666">${st.description||''}</small></td>
+                                    <td><span class="status-badge status-${getStatusClass(st.status)}">${st.status}</span></td>
+                                    <td>${st.agent||'-'}</td>
+                                    <td>${st.skill||'-'}</td>
+                                    <td>${formatDuration(st.duration_ms)}</td>
+                                    <td>${st.result?'✅ 成功':(st.error?'❌ 失败':'⏳ 进行中')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : '';
+            
+            const llmHtml = task.llm_calls && task.llm_calls.length > 0 ? `
+                <div class="card">
+                    <h3>LLM 调用详情</h3>
+                    ${task.llm_calls.map((call, i) => `
+                        <div class="grid-4" style="margin-bottom:15px;padding:15px;background:#f8f9fa;border-radius:8px">
+                            <div class="info-box"><div class="info-label">模型</div><div class="info-value">${call.model}</div></div>
+                            <div class="info-box"><div class="info-label">输入 Token</div><div class="info-value">${call.tokens_in}</div></div>
+                            <div class="info-box"><div class="info-label">输出 Token</div><div class="info-value">${call.tokens_out}</div></div>
+                            <div class="info-box"><div class="info-label">成本</div><div class="info-value">¥${call.cost.toFixed(6)}</div></div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '';
+            
+            const errorHtml = task.error_message ? `
+                <div class="error-box">
+                    <div class="error-title">❌ 错误信息</div>
+                    <div><strong>类型:</strong> ${task.error_type||'Unknown'}</div>
+                    <div><strong>消息:</strong> ${task.error_message}</div>
+                    ${task.error_traceback ? `<div class="code-block" style="margin-top:10px;background:#fff">${task.error_traceback}</div>`:''}
+                </div>
+            ` : '';
+            
+            return `
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
+                        <div>
+                            <h2 style="margin-bottom:10px">任务 #${task.id.substring(0,8)}</h2>
+                            <div style="color:#666">${task.user_input}</div>
+                        </div>
+                        <span class="status-badge status-${statusClass}">${task.status}</span>
+                    </div>
+                    
+                    <div class="grid-4">
+                        <div class="info-box"><div class="info-label">用户 ID</div><div class="info-value">${task.user_id}</div></div>
+                        <div class="info-box"><div class="info-label">渠道</div><div class="info-value">${task.channel}</div></div>
+                        <div class="info-box"><div class="info-label">阶段</div><div class="info-value">${task.stage}</div></div>
+                        <div class="info-box"><div class="info-label">得分</div><div class="info-value">${task.score}/10</div></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>性能统计</h3>
+                    <div class="grid-4">
+                        <div class="stat-box"><div class="stat-value">${formatDuration(task.total_duration_ms)}</div><div class="stat-label">总耗时</div></div>
+                        <div class="stat-box"><div class="stat-value">${task.total_tokens_in + task.total_tokens_out}</div><div class="stat-label">Token 总量</div></div>
+                        <div class="stat-box"><div class="stat-value">¥${task.total_cost.toFixed(4)}</div><div class="stat-label">总成本</div></div>
+                        <div class="stat-box"><div class="stat-value">${task.subtask_count}</div><div class="stat-label">子任务数</div></div>
+                    </div>
+                    <div class="grid-4" style="margin-top:15px">
+                        <div class="info-box"><div class="info-label">响应时间</div><div class="info-value">${formatDuration(task.response_time_ms)}</div></div>
+                        <div class="info-box"><div class="info-label">执行时间</div><div class="info-value">${formatDuration(task.execution_time_ms)}</div></div>
+                        <div class="info-box"><div class="info-label">等待时间</div><div class="info-value">${formatDuration(task.wait_time_ms)}</div></div>
+                        <div class="info-box"><div class="info-label">输入 Token</div><div class="info-value">${task.total_tokens_in}</div></div>
+                    </div>
+                </div>
+                
+                ${errorHtml}
+                
+                <div class="card">
+                    <h3>执行时间线</h3>
+                    <div id="timeline" class="timeline"></div>
+                </div>
+                
+                ${subtasksHtml}
+                ${llmHtml}
+                
+                ${task.final_output ? `
+                <div class="card">
+                    <h3>最终结果</h3>
+                    <div class="code-block">${task.final_output}</div>
+                </div>
+                ` : ''}
+            `;
+        }
+        
+        function renderTimeline(items) {
+            const el = document.getElementById('timeline');
+            if (!el || !items || items.length === 0) {
+                if (el) el.innerHTML = '<p style="color:#999">暂无时间线数据</p>';
+                return;
+            }
+            el.innerHTML = items.map(item => `
+                <div class="timeline-item">
+                    <div class="timeline-time">${formatTime(item.time)}</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">${item.label}</div>
+                        <div class="timeline-desc">${item.description||''}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function init() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            if (!id) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 缺少任务 ID 参数</div>';
+                return;
+            }
+            try {
+                const [task, timelineData] = await Promise.all([loadTaskDetail(id), loadTimeline(id)]);
+                document.getElementById('content').innerHTML = renderTask(task);
+                renderTimeline(timelineData.timeline || []);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 加载失败：' + e.message + '</div>';
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

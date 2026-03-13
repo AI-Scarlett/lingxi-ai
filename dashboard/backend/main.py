@@ -736,11 +736,30 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="灵犀 Dashboard v3.3.5",
-    description="现代化 AI 助手数据看板",
-    version="3.3.5",
+    title="灵犀 Dashboard v3.3.6",
+    description="现代化 AI 助手数据看板 - 详情页增强版",
+    version="3.3.6",
     lifespan=lifespan
 )
+
+# 注册详情页路由
+from detail_routes import task_router, skill_router, agent_router, session_router, memory_router
+app.include_router(task_router)
+app.include_router(skill_router)
+app.include_router(agent_router)
+app.include_router(session_router)
+app.include_router(memory_router)
+
+# 注册核心功能路由
+from core_routes import mindcore_router, evomind_router, layer_router, proposal_router
+from layer0_routes import layer0_router
+app.include_router(mindcore_router)
+app.include_router(evomind_router)
+app.include_router(layer_router)
+app.include_router(proposal_router)
+app.include_router(layer0_router)
+
+print("[Dashboard] ✅ 详情页 + 核心功能路由 + Layer0 已注册")
 
 # CORS
 app.add_middleware(
@@ -787,10 +806,21 @@ class TaskUpdateRequest(BaseModel):
 @app.get("/")
 async def root():
     """根路径 - 返回前端页面"""
-    frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
+    # 使用 v3 版本的前端
+    frontend_path = Path(__file__).parent.parent / "v3" / "index.html"
     if frontend_path.exists():
-        return FileResponse(str(frontend_path), headers={"Cache-Control": "no-cache"})
-    return {"message": "灵犀 Dashboard v3.3.5 API", "docs": "/docs"}
+        return FileResponse(str(frontend_path), headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
+    return {"message": "灵犀 Dashboard v3.3.6 API", "docs": "/docs"}
+
+
+@app.get("/frontend/{filename}")
+async def get_frontend_file(filename: str):
+    """返回前端页面文件"""
+    # 前端文件在 v3/frontend 目录
+    frontend_path = Path(__file__).parent.parent / "v3" / "frontend" / filename
+    if frontend_path.exists() and filename.endswith('.html'):
+        return FileResponse(str(frontend_path), headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
+    raise HTTPException(status_code=404, detail="页面不存在")
 
 
 @app.get("/api/health")

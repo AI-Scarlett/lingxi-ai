@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提案管理 - 灵犀 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; padding: 10px 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-decoration: none; color: #333; }
+        .back-btn:hover { background: #f8f9fa; }
+        
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 20px; color: #333; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { padding: 20px; border-radius: 10px; text-align: center; color: white; }
+        .stat-total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-pending { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .stat-review { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+        .stat-approved { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .stat-implemented { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        
+        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 13px; opacity: 0.9; }
+        
+        .proposal-item { padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #667eea; transition: all 0.3s; }
+        .proposal-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateX(5px); }
+        
+        .proposal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .proposal-title { font-size: 18px; font-weight: 600; color: #333; }
+        .proposal-actions { display: flex; gap: 8px; }
+        
+        .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-under_review { background: #ffe5d0; color: #c25e00; }
+        .status-approved { background: #d1ecf1; color: #0c5460; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
+        .status-implemented { background: #d4edda; color: #155724; }
+        
+        .category-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; background: #e9ecef; color: #495057; margin-right: 8px; }
+        .priority-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; }
+        .priority-high { background: #f8d7da; color: #721c24; }
+        .priority-medium { background: #fff3cd; color: #856404; }
+        .priority-low { background: #d4edda; color: #155724; }
+        
+        .proposal-desc { font-size: 14px; color: #666; margin-bottom: 10px; line-height: 1.6; }
+        .proposal-meta { font-size: 12px; color: #999; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        
+        .vote-btn { padding: 4px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .vote-btn:hover { background: #667eea; color: white; border-color: #667eea; }
+        .vote-count { font-size: 12px; color: #667eea; font-weight: 600; margin-left: 5px; }
+        
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .filter-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 20px; font-weight: bold; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; }
+        
+        .detail-section { margin-bottom: 20px; }
+        .detail-label { font-weight: 600; color: #333; margin-bottom: 8px; }
+        .detail-content { padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 14px; line-height: 1.8; }
+        
+        .action-btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; margin-right: 10px; }
+        .btn-approve { background: #10b981; color: white; }
+        .btn-reject { background: #dc3545; color: white; }
+        .btn-close { background: #6c757d; color: white; }
+        
+        .loading { text-align: center; padding: 60px; color: #666; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/?token=1e4c2a9af43cd7001d00ce08b1a16d1a3d32b9de7d0e08ae4b" class="back-btn">← 返回列表</a>
+            <h1>📋 提案管理</h1>
+        </div>
+        
+        <div id="content" class="loading"><div class="spinner"></div>加载中...</div>
+    </div>
+    
+    <!-- 详情弹窗 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">提案详情</div>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalBody"></div>
+            <div style="margin-top:20px;text-align:right" id="modalActions"></div>
+        </div>
+    </div>
+
+    <script>
+        const formatTime = ts => { if (!ts) return '-'; const d = new Date(ts * 1000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); };
+        
+        async function loadProposalStats() {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const r = await fetch('/api/proposals/stats' + (token ? '?token=' + token : ''));
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        async function loadProposals(status = 'all', category = '') {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            let url = `/api/proposals/list?status=${status}&token=${token}`;
+            if (category) url += `&category=${category}`;
+            const r = await fetch(url);
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        async function loadProposalDetail(id) {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const r = await fetch(`/api/proposals/${id}?token=${token}`);
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        function renderStats(stats) {
+            return `
+                <div class="card">
+                    <h3>提案统计</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card stat-total">
+                            <div class="stat-value">${stats.total}</div>
+                            <div class="stat-label">总提案</div>
+                        </div>
+                        <div class="stat-card stat-pending">
+                            <div class="stat-value">${stats.by_status.pending}</div>
+                            <div class="stat-label">待审核</div>
+                        </div>
+                        <div class="stat-card stat-review">
+                            <div class="stat-value">${stats.by_status.under_review}</div>
+                            <div class="stat-label">审核中</div>
+                        </div>
+                        <div class="stat-card stat-approved">
+                            <div class="stat-value">${stats.by_status.approved}</div>
+                            <div class="stat-label">已批准</div>
+                        </div>
+                        <div class="stat-card stat-implemented">
+                            <div class="stat-value">${stats.by_status.implemented}</div>
+                            <div class="stat-label">已实施</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>提案列表</h3>
+                    <div class="filter-bar">
+                        <button class="filter-btn active" onclick="filterProposals('all')">全部</button>
+                        <button class="filter-btn" onclick="filterProposals('pending')">待审核</button>
+                        <button class="filter-btn" onclick="filterProposals('under_review')">审核中</button>
+                        <button class="filter-btn" onclick="filterProposals('approved')">已批准</button>
+                        <button class="filter-btn" onclick="filterProposals('implemented')">已实施</button>
+                        <button class="filter-btn" onclick="filterProposals('rejected')">已拒绝</button>
+                    </div>
+                    <div id="proposals-list"></div>
+                </div>
+            `;
+        }
+        
+        function renderProposals(proposals) {
+            if (!proposals || proposals.length === 0) {
+                return '<p style="color:#999;text-align:center;padding:40px">暂无提案</p>';
+            }
+            
+            return proposals.map(p => `
+                <div class="proposal-item">
+                    <div class="proposal-header">
+                        <div class="proposal-title">${p.title}</div>
+                        <div>
+                            <span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:10px">
+                        <span class="category-badge">${p.category}</span>
+                        <span class="priority-badge priority-${p.priority}">${p.priority === 'high' ? '🔴 高优先级' : p.priority === 'medium' ? '🟡 中优先级' : '🟢 低优先级'}</span>
+                        <span style="color:#667eea;font-size:12px;margin-left:10px">👍 <span class="vote-count">${p.votes}</span> 票</span>
+                    </div>
+                    <div class="proposal-meta">
+                        <span>👤 ${p.author}</span>
+                        <span>📅 ${formatTime(p.created_at)}</span>
+                        ${p.implemented_at ? `<span>✅ 实施：${formatTime(p.implemented_at)}</span>` : ''}
+                    </div>
+                    <div style="margin-top:15px;display:flex;justify-content:space-between;align-items:center">
+                        <button class="vote-btn" onclick="vote('${p.id}')">👍 投票</button>
+                        <button class="vote-btn" onclick="viewDetail('${p.id}')" style="background:#667eea;color:white;border-color:#667eea">📄 查看详情</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderDetail(proposal) {
+            return `
+                <div class="detail-section">
+                    <div class="detail-label">提案描述</div>
+                    <div class="detail-content">${proposal.description}</div>
+                </div>
+                
+                ${proposal.details ? `
+                    <div class="detail-section">
+                        <div class="detail-label">问题</div>
+                        <div class="detail-content">${proposal.details.problem}</div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-label">解决方案</div>
+                        <div class="detail-content">${proposal.details.solution}</div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-label">收益</div>
+                        <div class="detail-content">${proposal.details.benefits.join('<br>')}</div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <div class="detail-label">风险</div>
+                        <div class="detail-content">${proposal.details.risks.join('<br>')}</div>
+                    </div>
+                ` : ''}
+                
+                <div class="detail-section">
+                    <div class="detail-label">元数据</div>
+                    <div class="detail-content">
+                        <strong>作者:</strong> ${proposal.author}<br>
+                        <strong>创建时间:</strong> ${formatTime(proposal.created_at)}<br>
+                        <strong>分类:</strong> ${proposal.category}<br>
+                        <strong>优先级:</strong> ${proposal.priority}<br>
+                        <strong>投票数:</strong> ${proposal.votes}
+                    </div>
+                </div>
+                
+                ${proposal.comments && proposal.comments.length > 0 ? `
+                    <div class="detail-section">
+                        <div class="detail-label">评论</div>
+                        ${proposal.comments.map(c => `
+                            <div style="padding:10px;background:white;border-radius:6px;margin-top:10px">
+                                <strong>${c.author}</strong> <span style="color:#999;font-size:12px">${formatTime(c.created_at)}</span>
+                                <div style="margin-top:5px;color:#666">${c.content}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            `;
+        }
+        
+        async function filterProposals(status) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            try {
+                const data = await loadProposals(status);
+                document.getElementById('proposals-list').innerHTML = renderProposals(data.proposals);
+            } catch (e) {
+                document.getElementById('proposals-list').innerHTML = '<p style="color:red">加载失败：' + e.message + '</p>';
+            }
+        }
+        
+        async function viewDetail(id) {
+            try {
+                const proposal = await loadProposalDetail(id);
+                document.getElementById('modalTitle').textContent = proposal.title;
+                document.getElementById('modalBody').innerHTML = renderDetail(proposal);
+                
+                // 根据状态显示操作按钮
+                let actions = '<button class="action-btn btn-close" onclick="closeModal()">关闭</button>';
+                if (proposal.status === 'pending') {
+                    actions = `
+                        <button class="action-btn btn-reject" onclick="rejectProposal('${proposal.id}')">❌ 拒绝</button>
+                        <button class="action-btn btn-approve" onclick="approveProposal('${proposal.id}')">✅ 批准</button>
+                        ${actions}
+                    `;
+                }
+                document.getElementById('modalActions').innerHTML = actions;
+                
+                document.getElementById('detailModal').classList.add('active');
+            } catch (e) {
+                alert('加载失败：' + e.message);
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+        
+        async function vote(id) {
+            try {
+                const token = new URLSearchParams(window.location.search).get('token') || '';
+                const r = await fetch(`/api/proposals/${id}/vote?vote=up&token=${token}`, {method: 'POST'});
+                const result = await r.json();
+                if (result.success) {
+                    alert('投票成功！');
+                    init();
+                }
+            } catch (e) {
+                alert('投票失败：' + e.message);
+            }
+        }
+        
+        async function approveProposal(id) {
+            if (!confirm('确定批准这个提案吗？')) return;
+            
+            try {
+                const token = new URLSearchParams(window.location.search).get('token') || '';
+                const r = await fetch(`/api/proposals/${id}/approve?token=${token}`, {method: 'POST'});
+                const result = await r.json();
+                if (result.success) {
+                    alert('提案已批准！');
+                    closeModal();
+                    init();
+                }
+            } catch (e) {
+                alert('操作失败：' + e.message);
+            }
+        }
+        
+        async function rejectProposal(id) {
+            const reason = prompt('请输入拒绝原因：');
+            if (!reason) return;
+            
+            try {
+                const token = new URLSearchParams(window.location.search).get('token') || '';
+                const r = await fetch(`/api/proposals/${id}/reject?reason=${encodeURIComponent(reason)}&token=${token}`, {method: 'POST'});
+                const result = await r.json();
+                if (result.success) {
+                    alert('提案已拒绝！');
+                    closeModal();
+                    init();
+                }
+            } catch (e) {
+                alert('操作失败：' + e.message);
+            }
+        }
+        
+        async function init() {
+            try {
+                const [stats, proposals] = await Promise.all([loadProposalStats(), loadProposals('all')]);
+                document.getElementById('content').innerHTML = renderStats(stats);
+                document.getElementById('proposals-list').innerHTML = renderProposals(proposals.proposals);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 加载失败：' + e.message + '</div>';
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

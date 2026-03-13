@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技能详情 - 灵犀 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; padding: 10px 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-decoration: none; color: #333; }
+        .back-btn:hover { background: #f8f9fa; }
+        
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 20px; color: #333; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; }
+        
+        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+        .status-loaded { background: #10b981; }
+        .status-not-loaded { background: #ef4444; }
+        
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        
+        .info-box { padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .info-value { font-size: 15px; color: #333; font-weight: 500; }
+        
+        .stat-box { padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 13px; opacity: 0.9; }
+        
+        .stat-box.secondary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .stat-box.tertiary { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        
+        .trigger-item { display: inline-block; padding: 6px 14px; background: #e9ecef; border-radius: 20px; font-size: 13px; color: #495057; margin: 4px; }
+        .keyword-item { display: inline-block; padding: 4px 10px; background: #fff3cd; border-radius: 6px; font-size: 12px; color: #856404; margin: 4px; }
+        
+        .version-item { padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #667eea; }
+        .version-current { border-left-color: #10b981; background: #d4edda; }
+        .version-title { font-weight: 600; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .version-changes { font-size: 13px; color: #666; }
+        .version-changes li { margin: 5px 0; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #333; }
+        tr:hover { background: #f8f9fa; }
+        
+        .loading { text-align: center; padding: 60px; color: #666; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .config-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .config-label { color: #666; }
+        .config-value { font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="javascript:history.back()" class="back-btn">← 返回列表</a>
+            <h1>技能详情</h1>
+        </div>
+        <div id="content" class="loading"><div class="spinner"></div>加载中...</div>
+    </div>
+
+    <script>
+        const formatTime = ts => { if (!ts) return '-'; const d = new Date(ts * 1000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); };
+        
+        async function loadSkillDetail(name) {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const r = await fetch('/api/skills/' + name + (token ? '?token=' + token : ''));
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        async function loadSkillStats(name) {
+            try {
+                const r = await fetch('/api/skills/' + name + '/stats');
+                if (r.ok) return await r.json();
+            } catch(e) {}
+            return null;
+        }
+        
+        function renderSkill(skill) {
+            const loadedHtml = skill.is_loaded ? 
+                '<span class="status-dot status-loaded"></span>已加载' : 
+                '<span class="status-dot status-not-loaded"></span>未加载';
+            
+            const triggersHtml = skill.triggers && skill.triggers.length > 0 ? 
+                skill.triggers.map(t => `<span class="trigger-item">${t}</span>`).join('') : 
+                '<span style="color:#999">无特定触发条件</span>';
+            
+            const keywordsHtml = skill.keywords && skill.keywords.length > 0 ?
+                skill.keywords.map(k => `<span class="keyword-item">${k}</span>`).join('') :
+                '<span style="color:#999">无关键词</span>';
+            
+            const versionsHtml = skill.versions && skill.versions.length > 0 ?
+                skill.versions.map((v, i) => `
+                    <div class="version-item ${v.is_current?'version-current':''}">
+                        <div class="version-title">
+                            <span>v${v.version} ${v.is_current?'(当前)':''}</span>
+                            <span style="color:#999;font-size:12px">${formatTime(v.released_at)}</span>
+                        </div>
+                        ${v.changes && v.changes.length > 0 ? `
+                            <ul class="version-changes">
+                                ${v.changes.map(c => `<li>${c}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                    </div>
+                `).join('') : '<p style="color:#999">暂无版本历史</p>';
+            
+            return `
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
+                        <div>
+                            <h2 style="margin-bottom:10px">${skill.display_name}</h2>
+                            <div style="color:#666">${skill.description||'暂无描述'}</div>
+                        </div>
+                        <div>${loadedHtml}</div>
+                    </div>
+                    
+                    <div class="grid-4">
+                        <div class="info-box"><div class="info-label">技能名称</div><div class="info-value">${skill.name}</div></div>
+                        <div class="info-box"><div class="info-label">版本</div><div class="info-value">v${skill.version}</div></div>
+                        <div class="info-box"><div class="info-label">位置</div><div class="info-value" style="font-size:12px">${skill.location.substring(0,50)}...</div></div>
+                        <div class="info-box"><div class="info-label">技能文件</div><div class="info-value" style="font-size:12px">SKILL.md</div></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>调用统计</h3>
+                    <div class="grid-4">
+                        <div class="stat-box"><div class="stat-value">${skill.stats?.total_calls||0}</div><div class="stat-label">总调用</div></div>
+                        <div class="stat-box secondary"><div class="stat-value">${skill.stats?.success_rate||100}%</div><div class="stat-label">成功率</div></div>
+                        <div class="stat-box tertiary"><div class="stat-value">${skill.stats?.today_calls||0}</div><div class="stat-label">今日调用</div></div>
+                        <div class="stat-box"><div class="stat-value">¥${(skill.stats?.total_cost||0).toFixed(4)}</div><div class="stat-label">总成本</div></div>
+                    </div>
+                    <div class="grid-4" style="margin-top:15px">
+                        <div class="info-box"><div class="info-label">本周调用</div><div class="info-value">${skill.stats?.week_calls||0}</div></div>
+                        <div class="info-box"><div class="info-label">本月调用</div><div class="info-value">${skill.stats?.month_calls||0}</div></div>
+                        <div class="info-box"><div class="info-label">平均响应</div><div class="info-value">${(skill.stats?.avg_response_time_ms||0).toFixed(0)}ms</div></div>
+                        <div class="info-box"><div class="info-label">Token 总量</div><div class="info-value">${skill.stats?.total_tokens||0}</div></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>触发条件</h3>
+                    <div style="margin-bottom:15px"><strong>触发短语:</strong></div>
+                    <div style="margin-bottom:15px">${triggersHtml}</div>
+                    <div style="margin-bottom:15px"><strong>关键词:</strong></div>
+                    <div>${keywordsHtml}</div>
+                </div>
+                
+                <div class="card">
+                    <h3>配置</h3>
+                    <div class="config-item"><span class="config-label">启用状态</span><span class="config-value">${skill.config?.enabled?'✅ 已启用':'❌ 已禁用'}</span></div>
+                    <div class="config-item"><span class="config-label">优先级</span><span class="config-value">${skill.config?.priority||5}</span></div>
+                    <div class="config-item"><span class="config-label">超时时间</span><span class="config-value">${skill.config?.timeout_seconds||60}秒</span></div>
+                    <div class="config-item"><span class="config-label">最大重试</span><span class="config-value">${skill.config?.max_retries||3}次</span></div>
+                    <div class="config-item"><span class="config-label">需要认证</span><span class="config-value">${skill.config?.require_auth?'是':'否'}</span></div>
+                    <div class="config-item"><span class="config-label">允许渠道</span><span class="config-value">${(skill.config?.allowed_channels||['all']).join(', ')}</span></div>
+                </div>
+                
+                ${skill.dependencies && skill.dependencies.length > 0 ? `
+                <div class="card">
+                    <h3>依赖项</h3>
+                    <div>${skill.dependencies.map(d => `<span class="trigger-item">${d}</span>`).join('')}</div>
+                </div>
+                ` : ''}
+                
+                <div class="card">
+                    <h3>版本历史</h3>
+                    ${versionsHtml}
+                </div>
+            `;
+        }
+        
+        async function init() {
+            const params = new URLSearchParams(window.location.search);
+            const name = params.get('name');
+            
+            if (!name) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 缺少技能名称参数</div>';
+                return;
+            }
+            
+            try {
+                const [skill, statsData] = await Promise.all([loadSkillDetail(name), loadSkillStats(name)]);
+                if (statsData) skill.stats = statsData.overview;
+                document.getElementById('content').innerHTML = renderSkill(skill);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 加载失败：' + e.message + '</div>';
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

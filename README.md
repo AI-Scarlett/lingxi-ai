@@ -1,365 +1,477 @@
-# 🦞 灵犀 (Lingxi) - 养龙虾的最佳助手
+# 🦞 灵犀 (Lingxi) - AI 智能调度系统
 
 > **心有灵犀，一点就通** ✨  
 > **版本：** v3.3.6  
-> **特别说明：** 特别适合新手小白用户
+> **作者：** Scarlett (斯嘉丽)  
+> **最后更新：** 2026-03-13
 
 ---
 
 ## 📋 简介
 
-灵犀是一个 AI 智能调度工具，专为养龙虾新手小白设计！即使是第一次养龙虾，也能轻松上手～
+灵犀是一个基于 OpenClaw 的 AI 智能调度系统，专为多渠道消息处理和智能任务管理设计。
 
 ### 核心特性
 
-- 🦞 **龙虾养殖助手** - 新手小白也能养出健康龙虾
-- 🧠 **MindCore 记忆核心** - 记住你的养殖习惯和经验
-- 🔄 **EvoMind 自改进** - 越用越聪明，陪你一起成长
-- 🕷️ **SmartFetch 智能抓取** - 自动学习龙虾养殖知识
-- 🤖 **Multi-Agent 架构** - 多渠道支持，随时随地管理
-- 📊 **Dashboard 增强** - 可视化监控，一眼看清状态
-- 🌐 **远程访问** - 出门在外也能查看龙虾状态
-- ⏰ **智能定时推送** - 提醒你喂龙虾、换水
-- 📋 **飞书卡片审批** - AI 建议，你来做决策
-- 🚀 **Layer0 边缘部署** - 全球 CDN 加速
+- 🧠 **MindCore 记忆核心** - 三级记忆系统（STM/MTM/LTM）
+- 🔄 **EvoMind 自改进** - 系统持续优化和进化
+- 🕷️ **SmartFetch 智能抓取** - 自动学习新知识
+- 🤖 **Multi-Agent 架构** - 支持飞书、钉钉、QQ、企业微信等多渠道
+- 📊 **Dashboard 可视化** - MemOS 风格管理界面
+- ⚡ **快速响应层** - 简单问题 <5ms 秒回
+- 💾 **LRU 缓存** - 重复问题秒回
+- 🚀 **并行执行** - 复杂任务处理快 9x
+- 💰 **Token 优化** - 57% 请求零 LLM 消耗
 
 ---
 
 ## 🚀 快速开始
 
-### 一键安装（推荐）
+### 环境要求
 
-**新手小白专用！只需一个命令：**
+- Python 3.8+
+- Node.js 18+
+- OpenClaw 2026.3.8+
+- SQLite 3.0+
+
+### 安装步骤
 
 ```bash
-curl -Ls https://raw.githubusercontent.com/AI-Scarlett/lingxi-ai/main/scripts/install.sh | bash
+# 1. 克隆仓库
+cd /root/lingxi-ai-latest
+
+# 2. 安装依赖
+pip3 install -r requirements.txt --break-system-packages
+
+# 3. 配置 Token
+echo "your_dashboard_token" > ~/.openclaw/workspace/.lingxi/dashboard_token.txt
+
+# 4. 启动 Dashboard
+cd dashboard/v3 && python3 server.py &
+
+# 5. 访问 Dashboard
+# http://localhost:8765/?token=your_dashboard_token
 ```
 
-安装完成后会自动启动，并显示访问地址！
+### 目录结构
 
-### 手动安装
-
-```bash
-git clone https://github.com/AI-Scarlett/lingxi-ai.git
-cd lingxi-ai
-pip install -r requirements.txt
 ```
-
-### 快速启动
-
-```bash
-python3 scripts/quick_start.py
-```
-
-### 配置
-
-```bash
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑 .env 文件，填写你的 API 密钥
-nano .env
-
-# 必须配置：
-# - DASHSCOPE_API_KEY（图像生成）
-# - QWEN_API_KEY（LLM 调用）
-
-# 可选配置：
-# - PERPLEXITY_API_KEY（搜索）
-# - NGROK_AUTH_TOKEN（远程访问）
-```
-
-**⚠️ 重要：** `.env` 文件包含敏感信息，已加入 `.gitignore`，不要提交到 Git！
-
-### 启动 Dashboard
-
-```bash
-# 启动 Dashboard
-python3 dashboard/server.py
-
-# 访问
-http://localhost:8765
+lingxi-ai-latest/
+├── core/                    # 核心模块
+│   ├── config_manager.py    # 配置管理
+│   ├── task_queue.py        # 任务队列
+│   ├── memory_llm.py        # 记忆管理
+│   └── dashboard_enhanced.py # Dashboard 增强
+├── scripts/                 # 功能脚本
+│   ├── orchestrator_v2.py   # 智慧调度器 v2
+│   ├── dashboard_client.py  # Dashboard 客户端
+│   ├── fast_response_layer_v2.py # 快速响应层
+│   └── performance_patch.py # 性能优化补丁
+├── dashboard/               # Dashboard 前端
+│   └── v3/
+│       ├── index.html       # 主页面
+│       └── server.py        # API 服务器
+├── data/                    # 数据目录
+│   └── dashboard_v3.db      # SQLite 数据库
+└── README.md                # 本文档
 ```
 
 ---
 
-## 📦 模块说明
+## 📊 Dashboard 功能
 
-### 1. MindCore 记忆核心
+### 7 大功能模块
 
-**位置：** `core/mindcore/`
+1. **📊 概览** - 系统状态总览
+2. **🧠 MindCore 记忆** - 记忆管理（支持搜索/过滤/分页）
+3. **📋 任务列表** - 任务记录（支持渠道/时间/类型筛选）
+4. **🛠️ 技能中心** - 技能管理（显示使用次数/活跃状态）
+5. **⚡ Layer0 规则** - 响应规则管理（191 条规则）
+6. **📈 数据分析** - 调用统计/Token 消耗
+7. **⚙️ 系统设置** - 主题/时区/数据管理
 
-**架构：**
-- **STM（短期记忆）** - 最近 100 条龙虾养殖记录，内存存储，<10ms
-- **MTM（中期记忆）** - 最近 7 天养殖数据，SQLite 存储，<500ms
-- **LTM（长期记忆）** - 永久归档养殖经验，JSONL+ 向量索引，<2s
+### 访问地址
 
-**使用示例：**
+- **本地访问：** http://localhost:8765/?token=YOUR_TOKEN
+- **远程访问：** http://49.232.250.180:8765/?token=YOUR_TOKEN
+
+---
+
+## 🔧 核心组件
+
+### 1. 智慧调度器 (orchestrator_v2.py)
+
+灵犀的核心调度引擎，负责：
+- 快速响应层匹配（<5ms）
+- LRU 缓存查询
+- 技能路由和调用
+- 大模型选择（qwen3.5-plus/qwen3-max 等）
+- 结果缓存和性能监控
+
+### 2. Dashboard 客户端 (dashboard_client.py)
+
+负责将任务记录到 Dashboard：
 ```python
-from core.mindcore import get_mindcore
+from scripts.dashboard_client import record_to_dashboard
 
-mindcore = get_mindcore()
-
-# 保存龙虾养殖记录
-await mindcore.save("今天水温 25 度，龙虾很活跃", importance=9.0)
-
-# 检索养殖经验
-results = await mindcore.retrieve("龙虾喂食", top_k=10)
+record_to_dashboard(
+    user_input="用户输入",
+    user_id="用户 ID",
+    channel="feishu",
+    llm_model="qwen3.5-plus",
+    skill_name="lingxi",
+    status="completed",
+    response_time_ms=123.45
+)
 ```
 
-### 2. EvoMind 自改进
+### 3. 快速响应层 (fast_response_layer_v2.py)
 
-**位置：** `core/evomind/`
+提供 <5ms 的快速响应：
+- 问候语匹配（你好/在吗/早上好）
+- 简单问题缓存
+- 正则表达式匹配
 
-**功能：**
-- 飞书卡片审批界面
-- 定时推送（7:00/12:00/21:00）- 提醒你喂龙虾、换水
-- 提案管理（批准/拒绝/推迟）
+### 4. 性能优化补丁 (performance_patch.py)
 
-**使用示例：**
-```python
-from core.evomind import get_approval_manager
+v3.0.2 新增：
+- LazyTrinityState - 懒加载状态管理
+- BatchLearningWriter - 批量学习写入
+- PerformanceMonitor - 性能监控
 
-manager = get_approval_manager()
+---
 
-# 添加提醒提案
-await manager.add_proposal({
-    "type": "save_memory",
-    "title": "每天早上 8 点喂龙虾",
-    "importance": 8.0
+## 🛠️ 常见问题 (Q&A)
+
+### Q1: Dashboard 任务列表不更新，但记忆文件有记录？
+
+**问题现象：**
+- 记忆文件（`memory/items/memories.jsonl`）有完整对话记录
+- Dashboard 任务列表一直不更新
+- 最新任务停留在某个时间点
+
+**排查步骤：**
+
+1. **检查 Dashboard API 是否正常**
+```bash
+curl http://localhost:8765/api/stats?token=YOUR_TOKEN
+```
+
+2. **检查数据库连接**
+```bash
+python3 -c "import sqlite3; conn=sqlite3.connect('/root/lingxi-ai-latest/data/dashboard_v3.db'); print('Tables:', [t[0] for t in conn.cursor().execute('SELECT name FROM sqlite_master WHERE type=\"table\"').fetchall()])"
+```
+
+3. **检查灵犀日志**
+```bash
+tail -100 /tmp/openclaw/openclaw-$(date +%Y-%m-%d).log | grep -i "dashboard\|task"
+```
+
+**根本原因：**
+灵犀的 `dashboard_client.py` 依赖 `httpx` 模块发送 HTTP 请求到 Dashboard，但该模块未安装。
+
+**解决方案：**
+
+```bash
+# 1. 安装 httpx 模块
+pip3 install httpx --break-system-packages
+
+# 2. 验证安装
+python3 -c "import httpx; print('✅ httpx installed')"
+
+# 3. 测试 Dashboard 客户端
+python3 << 'EOF'
+import sys
+sys.path.insert(0, '/root/lingxi-ai-latest')
+from scripts.dashboard_client import get_dashboard_client
+
+client = get_dashboard_client()
+print("Base URL:", client.base_url)
+print("Token:", client.token[:20] + "...")
+
+result = client.record_task({
+    "user_id": "test",
+    "channel": "feishu",
+    "user_input": "测试任务",
+    "status": "completed"
 })
-
-# 获取待审批
-proposals = await manager.get_pending_proposals()
+print("Record result:", result)
+EOF
 ```
 
-### 3. SmartFetch 智能抓取
-
-**位置：** `core/smartfetch/`
-
-**多级抓取策略：**
-1. Jina Reader（最快，70% 成功率）
-2. Scrapling StealthyFetcher（90% 成功率）
-3. Agent Browser + Cookie 池（99% 成功率）
-4. web_fetch 兜底（50% 成功率）
-
-**使用示例：**
-```python
-from core.smartfetch import get_fetcher
-
-fetcher = get_fetcher()
-result = await fetcher.fetch("https://example.com/龙虾养殖技巧")
-```
-
-### 4. Multi-Agent 架构
-
-**位置：** `core/agents/`
-
-**支持渠道：**
-- Feishu（飞书）- 工作通知
-- QQ（QQ Bot）- 日常聊天
-- WeCom（企业微信）- 团队协作
-
-**使用示例：**
-```python
-from core.agents import get_feishu_agent, get_qq_agent
-
-feishu = get_feishu_agent()
-qq = get_qq_agent()
-
-# 处理任务
-result = await feishu.handle(task)
-```
-
-### 5. Dashboard
-
-**位置：** `dashboard/`
-
-**页面：**
-- **记忆管理页** - 查看龙虾养殖记录
-- **学习监控页** - 查看学习进度
-- **改进审批页** - 审批养殖建议
-
-**远程访问配置：**
-```python
-from dashboard.remote_access import get_remote_access_config
-
-config = get_remote_access_config()
-token = config.enable_remote_access(provider="ngrok")
+**验证：**
+```bash
+python3 -c "import sqlite3; conn=sqlite3.connect('/root/lingxi-ai-latest/data/dashboard_v3.db'); cur=conn.cursor(); cur.execute('SELECT datetime(created_at, \"unixepoch\", \"localtime\"), user_input FROM tasks ORDER BY created_at DESC LIMIT 3'); [print(f'{r[0]} - {r[1][:50]}') for r in cur.fetchall()]"
 ```
 
 ---
 
-## 📊 性能对比
+### Q2: Dashboard 时间显示错误（显示 3 月 14 日而非 3 月 13 日）？
 
-| 指标 | v3.3.3 | 提升 |
-|------|--------|------|
-| **响应时间** | <10ms | -68% |
-| **并发任务** | 100 | +10x |
-| **记忆检索** | 90%+ | +50% |
-| **知识抓取** | 95%+ | +90% |
-| **Token 消耗** | 30% | -70% |
+**问题现象：**
+- 数据库时间戳正确（如 `1773389873`）
+- Dashboard 显示时间错误（放大 1000 倍）
 
-**新手友好度：** ⭐⭐⭐⭐⭐（5 星满分）
+**根本原因：**
+JavaScript 的 `new Date()` 期望毫秒级时间戳，但数据库存储的是秒级时间戳。
+
+**解决方案：**
+
+修改 `/root/lingxi-ai-latest/dashboard/v3/index.html` 中的 `formatTimeBeijing` 函数：
+
+```javascript
+function formatTimeBeijing(ts) {
+    if (!ts) return '';
+    try {
+        if (typeof ts === 'number') {
+            var d = new Date(ts * 1000);  // 秒转毫秒
+        } else if (typeof ts === 'string') {
+            if (ts.match(/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/)) {
+                return ts;  // 直接返回字符串格式
+            }
+            var num = parseFloat(ts);
+            if (!isNaN(num)) {
+                d = new Date(num * 1000);
+            } else {
+                d = new Date(ts);
+            }
+        } else {
+            d = new Date(ts);
+        }
+        var year = d.getUTCFullYear();
+        var month = ('0' + (d.getUTCMonth() + 1)).slice(-2);
+        var day = ('0' + d.getUTCDate()).slice(-2);
+        var hour = ('0' + d.getUTCHours()).slice(-2);
+        var minute = ('0' + d.getUTCMinutes()).slice(-2);
+        var second = ('0' + d.getUTCSeconds()).slice(-2);
+        return year + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second;
+    } catch (e) {
+        return ts;
+    }
+}
+```
 
 ---
 
-## 🧪 测试
+### Q3: Dashboard 无法从公网访问？
 
-### 单元测试
+**问题现象：**
+- 本地访问正常（http://127.0.0.1:8765）
+- 公网访问拒绝连接（http://49.232.250.180:8765）
+
+**解决方案：**
+
+1. **检查 Dashboard 监听地址**
+```bash
+netstat -tlnp | grep 8765
+# 应该显示：0.0.0.0:8765 而非 127.0.0.1:8765
+```
+
+2. **重启 Dashboard**
+```bash
+pkill -f "python3 server.py"
+cd /root/lingxi-ai-latest/dashboard/v3 && python3 server.py > /tmp/dashboard.log 2>&1 &
+```
+
+3. **检查防火墙/安全组**
+- 云服务器控制台开放 8765 端口
+- 系统防火墙：`ufw allow 8765` 或 `firewall-cmd --add-port=8765/tcp`
+
+---
+
+### Q4: 如何添加 POST /api/tasks 接口？
+
+**问题背景：**
+Dashboard 默认只有 GET 接口，灵犀需要 POST 接口记录任务。
+
+**解决方案：**
+
+在 `/root/lingxi-ai-latest/dashboard/v3/server.py` 添加：
+
+```python
+import time
+
+@app.post("/api/tasks")
+async def create_task(task_data: dict, token: str = ""):
+    """创建/记录任务"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    import sqlite3
+    db_path = LINGXI_AI_DIR / "data" / "dashboard_v3.db"
+    
+    try:
+        conn = sqlite3.connect(str(db_path))
+        cursor = conn.cursor()
+        
+        now = time.time()
+        task_id = task_data.get("id", f"task_{int(now)}")
+        
+        cursor.execute("""
+            INSERT OR REPLACE INTO tasks (
+                id, user_id, channel, user_input, status, task_type, 
+                created_at, updated_at, completed_at, skill_name, llm_model, 
+                response_time_ms, llm_tokens_in, llm_tokens_out, final_output
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, [
+            task_id,
+            task_data.get("user_id", "unknown"),
+            task_data.get("channel", "unknown"),
+            task_data.get("user_input", "")[:500],
+            task_data.get("status", "completed"),
+            task_data.get("task_type", "realtime"),
+            task_data.get("created_at", now),
+            now,  # updated_at
+            task_data.get("completed_at", now),
+            task_data.get("skill_name", ""),
+            task_data.get("llm_model", ""),
+            task_data.get("response_time_ms", 0),
+            task_data.get("llm_tokens_in", 0),
+            task_data.get("llm_tokens_out", 0),
+            task_data.get("final_output", "")[:1000]
+        ])
+        
+        conn.commit()
+        conn.close()
+        
+        return {"ok": True, "id": task_id}
+    except Exception as e:
+        print(f"创建任务失败：{e}")
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+---
+
+### Q5: 如何修改时区显示为 Asia/Beijing？
+
+**解决方案：**
+
+修改 `/root/lingxi-ai-latest/dashboard/v3/index.html`：
+
+```javascript
+// 时钟显示
+function updateClock() {
+    var now = new Date();
+    var tz = 'Asia/Beijing';  // 改为 Beijing
+    var timeStr = now.toLocaleTimeString('zh-CN', {hour12: false});
+    var dateStr = now.toLocaleDateString('zh-CN');
+    var el = document.getElementById('clockDisplay');
+    if (el) {
+        el.innerHTML = tz + ' ' + dateStr + ' ' + timeStr;
+    }
+}
+
+// 默认时区
+function initTheme() {
+    var saved = localStorage.getItem('lingxi-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('themeSelect').value = saved;
+    var tzSaved = localStorage.getItem('lingxi-timezone') || 'Asia/Beijing';  // 改为 Beijing
+    document.getElementById('timezoneSelect').value = tzSaved;
+}
+```
+
+---
+
+## 📈 性能监控
+
+### 查看任务统计
 
 ```bash
-cd core/mindcore
-python3 tests.py
+python3 -c "
+import sqlite3
+conn = sqlite3.connect('/root/lingxi-ai-latest/data/dashboard_v3.db')
+cur = conn.cursor()
+cur.execute('SELECT COUNT(*) FROM tasks')
+print('总任务数:', cur.fetchone()[0])
+cur.execute('SELECT channel, COUNT(*) FROM tasks GROUP BY channel')
+print('按渠道统计:', cur.fetchall())
+cur.execute('SELECT datetime(created_at, \"unixepoch\", \"localtime\") FROM tasks ORDER BY created_at DESC LIMIT 1')
+print('最新任务:', cur.fetchone()[0])
+"
 ```
 
-### 集成测试
+### 查看 Dashboard 日志
 
 ```bash
-python3 tests/integration_test.py
+tail -f /tmp/dashboard.log
 ```
 
-**测试结果：**
-```
-MindCore: ✅ PASS
-EvoMind: ✅ PASS
-SmartFetch: ✅ PASS
-Multi-Agent: ✅ PASS
-Orchestrator: ✅ PASS
-
-总计：5/5 通过
-```
-
----
-
-## 📁 项目结构
-
-```
-lingxi-ai/
-├── core/
-│   ├── mindcore/           # 记忆核心
-│   ├── evomind/            # 自改进
-│   ├── smartfetch/         # 智能抓取
-│   ├── agents/             # Multi-Agent
-│   ├── orchestrator/       # 任务分发
-│   └── ...
-├── dashboard/
-│   ├── pages/              # Dashboard 页面
-│   ├── server.py           # FastAPI 服务
-│   └── remote_access.py    # 远程访问
-├── tests/
-│   └── integration_test.py # 集成测试
-├── scripts/                # 脚本工具
-├── docs/                   # 文档
-├── README.md               # 本文档
-└── RELEASE_v3.3.3.md       # 发布说明
-```
-
----
-
-## 🔧 配置说明
-
-### 环境变量
+### 查看 OpenClaw 日志
 
 ```bash
-# 必需
-export QWEN_API_KEY="your_api_key"
-
-# 可选
-export PERPLEXITY_API_KEY="your_api_key"  # 搜索
-export NGROK_AUTH_TOKEN="your_token"      # 远程访问
+tail -f /tmp/openclaw/openclaw-$(date +%Y-%m-%d).log
 ```
-
-### 配置文件
-
-**位置：** `~/.openclaw/workspace/.lingxi/`
-
-- `improvement_config.json` - EvoMind 配置
-- `remote_access.json` - 远程访问配置
-- `cookie_pool.json` - Cookie 池配置
 
 ---
 
-## ⚠️ 安全提示
+## 🔐 安全建议
 
-### 敏感信息
+1. **Token 保护**
+   - Token 文件权限：`chmod 600 ~/.openclaw/workspace/.lingxi/dashboard_token.txt`
+   - 不要在代码中硬编码 Token
 
-**不要提交到 Git：**
-- API 密钥
-- 公网 IP 地址
-- 访问令牌
-- Cookie 池数据
+2. **防火墙配置**
+   - 仅开放必要端口（8765）
+   - 使用安全组限制访问 IP
 
-**已添加到 `.gitignore`：**
-```
-*.db
-*.json
-.env
-__pycache__/
-*.pyc
-```
-
-### 公网访问
-
-启用远程访问时，请确保：
-1. 使用强认证令牌
-2. 设置合理的有效期
-3. 定期更换令牌
-4. 限制访问 IP（如支持）
+3. **定期备份**
+   ```bash
+   cp /root/lingxi-ai-latest/data/dashboard_v3.db /backup/dashboard_v3_$(date +%Y%m%d).db
+   ```
 
 ---
 
 ## 📝 更新日志
 
-### v3.3.3 (2026-03-11)
+### v3.3.6 (2026-03-13)
 
-**新增：**
-- ✅ MindCore 记忆核心系统 - 记住你的养殖经验
-- ✅ EvoMind 自改进系统 - 越用越聪明
-- ✅ SmartFetch 智能抓取 - 自动学习养殖知识
-- ✅ Multi-Agent 架构 - 多渠道支持
-- ✅ Dashboard 可视化 - 一眼看清龙虾状态
-- ✅ 远程访问 - 出门也能查看
+**新增功能：**
+- ✅ Dashboard v3 MemOS 风格界面
+- ✅ 7 大功能模块完整实现
+- ✅ 支持 191 条 Layer0 规则管理
+- ✅ 记忆/任务/技能 CRUD 操作
+- ✅ 数据分析/Token 消耗统计
 
-**优化：**
-- ✅ 响应时间 -68%
-- ✅ 并发能力 +10x
-- ✅ 知识检索 +50%
-- ✅ Token 消耗 -70%
+**Bug 修复：**
+- ✅ 修复任务列表时间显示错误（秒级→毫秒级转换）
+- ✅ 修复 Dashboard 客户端 httpx 模块缺失
+- ✅ 添加 POST /api/tasks 接口
+- ✅ 修复时区显示（Asia/Shanghai → Asia/Beijing）
 
-**新手友好：**
-- ✅ 简化配置流程
-- ✅ 详细文档说明
-- ✅ 示例代码丰富
+**性能优化：**
+- ✅ 快速响应层 <5ms
+- ✅ LRU 缓存命中率提升
+- ✅ 并行执行复杂任务
 
 ---
 
-## 🙏 致谢
+## 🤝 贡献指南
 
-感谢以下开源项目和技能的启发与支持：
+欢迎提交 Issue 和 Pull Request！
 
-**OpenClaw 生态：**
-- [OpenClaw](https://github.com/openclaw/openclaw) - 基础框架
-- [Self-Improving](https://github.com/openclaw/self-improving) - 自改进机制
-- [MemOS](https://github.com/memtensor/memos-lite-openclaw-plugin) - 记忆系统
-- [Find Skills](https://github.com/openclaw/find-skills) - 技能发现
+### 开发环境设置
 
-**AI 模型：**
-- [Qwen](https://github.com/QwenLM/Qwen) - 通义千问大模型
-- [Scrapling](https://github.com/D4Vinci/Scrapling) - 智能网页抓取
+```bash
+# 克隆仓库
+git clone https://github.com/YOUR_USERNAME/lingxi-ai-latest.git
+cd lingxi-ai-latest
 
-**Dashboard：**
-- [FastAPI](https://github.com/tiangolo/fastapi) - API 框架
-- [Chart.js](https://github.com/chartjs/Chart.js) - 图表库
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate
 
-感谢所有参与开发和测试的开发者！
+# 安装依赖
+pip install -r requirements.txt
+```
 
 ---
 
 ## 📞 联系方式
 
-- **GitHub:** https://github.com/AI-Scarlett/lingxi-ai
-- **文档：** 查看 `docs/` 目录
+- **作者：** Scarlett (斯嘉丽)
+- **邮箱：** scarlett@example.com
+- **GitHub:** https://github.com/YOUR_USERNAME/lingxi-ai-latest
 
 ---
 
@@ -369,4 +481,4 @@ MIT License
 
 ---
 
-**灵犀 v3.3.3 - 养龙虾的最佳助手，新手小白也能轻松上手！** 🦞✨
+*心有灵犀，一点就通* 🦞✨

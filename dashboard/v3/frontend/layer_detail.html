@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layer0-3 边缘部署 - 灵犀 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; padding: 10px 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-decoration: none; color: #333; }
+        .back-btn:hover { background: #f8f9fa; }
+        
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 20px; color: #333; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; }
+        
+        .layer-stack { display: flex; flex-direction: column; gap: 15px; }
+        .layer-item { padding: 20px; border-radius: 10px; border: 2px solid #e0e0e0; position: relative; }
+        .layer-item.active { border-color: #10b981; background: #f0fdf4; }
+        .layer-item.disabled { opacity: 0.6; border-color: #ccc; }
+        
+        .layer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .layer-name { font-size: 20px; font-weight: bold; color: #333; }
+        .layer-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-edge { background: #fef3c7; color: #92400e; }
+        .badge-fast { background: #dbeafe; color: #1e40af; }
+        .badge-standard { background: #e0e7ff; color: #3730a3; }
+        .badge-deep { background: #ede9fe; color: #5b21b6; }
+        
+        .layer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .layer-info { padding: 12px; background: white; border-radius: 8px; }
+        .layer-info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .layer-info-value { font-size: 15px; color: #333; font-weight: 500; }
+        
+        .edit-btn { padding: 6px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .edit-btn:hover { background: #5568d3; }
+        
+        .skills-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .skill-tag { padding: 4px 12px; background: #e9ecef; border-radius: 12px; font-size: 12px; color: #495057; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 20px; font-weight: bold; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; font-weight: 500; color: #333; }
+        .form-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .form-select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .form-checkbox { display: flex; align-items: center; gap: 8px; }
+        
+        .save-btn { padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .save-btn:hover { background: #059669; }
+        
+        .loading { text-align: center; padding: 60px; color: #666; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/?token=1e4c2a9af43cd7001d00ce08b1a16d1a3d32b9de7d0e08ae4b" class="back-btn">← 返回列表</a>
+            <h1>⚙️ Layer0-3 边缘部署</h1>
+        </div>
+        
+        <div id="content" class="loading"><div class="spinner"></div>加载中...</div>
+    </div>
+    
+    <!-- 编辑弹窗 -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">编辑 Layer 配置</div>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="editForm" onsubmit="saveConfig(event)">
+                <input type="hidden" id="editLayerName">
+                <div id="editFields"></div>
+                <div style="margin-top:20px;text-align:right">
+                    <button type="button" onclick="closeModal()" style="padding:10px 20px;margin-right:10px;background:#6c757d;color:white;border:none;border-radius:6px;cursor:pointer">取消</button>
+                    <button type="submit" class="save-btn">💾 保存配置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const formatTime = ts => { if (!ts) return '-'; const d = new Date(ts * 1000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); };
+        let currentConfig = null;
+        
+        async function loadLayerConfig() {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const r = await fetch('/api/layers/config' + (token ? '?token=' + token : ''));
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        async function loadLayerSkills() {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const r = await fetch('/api/layers/skills' + (token ? '?token=' + token : ''));
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        function renderLayerConfig(config, skills) {
+            currentConfig = config;
+            
+            const layerInfo = {
+                'Layer0': { badge: 'edge', name: '边缘响应层', desc: '最快响应，简单规则匹配' },
+                'Layer1': { badge: 'fast', name: '快速响应层', desc: '轻量级模型，快速推理' },
+                'Layer2': { badge: 'standard', name: '标准响应层', desc: '标准模型，平衡质量和速度' },
+                'Layer3': { badge: 'deep', name: '深度思考层', desc: '最强模型，复杂任务处理' }
+            };
+            
+            return `
+                <div class="card">
+                    <h3>四层反应机制配置</h3>
+                    <div class="layer-stack">
+                        ${Object.entries(config.layers).map(([key, layer]) => {
+                            const info = layerInfo[key];
+                            return `
+                                <div class="layer-item ${layer.enabled ? 'active' : 'disabled'}">
+                                    <div class="layer-header">
+                                        <div>
+                                            <div class="layer-name">${key} - ${info.name}</div>
+                                            <div style="color:#666;font-size:14px;margin-top:5px">${info.desc}</div>
+                                        </div>
+                                        <div style="display:flex;gap:10px;align-items:center">
+                                            <span class="layer-badge badge-${info.badge}">${key}</span>
+                                            <span style="color:${layer.enabled ? '#10b981' : '#dc3545'};font-size:14px">
+                                                ${layer.enabled ? '✅ 已启用' : '❌ 已禁用'}
+                                            </span>
+                                            <button class="edit-btn" onclick="editLayer('${key}')">✏️ 编辑</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="layer-grid">
+                                        ${layer.model ? `
+                                            <div class="layer-info">
+                                                <div class="layer-info-label">模型</div>
+                                                <div class="layer-info-value">${layer.model}</div>
+                                            </div>
+                                        ` : ''}
+                                        ${layer.response_time_ms ? `
+                                            <div class="layer-info">
+                                                <div class="layer-info-label">响应时间</div>
+                                                <div class="layer-info-value">${layer.response_time_ms}ms</div>
+                                            </div>
+                                        ` : ''}
+                                        ${layer.max_tokens ? `
+                                            <div class="layer-info">
+                                                <div class="layer-info-label">最大 Token</div>
+                                                <div class="layer-info-value">${layer.max_tokens}</div>
+                                            </div>
+                                        ` : ''}
+                                        ${layer.thinking_enabled !== undefined ? `
+                                            <div class="layer-info">
+                                                <div class="layer-info-label">深度思考</div>
+                                                <div class="layer-info-value">${layer.thinking_enabled ? '✅' : '❌'}</div>
+                                            </div>
+                                        ` : ''}
+                                        ${layer.skills ? `
+                                            <div class="layer-info" style="grid-column: span 2">
+                                                <div class="layer-info-label">技能</div>
+                                                <div class="skills-list">
+                                                    ${layer.skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>路由策略</h3>
+                    <div class="layer-grid">
+                        <div class="layer-info">
+                            <div class="layer-info-label">策略</div>
+                            <div class="layer-info-value">${config.routing.strategy}</div>
+                        </div>
+                        <div class="layer-info">
+                            <div class="layer-info-label">降级保护</div>
+                            <div class="layer-info-value">${config.routing.fallback_enabled ? '✅ 已启用' : '❌ 已禁用'}</div>
+                        </div>
+                        <div class="layer-info">
+                            <div class="layer-info-label">超时时间</div>
+                            <div class="layer-info-value">${config.routing.timeout_seconds}秒</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Layer0 技能列表</h3>
+                    <div class="skills-list">
+                        ${skills.skills.map(s => `
+                            <span class="skill-tag" style="background:#d4edda;color:#155724">
+                                ${s.name} ${s.enabled ? '✅' : '❌'}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function editLayer(layerName) {
+            const layer = currentConfig.layers[layerName];
+            document.getElementById('editLayerName').value = layerName;
+            
+            const fields = `
+                <div class="form-group">
+                    <label class="form-label">启用状态</label>
+                    <div class="form-checkbox">
+                        <input type="checkbox" id="editEnabled" ${layer.enabled ? 'checked' : ''}>
+                        <span>启用此 Layer</span>
+                    </div>
+                </div>
+                
+                ${layer.model ? `
+                    <div class="form-group">
+                        <label class="form-label">模型</label>
+                        <input type="text" class="form-input" id="editModel" value="${layer.model}">
+                    </div>
+                ` : ''}
+                
+                ${layer.response_time_ms ? `
+                    <div class="form-group">
+                        <label class="form-label">响应时间 (ms)</label>
+                        <input type="number" class="form-input" id="editResponseTime" value="${layer.response_time_ms}">
+                    </div>
+                ` : ''}
+                
+                ${layer.max_tokens ? `
+                    <div class="form-group">
+                        <label class="form-label">最大 Token</label>
+                        <input type="number" class="form-input" id="editMaxTokens" value="${layer.max_tokens}">
+                    </div>
+                ` : ''}
+                
+                ${layer.thinking_enabled !== undefined ? `
+                    <div class="form-group">
+                        <label class="form-label">深度思考</label>
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="editThinking" ${layer.thinking_enabled ? 'checked' : ''}>
+                            <span>启用深度思考模式</span>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('editFields').innerHTML = fields;
+            document.getElementById('editModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+        
+        async function saveConfig(event) {
+            event.preventDefault();
+            
+            const layerName = document.getElementById('editLayerName').value;
+            const config = {
+                enabled: document.getElementById('editEnabled').checked,
+                model: document.getElementById('editModel')?.value,
+                response_time_ms: document.getElementById('editResponseTime')?.value,
+                max_tokens: document.getElementById('editMaxTokens')?.value,
+                thinking_enabled: document.getElementById('editThinking')?.checked
+            };
+            
+            // 清理空值
+            Object.keys(config).forEach(key => {
+                if (config[key] === undefined || config[key] === '') delete config[key];
+            });
+            
+            try {
+                const token = new URLSearchParams(window.location.search).get('token') || '';
+                const r = await fetch(`/api/layers/config/${layerName}?token=${token}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await r.json();
+                if (result.success) {
+                    alert('配置已保存！需要重启 Dashboard 生效。');
+                    closeModal();
+                    init(); // 重新加载
+                } else {
+                    alert('保存失败：' + result.message);
+                }
+            } catch (e) {
+                alert('保存失败：' + e.message);
+            }
+        }
+        
+        async function init() {
+            try {
+                const [config, skills] = await Promise.all([loadLayerConfig(), loadLayerSkills()]);
+                document.getElementById('content').innerHTML = renderLayerConfig(config, skills);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 加载失败：' + e.message + '</div>';
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

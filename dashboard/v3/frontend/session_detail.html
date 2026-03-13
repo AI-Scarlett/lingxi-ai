@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会话详情 - 灵犀 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; padding: 10px 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-decoration: none; color: #333; }
+        .back-btn:hover { background: #f8f9fa; }
+        
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 20px; color: #333; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; }
+        
+        .status-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-completed { background: #d1ecf1; color: #0c5460; }
+        .status-archived { background: #e9ecef; color: #495057; }
+        
+        .message-item { padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px; }
+        .message-user { background: #e7f3ff; border-left: 4px solid #2196f3; }
+        .message-assistant { background: #f0f7ff; border-left: 4px solid #667eea; }
+        .message-role { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+        .message-content { font-size: 14px; line-height: 1.6; color: #333; white-space: pre-wrap; }
+        .message-meta { font-size: 12px; color: #999; margin-top: 10px; }
+        
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        
+        .info-box { padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .info-value { font-size: 15px; color: #333; font-weight: 500; }
+        
+        .stat-box { padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 13px; opacity: 0.9; }
+        
+        .tool-call-item { padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #667eea; }
+        .tool-name { font-weight: 600; color: #667eea; }
+        .tool-result { font-size: 13px; color: #666; margin-top: 5px; font-family: monospace; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #333; }
+        tr:hover { background: #f8f9fa; }
+        
+        .loading { text-align: center; padding: 60px; color: #666; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+        .filter-btn { padding: 6px 14px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .filter-btn.active { background: #667eea; color: white; border-color: #667eea; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="javascript:history.back()" class="back-btn">← 返回列表</a>
+            <h1>会话详情</h1>
+        </div>
+        <div id="content" class="loading"><div class="spinner"></div>加载中...</div>
+    </div>
+
+    <script>
+        const formatTime = ts => { if (!ts) return '-'; const d = new Date(ts * 1000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); };
+        const formatDuration = s => {
+            if (!s) return '-';
+            if (s < 60) return s.toFixed(0) + '秒';
+            if (s < 3600) return (s/60).toFixed(1) + '分钟';
+            return (s/3600).toFixed(1) + '小时';
+        };
+        
+        async function loadSessionDetail(id) {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const tokenParam = token ? '&token=' + token : '';
+            const r = await fetch('/api/sessions/' + id + '?include_messages=true&message_limit=50' + tokenParam);
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        async function loadSessionTools(id) {
+            try {
+                const r = await fetch('/api/sessions/' + id + '/tools');
+                if (r.ok) return await r.json();
+            } catch(e) {}
+            return {tool_calls: []};
+        }
+        
+        function renderSession(session) {
+            const statusClass = session.status === 'active' ? 'active' : (session.status === 'completed' ? 'completed' : 'archived');
+            
+            const messagesHtml = session.messages && session.messages.length > 0 ?
+                session.messages.map((msg, i) => `
+                    <div class="message-item message-${msg.role}">
+                        <div class="message-role">${msg.role === 'user' ? '👤 用户' : '🤖 助手'} ${msg.role !== 'user' && msg.tool_calls ? ' <span style="color:#667eea;font-size:12px">使用了工具</span>' : ''}</div>
+                        <div class="message-content">${msg.content || '(无内容)'}</div>
+                        <div class="message-meta">${formatTime(msg.timestamp)}</div>
+                    </div>
+                `).join('') : '<p style="color:#999">暂无消息</p>';
+            
+            const toolsHtml = session.tool_calls && session.tool_calls.length > 0 ?
+                session.tool_calls.map(tool => `
+                    <div class="tool-call-item">
+                        <div class="tool-name">🔧 ${tool.tool || tool.name || 'Unknown'}</div>
+                        <div style="font-size:12px;color:#999">${formatTime(tool.timestamp)}</div>
+                        ${tool.result ? `<div class="tool-result">${tool.result.substring(0,200)}${tool.result.length>200?'...':''}</div>` : ''}
+                        ${tool.success === false ? '<div style="color:#dc3545;font-size:12px;margin-top:5px">❌ 调用失败</div>' : ''}
+                    </div>
+                `).join('') : '<p style="color:#999">暂无工具调用</p>';
+            
+            return `
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
+                        <div>
+                            <h2 style="margin-bottom:10px">会话 #${session.id.substring(0,12)}</h2>
+                            <div style="color:#666">${session.label || '无标签'}</div>
+                        </div>
+                        <span class="status-badge status-${statusClass}">${session.status}</span>
+                    </div>
+                    
+                    <div class="grid-4">
+                        <div class="info-box"><div class="info-label">用户 ID</div><div class="info-value">${session.user_id}</div></div>
+                        <div class="info-box"><div class="info-label">Agent</div><div class="info-value">${session.agent_id}</div></div>
+                        <div class="info-box"><div class="info-label">渠道</div><div class="info-value">${session.channel}</div></div>
+                        <div class="info-box"><div class="info-label">模型</div><div class="info-value">${session.model}</div></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>会话统计</h3>
+                    <div class="grid-4">
+                        <div class="stat-box"><div class="stat-value">${session.stats?.total_messages||0}</div><div class="stat-label">消息总数</div></div>
+                        <div class="stat-box"><div class="stat-value">${session.stats?.tool_calls||0}</div><div class="stat-label">工具调用</div></div>
+                        <div class="stat-box"><div class="stat-value">${session.stats?.total_tokens||0}</div><div class="stat-label">Token 总量</div></div>
+                        <div class="stat-box"><div class="stat-value">¥${(session.stats?.total_cost||0).toFixed(4)}</div><div class="stat-label">成本</div></div>
+                    </div>
+                    <div class="grid-4" style="margin-top:15px">
+                        <div class="info-box"><div class="info-label">用户消息</div><div class="info-value">${session.stats?.user_messages||0}</div></div>
+                        <div class="info-box"><div class="info-label">助手消息</div><div class="info-value">${session.stats?.assistant_messages||0}</div></div>
+                        <div class="info-box"><div class="info-label">持续时间</div><div class="info-value">${formatDuration(session.stats?.duration_seconds)}</div></div>
+                        <div class="info-box"><div class="info-label">平均响应</div><div class="info-value">${(session.stats?.avg_response_time_ms||0).toFixed(0)}ms</div></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>工具调用 (${session.tool_calls?.length||0})</h3>
+                    ${toolsHtml}
+                </div>
+                
+                <div class="card">
+                    <h3>消息历史 (${session.messages?.length||0})</h3>
+                    <div class="filter-bar">
+                        <button class="filter-btn active" onclick="filterMessages('all')">全部</button>
+                        <button class="filter-btn" onclick="filterMessages('user')">用户</button>
+                        <button class="filter-btn" onclick="filterMessages('assistant')">助手</button>
+                    </div>
+                    <div id="messages">${messagesHtml}</div>
+                </div>
+                
+                ${session.sub_sessions && session.sub_sessions.length > 0 ? `
+                <div class="card">
+                    <h3>关联会话 (${session.sub_sessions.length})</h3>
+                    <div>${session.sub_sessions.map(s => `<span class="tool-tag">${s.substring(0,12)}...</span>`).join('')}</div>
+                </div>
+                ` : ''}
+            `;
+        }
+        
+        function filterMessages(role) {
+            // 简单实现：实际应该重新渲染
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        async function init() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            
+            if (!id) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 缺少会话 ID 参数</div>';
+                return;
+            }
+            
+            try {
+                const [session, toolsData] = await Promise.all([loadSessionDetail(id), loadSessionTools(id)]);
+                if (toolsData.tool_calls) session.tool_calls = toolsData.tool_calls;
+                document.getElementById('content').innerHTML = renderSession(session);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 加载失败：' + e.message + '</div>';
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

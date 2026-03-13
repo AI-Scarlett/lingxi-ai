@@ -42,6 +42,7 @@ class DashboardClient:
             with httpx.Client(timeout=5.0) as client:
                 response = client.post(
                     f"{self.base_url}/api/tasks",
+                    params={"token": self.token},
                     json=task_data
                 )
                 return response.status_code == 200

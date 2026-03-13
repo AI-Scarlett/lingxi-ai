@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layer0 响应规则管理 - 灵犀 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1600px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; padding: 10px 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-decoration: none; color: #333; }
+        .back-btn:hover { background: #f8f9fa; }
+        
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 20px; color: #333; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { padding: 15px; border-radius: 10px; text-align: center; color: white; }
+        .stat-total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-enabled { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .stat-disabled { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); }
+        
+        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 13px; opacity: 0.9; }
+        
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .filter-btn { padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .filter-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        .search-input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-width: 250px; }
+        .select-input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        
+        .rules-list { display: grid; gap: 15px; }
+        .rule-item { padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea; transition: all 0.3s; }
+        .rule-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateX(5px); }
+        .rule-item.disabled { opacity: 0.6; border-left-color: #ccc; background: #f0f0f0; }
+        
+        .rule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .rule-id { font-size: 12px; color: #999; font-family: monospace; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
+        .rule-category { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .cat-写作 { background: #f093fb; color: white; }
+        .cat-搜索 { background: #4facfe; color: white; }
+        .cat-图像 { background: #43e97b; color: white; }
+        .cat-发布 { background: #fa709a; color: white; }
+        .cat-问候 { background: #fee140; color: #333; }
+        .cat-工具 { background: #a8edea; color: #333; }
+        .cat-其他 { background: #e9ecef; color: #495057; }
+        
+        .rule-patterns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .pattern-tag { padding: 4px 10px; background: #667eea; color: white; border-radius: 12px; font-size: 12px; }
+        
+        .rule-response { font-size: 15px; color: #333; line-height: 1.6; padding: 12px; background: white; border-radius: 6px; margin-bottom: 12px; max-height: 100px; overflow-y: auto; }
+        
+        .rule-actions { display: flex; gap: 8px; }
+        .action-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-edit { background: #667eea; color: white; }
+        .btn-toggle { background: #ffc107; color: #000; }
+        .btn-delete { background: #dc3545; color: white; }
+        
+        .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; align-items: center; }
+        .page-btn { padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-info { color: #666; font-size: 14px; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 20px; font-weight: bold; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; font-weight: 500; color: #333; }
+        .form-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .form-textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-height: 100px; resize: vertical; }
+        .form-help { font-size: 12px; color: #666; margin-top: 5px; }
+        .form-checkbox { display: flex; align-items: center; gap: 8px; }
+        
+        .loading { text-align: center; padding: 60px; color: #666; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .btn-add { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-add:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/?token=TOKEN_PLACEHOLDER" class="back-btn">← 返回主页</a>
+            <h1>⚙️ Layer0 响应规则管理</h1>
+            <button class="btn-add" onclick="showAddModal()">➕ 新增规则</button>
+        </div>
+        
+        <div id="content" class="loading"><div class="spinner"></div>加载中...</div>
+    </div>
+    
+    <!-- 编辑弹窗 -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">编辑响应规则</div>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="editForm" onsubmit="saveRule(event)">
+                <input type="hidden" id="editRuleId">
+                
+                <div class="form-group">
+                    <label class="form-label">触发词（patterns）</label>
+                    <textarea class="form-textarea" id="editPatterns" placeholder="每行一个触发词"></textarea>
+                    <div class="form-help">用户输入匹配任一触发词时，会触发此响应</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">响应内容（response）</label>
+                    <textarea class="form-textarea" id="editResponse" placeholder="响应内容" style="min-height:80px"></textarea>
+                    <div class="form-help">支持 emoji 表情</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">分类</label>
+                    <select class="form-input" id="editCategory">
+                        <option value="写作">写作</option>
+                        <option value="搜索">搜索</option>
+                        <option value="图像">图像</option>
+                        <option value="发布">发布</option>
+                        <option value="问候">问候</option>
+                        <option value="工具">工具</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">优先级（1-10）</label>
+                    <input type="number" class="form-input" id="editPriority" min="1" max="10" value="8">
+                    <div class="form-help">数字越大优先级越高，优先匹配</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">状态</label>
+                    <div class="form-checkbox">
+                        <input type="checkbox" id="editEnabled" checked>
+                        <span>启用此规则</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top:20px;text-align:right">
+                    <button type="button" onclick="closeModal()" style="padding:10px 20px;margin-right:10px;background:#6c757d;color:white;border:none;border-radius:6px;cursor:pointer">取消</button>
+                    <button type="submit" class="action-btn btn-edit">💾 保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+        let currentPage = 1;
+        const pageSize = 20;
+        let currentFilter = { category: '', search: '', enabled_only: false, disabled_only: false };
+        
+        async function loadStats() {
+            const r = await fetch('/api/layer0/stats?token=' + TOKEN);
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        async function loadRules(page = 1) {
+            let url = `/api/layer0/rules?token=${TOKEN}&limit=${pageSize}&offset=${(page - 1) * pageSize}`;
+            if (currentFilter.category) url += '&category=' + currentFilter.category;
+            if (currentFilter.search) url += '&search=' + encodeURIComponent(currentFilter.search);
+            if (currentFilter.enabled_only) url += '&enabled_only=true';
+            if (currentFilter.disabled_only) url += '&disabled_only=true';
+            
+            const r = await fetch(url);
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        function renderStats(stats) {
+            return `
+                <div class="card">
+                    <h3>规则统计</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card stat-total">
+                            <div class="stat-value">${stats.total}</div>
+                            <div class="stat-label">总规则数</div>
+                        </div>
+                        <div class="stat-card stat-enabled">
+                            <div class="stat-value">${stats.enabled}</div>
+                            <div class="stat-label">已启用</div>
+                        </div>
+                        <div class="stat-card stat-disabled">
+                            <div class="stat-value">${stats.disabled}</div>
+                            <div class="stat-label">已禁用</div>
+                        </div>
+                    </div>
+                    <div style="background:#e7f3ff;padding:15px;border-radius:8px;margin-top:15px">
+                        <strong>ℹ️ 说明:</strong> 共管理 ${stats.total} 条 Layer0 响应规则。您可以编辑、新增、删除、启用/禁用任何规则。修改后需要重启 Dashboard 生效。
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>规则管理</h3>
+                    <div class="filter-bar">
+                        <button class="filter-btn active" onclick="filterRules('')">全部</button>
+                        <button class="filter-btn" onclick="filterRules('写作')">写作</button>
+                        <button class="filter-btn" onclick="filterRules('搜索')">搜索</button>
+                        <button class="filter-btn" onclick="filterRules('图像')">图像</button>
+                        <button class="filter-btn" onclick="filterRules('问候')">问候</button>
+                        <button class="filter-btn" onclick="filterRules('工具')">工具</button>
+                        <button class="filter-btn" onclick="filterByStatus('enabled')">已启用</button>
+                        <button class="filter-btn" onclick="filterByStatus('disabled')">已禁用</button>
+                        <input type="text" class="search-input" id="searchInput" placeholder="搜索触发词或响应内容..." onkeyup="searchRules()">
+                    </div>
+                    <div id="rules-list" class="rules-list"></div>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            `;
+        }
+        
+        function renderRules(data) {
+            if (!data.rules || data.rules.length === 0) {
+                return '<p style="color:#999;text-align:center;padding:40px">暂无规则</p>';
+            }
+            
+            return data.rules.map(r => `
+                <div class="rule-item ${!r.enabled ? 'disabled' : ''}">
+                    <div class="rule-header">
+                        <div>
+                            <span class="rule-id">${r.id}</span>
+                            <span class="rule-category cat-${r.category}">${r.category}</span>
+                        </div>
+                        <div>
+                            <span style="color:#666;margin-right:10px">优先级：${r.priority}</span>
+                            <span style="color:${r.enabled ? '#28a745' : '#dc3545'}">${r.enabled ? '✅ 启用' : '❌ 禁用'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="rule-patterns">
+                        ${r.patterns.slice(0, 10).map(p => `<span class="pattern-tag">${p}</span>`).join('')}
+                        ${r.patterns.length > 10 ? `<span class="pattern-tag" style="background:#6c757d">+${r.patterns.length - 10} 更多</span>` : ''}
+                    </div>
+                    
+                    <div class="rule-response">${r.response}</div>
+                    
+                    <div class="rule-actions">
+                        <button class="action-btn btn-edit" onclick="editRule('${r.id}')">✏️ 编辑</button>
+                        <button class="action-btn btn-toggle" onclick="toggleRule('${r.id}')">${r.enabled ? '🚫 禁用' : '✅ 启用'}</button>
+                        <button class="action-btn btn-delete" onclick="deleteRule('${r.id}')">🗑️ 删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderPagination(data) {
+            const totalPages = Math.ceil(data.total / pageSize);
+            if (totalPages <= 1) return '';
+            
+            return `
+                <div class="pagination">
+                    <button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>
+                    <span class="page-info">第 ${currentPage} 页 / 共 ${totalPages} 页（${data.total} 条规则）</span>
+                    <button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>
+                </div>
+            `;
+        }
+        
+        async function filterRules(category) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            currentFilter.category = category;
+            currentFilter.enabled_only = false;
+            currentFilter.disabled_only = false;
+            currentPage = 1;
+            
+            await loadAndRender();
+        }
+        
+        async function filterByStatus(status) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            currentFilter.category = '';
+            currentFilter.enabled_only = (status === 'enabled');
+            currentFilter.disabled_only = (status === 'disabled');
+            currentPage = 1;
+            
+            await loadAndRender();
+        }
+        
+        async function searchRules() {
+            currentFilter.search = document.getElementById('searchInput').value;
+            currentPage = 1;
+            await loadAndRender();
+        }
+        
+        async function changePage(page) {
+            if (page < 1) return;
+            currentPage = page;
+            await loadAndRender();
+        }
+        
+        async function loadAndRender() {
+            try {
+                const [stats, rules] = await Promise.all([loadStats(), loadRules(currentPage)]);
+                document.getElementById('content').innerHTML = renderStats(stats);
+                document.getElementById('rules-list').innerHTML = renderRules(rules);
+                document.getElementById('pagination').innerHTML = renderPagination(rules);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 加载失败：' + e.message + '</div>';
+            }
+        }
+        
+        async function editRule(ruleId) {
+            const r = await fetch('/api/layer0/rules/' + ruleId + '?token=' + TOKEN);
+            const rule = await r.json();
+            
+            document.getElementById('editRuleId').value = rule.id;
+            document.getElementById('editPatterns').value = rule.patterns.join('\n');
+            document.getElementById('editResponse').value = rule.response;
+            document.getElementById('editCategory').value = rule.category;
+            document.getElementById('editPriority').value = rule.priority;
+            document.getElementById('editEnabled').checked = rule.enabled;
+            document.getElementById('modalTitle').textContent = '编辑响应规则';
+            
+            document.getElementById('editModal').classList.add('active');
+        }
+        
+        function showAddModal() {
+            document.getElementById('editRuleId').value = '';
+            document.getElementById('editPatterns').value = '';
+            document.getElementById('editResponse').value = '';
+            document.getElementById('editCategory').value = '其他';
+            document.getElementById('editPriority').value = '8';
+            document.getElementById('editEnabled').checked = true;
+            document.getElementById('modalTitle').textContent = '新增响应规则';
+            document.getElementById('editModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+        
+        async function saveRule(event) {
+            event.preventDefault();
+            
+            const ruleId = document.getElementById('editRuleId').value;
+            const ruleData = {
+                patterns: document.getElementById('editPatterns').value.split('\n').filter(p => p.trim()),
+                response: document.getElementById('editResponse').value,
+                category: document.getElementById('editCategory').value,
+                priority: parseInt(document.getElementById('editPriority').value),
+                enabled: document.getElementById('editEnabled').checked
+            };
+            
+            try {
+                const url = ruleId ? '/api/layer0/rules/' + ruleId + '?token=' + TOKEN : '/api/layer0/rules?token=' + TOKEN;
+                const method = ruleId ? 'PUT' : 'POST';
+                
+                const r = await fetch(url, {
+                    method: method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(ruleData)
+                });
+                
+                const result = await r.json();
+                if (result.success) {
+                    alert(ruleId ? '规则已更新！需要重启 Dashboard 生效。' : '规则已创建！需要重启 Dashboard 生效。');
+                    closeModal();
+                    loadAndRender();
+                } else {
+                    alert('操作失败：' + (result.message || '未知错误'));
+                }
+            } catch (e) {
+                alert('操作失败：' + e.message);
+            }
+        }
+        
+        async function toggleRule(ruleId) {
+            try {
+                const r = await fetch('/api/layer0/rules/' + ruleId + '/toggle?token=' + TOKEN, {method: 'POST'});
+                const result = await r.json();
+                if (result.success) {
+                    alert(result.message);
+                    loadAndRender();
+                } else {
+                    alert('操作失败：' + (result.message || '未知错误'));
+                }
+            } catch (e) {
+                alert('操作失败：' + e.message);
+            }
+        }
+        
+        async function deleteRule(ruleId) {
+            if (!confirm('确定要删除这条规则吗？此操作不可恢复！')) return;
+            
+            try {
+                const r = await fetch('/api/layer0/rules/' + ruleId + '?token=' + TOKEN, {method: 'DELETE'});
+                const result = await r.json();
+                if (result.success) {
+                    alert('规则已删除！需要重启 Dashboard 生效。');
+                    loadAndRender();
+                } else {
+                    alert('操作失败：' + (result.message || '未知错误'));
+                }
+            } catch (e) {
+                alert('操作失败：' + e.message);
+            }
+        }
+        
+        // 初始化
+        loadAndRender();
+    </script>
+</body>
+</html>

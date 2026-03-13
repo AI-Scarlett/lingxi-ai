@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EvoMind 自改进 - 灵犀 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; padding: 10px 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-decoration: none; color: #333; }
+        .back-btn:hover { background: #f8f9fa; }
+        
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 20px; color: #333; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { padding: 20px; border-radius: 10px; text-align: center; color: white; }
+        .stat-total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-approved { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .stat-pending { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .stat-implemented { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        
+        .stat-value { font-size: 36px; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 14px; opacity: 0.9; }
+        
+        .improvement-item { padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #667eea; }
+        .improvement-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .improvement-title { font-size: 18px; font-weight: 600; color: #333; }
+        .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .status-implemented { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-approved { background: #d1ecf1; color: #0c5460; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
+        
+        .improvement-desc { font-size: 14px; color: #666; margin-bottom: 10px; }
+        .improvement-meta { font-size: 12px; color: #999; display: flex; gap: 15px; }
+        .impact-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: #e9ecef; color: #495057; }
+        
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .filter-btn.active { background: #667eea; color: white; border-color: #667eea; }
+        
+        .loading { text-align: center; padding: 60px; color: #666; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; padding: 10px; background: white; border-radius: 6px; }
+        .metric-item { text-align: center; }
+        .metric-value { font-size: 18px; font-weight: bold; color: #667eea; }
+        .metric-label { font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/?token=1e4c2a9af43cd7001d00ce08b1a16d1a3d32b9de7d0e08ae4b" class="back-btn">← 返回列表</a>
+            <h1>🔄 EvoMind 自改进系统</h1>
+        </div>
+        
+        <div id="content" class="loading"><div class="spinner"></div>加载中...</div>
+    </div>
+
+    <script>
+        const formatTime = ts => { if (!ts) return '-'; const d = new Date(ts * 1000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); };
+        
+        async function loadEvoMindStats() {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const r = await fetch('/api/evomind/stats' + (token ? '?token=' + token : ''));
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        async function loadImprovements(status = 'all') {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const r = await fetch(`/api/evomind/improvements?status=${status}&token=${token}`);
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        function renderEvoMind(stats) {
+            return `
+                <div class="card">
+                    <h3>自改进统计</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card stat-total">
+                            <div class="stat-value">${stats.improvements.total_proposals}</div>
+                            <div class="stat-label">总提案数</div>
+                        </div>
+                        <div class="stat-card stat-approved">
+                            <div class="stat-value">${stats.improvements.approved}</div>
+                            <div class="stat-label">已批准</div>
+                        </div>
+                        <div class="stat-card stat-pending">
+                            <div class="stat-value">${stats.improvements.pending}</div>
+                            <div class="stat-label">待审核</div>
+                        </div>
+                        <div class="stat-card stat-implemented">
+                            <div class="stat-value">${stats.improvements.implemented}</div>
+                            <div class="stat-label">已实施</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin-top:15px">
+                        <strong>调度器状态:</strong> 
+                        ${stats.scheduler.enabled ? '✅ 运行中' : '❌ 已停止'} | 
+                        运行间隔：${stats.scheduler.interval_hours}小时 |
+                        上次运行：${formatTime(stats.scheduler.last_run)}
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>改进历史</h3>
+                    <div class="filter-bar">
+                        <button class="filter-btn active" onclick="filterImprovements('all')">全部</button>
+                        <button class="filter-btn" onclick="filterImprovements('implemented')">已实施</button>
+                        <button class="filter-btn" onclick="filterImprovements('pending')">待审核</button>
+                        <button class="filter-btn" onclick="filterImprovements('approved')">已批准</button>
+                        <button class="filter-btn" onclick="filterImprovements('rejected')">已拒绝</button>
+                    </div>
+                    <div id="improvements-list"></div>
+                </div>
+            `;
+        }
+        
+        function renderImprovements(improvements) {
+            if (!improvements || improvements.length === 0) {
+                return '<p style="color:#999;text-align:center;padding:40px">暂无改进记录</p>';
+            }
+            
+            return improvements.map(imp => `
+                <div class="improvement-item">
+                    <div class="improvement-header">
+                        <div class="improvement-title">${imp.title}</div>
+                        <span class="status-badge status-${imp.status}">${imp.status}</span>
+                    </div>
+                    <div class="improvement-desc">${imp.description}</div>
+                    <div class="improvement-meta">
+                        <span>📅 ${formatTime(imp.created_at)}</span>
+                        <span class="impact-badge">影响：${imp.impact}</span>
+                        ${imp.metrics && imp.metrics.token_saved_percent ? `
+                            <span class="impact-badge">节省 Token: ${imp.metrics.token_saved_percent}%</span>
+                        ` : ''}
+                        ${imp.metrics && imp.metrics.success_rate_improved ? `
+                            <span class="impact-badge">成功率提升：${imp.metrics.success_rate_improved}%</span>
+                        ` : ''}
+                    </div>
+                    ${imp.metrics && Object.keys(imp.metrics).length > 0 ? `
+                        <div class="metrics-grid">
+                            ${Object.entries(imp.metrics).map(([k, v]) => `
+                                <div class="metric-item">
+                                    <div class="metric-value">${typeof v === 'number' ? v.toFixed(1) : v}</div>
+                                    <div class="metric-label">${k.replace(/_/g, ' ')}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        async function filterImprovements(status) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            try {
+                const data = await loadImprovements(status);
+                document.getElementById('improvements-list').innerHTML = renderImprovements(data.improvements);
+            } catch (e) {
+                document.getElementById('improvements-list').innerHTML = '<p style="color:red">加载失败：' + e.message + '</p>';
+            }
+        }
+        
+        async function init() {
+            try {
+                const [stats, improvements] = await Promise.all([loadEvoMindStats(), loadImprovements('all')]);
+                document.getElementById('content').innerHTML = renderEvoMind(stats);
+                document.getElementById('improvements-list').innerHTML = renderImprovements(improvements.improvements);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 加载失败：' + e.message + '</div>';
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

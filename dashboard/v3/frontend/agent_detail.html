@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 详情 - 灵犀 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { display: inline-flex; align-items: center; padding: 10px 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-decoration: none; color: #333; }
+        .back-btn:hover { background: #f8f9fa; }
+        
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 20px; color: #333; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; }
+        
+        .health-status { display: inline-flex; align-items: center; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+        .health-healthy { background: #d4edda; color: #155724; }
+        .health-warning { background: #fff3cd; color: #856404; }
+        .health-error { background: #f8d7da; color: #721c24; }
+        .health-offline { background: #e9ecef; color: #495057; }
+        
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        
+        .info-box { padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .info-value { font-size: 15px; color: #333; font-weight: 500; }
+        
+        .stat-box { padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 13px; opacity: 0.9; }
+        
+        .capability-item { padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px; }
+        .capability-name { font-weight: 600; color: #333; margin-bottom: 5px; }
+        .capability-desc { font-size: 13px; color: #666; margin-bottom: 8px; }
+        .capability-tools { font-size: 12px; color: #667eea; }
+        
+        .tool-tag { display: inline-block; padding: 4px 10px; background: #e9ecef; border-radius: 6px; font-size: 12px; color: #495057; margin: 3px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #333; }
+        tr:hover { background: #f8f9fa; }
+        
+        .loading { text-align: center; padding: 60px; color: #666; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .session-item { padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px; }
+        .session-id { font-weight: 600; color: #333; }
+        .session-meta { font-size: 12px; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="javascript:history.back()" class="back-btn">← 返回列表</a>
+            <h1>Agent 详情</h1>
+        </div>
+        <div id="content" class="loading"><div class="spinner"></div>加载中...</div>
+    </div>
+
+    <script>
+        const formatTime = ts => { if (!ts) return '-'; const d = new Date(ts * 1000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); };
+        const formatDuration = s => {
+            if (!s) return '-';
+            if (s < 60) return s.toFixed(0) + '秒';
+            if (s < 3600) return (s/60).toFixed(1) + '分钟';
+            return (s/3600).toFixed(1) + '小时';
+        };
+        const getHealthClass = s => ({healthy:'healthy',warning:'warning',error:'error',offline:'offline'}[s]||'offline');
+        
+        async function loadAgentDetail(id) {
+            const token = new URLSearchParams(window.location.search).get('token') || '';
+            const r = await fetch('/api/agents/' + id + (token ? '?token=' + token : ''));
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        
+        async function loadAgentSessions(id) {
+            try {
+                const r = await fetch('/api/agents/' + id + '/sessions?limit=10');
+                if (r.ok) return await r.json();
+            } catch(e) {}
+            return {sessions: []};
+        }
+        
+        function renderAgent(agent) {
+            const healthClass = getHealthClass(agent.health?.status);
+            
+            return `
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
+                        <div>
+                            <h2 style="margin-bottom:10px">${agent.display_name}</h2>
+                            <div style="color:#666">${agent.description||'暂无描述'}</div>
+                        </div>
+                        <span class="health-status health-${healthClass}">${agent.health?.status||'unknown'}</span>
+                    </div>
+                    
+                    <div class="grid-4">
+                        <div class="info-box"><div class="info-label">Agent ID</div><div class="info-value">${agent.id}</div></div>
+                        <div class="info-box"><div class="info-label">类型</div><div class="info-value">${agent.agent_type}</div></div>
+                        <div class="info-box"><div class="info-label">版本</div><div class="info-value">v${agent.version}</div></div>
+                        <div class="info-box"><div class="info-label">模型</div><div class="info-value">${agent.model}</div></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>性能统计</h3>
+                    <div class="grid-4">
+                        <div class="stat-box"><div class="stat-value">${agent.stats?.total_tasks||0}</div><div class="stat-label">总任务</div></div>
+                        <div class="stat-box"><div class="stat-value">${agent.stats?.success_rate||100}%</div><div class="stat-label">成功率</div></div>
+                        <div class="stat-box"><div class="stat-value">${agent.stats?.active_sessions||0}</div><div class="stat-label">活跃会话</div></div>
+                        <div class="stat-box"><div class="stat-value">¥${(agent.stats?.total_cost||0).toFixed(4)}</div><div class="stat-label">总成本</div></div>
+                    </div>
+                    <div class="grid-4" style="margin-top:15px">
+                        <div class="info-box"><div class="info-label">今日任务</div><div class="info-value">${agent.stats?.today_tasks||0}</div></div>
+                        <div class="info-box"><div class="info-label">本周任务</div><div class="info-value">${agent.stats?.week_tasks||0}</div></div>
+                        <div class="info-box"><div class="info-label">平均执行</div><div class="info-value">${formatDuration((agent.stats?.avg_execution_time_ms||0)/1000)}</div></div>
+                        <div class="info-box"><div class="info-label">Token 总量</div><div class="info-value">${agent.stats?.total_tokens||0}</div></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>健康状态</h3>
+                    <div class="grid-4">
+                        <div class="info-box"><div class="info-label">最后活跃</div><div class="info-value">${formatTime(agent.health?.last_seen)}</div></div>
+                        <div class="info-box"><div class="info-label">运行时长</div><div class="info-value">${formatDuration(agent.health?.uptime_seconds)}</div></div>
+                        <div class="info-box"><div class="info-label">内存使用</div><div class="info-value">${(agent.health?.memory_usage_mb||0).toFixed(1)} MB</div></div>
+                        <div class="info-box"><div class="info-label">CPU 使用</div><div class="info-value">${(agent.health?.cpu_usage_percent||0).toFixed(1)}%</div></div>
+                    </div>
+                    <div class="grid-4" style="margin-top:15px">
+                        <div class="info-box"><div class="info-label">错误率</div><div class="info-value">${(agent.health?.error_rate||0).toFixed(2)}%</div></div>
+                        <div class="info-box"><div class="info-label">平均响应</div><div class="info-value">${(agent.health?.avg_response_time_ms||0).toFixed(0)}ms</div></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>能力列表</h3>
+                    ${agent.capabilities && agent.capabilities.length > 0 ? 
+                        agent.capabilities.map(cap => `
+                            <div class="capability-item">
+                                <div class="capability-name">${cap.name} ${cap.enabled?'✅':'❌'}</div>
+                                <div class="capability-desc">${cap.description}</div>
+                                <div class="capability-tools">工具：${cap.tools && cap.tools.length > 0 ? cap.tools.map(t => '<span class="tool-tag">'+t+'</span>').join('') : '无'}</div>
+                            </div>
+                        `).join('') : 
+                        '<p style="color:#999">暂无能力信息</p>'
+                    }
+                </div>
+                
+                <div class="card">
+                    <h3>可用工具</h3>
+                    <div>
+                        ${agent.tools && agent.tools.length > 0 ? 
+                            agent.tools.map(t => `<span class="tool-tag">${t}</span>`).join('') : 
+                            '<span style="color:#999">暂无工具</span>'
+                        }
+                    </div>
+                </div>
+                
+                ${agent.skills && agent.skills.length > 0 ? `
+                <div class="card">
+                    <h3>已加载技能 (${agent.skills.length})</h3>
+                    <div>${agent.skills.map(s => `<span class="tool-tag">${s}</span>`).join('')}</div>
+                </div>
+                ` : ''}
+                
+                <div class="card">
+                    <h3>配置</h3>
+                    <div class="grid-2">
+                        <div class="info-box"><div class="info-label">模型</div><div class="info-value">${agent.model}</div></div>
+                        <div class="info-box"><div class="info-label">思考模式</div><div class="info-value">${agent.thinking_enabled?'✅ 已启用':'❌ 已禁用'}</div></div>
+                        <div class="info-box"><div class="info-label">最大上下文</div><div class="info-value">${agent.max_context_length}</div></div>
+                        <div class="info-box"><div class="info-label">超时时间</div><div class="info-value">${agent.timeout_seconds}秒</div></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>活跃会话</h3>
+                    <div id="sessions"></div>
+                </div>
+            `;
+        }
+        
+        function renderSessions(sessions) {
+            const el = document.getElementById('sessions');
+            if (!el) return;
+            
+            if (!sessions || sessions.length === 0) {
+                el.innerHTML = '<p style="color:#999">暂无活跃会话</p>';
+                return;
+            }
+            
+            el.innerHTML = sessions.map(s => `
+                <div class="session-item">
+                    <div class="session-id">${s.id.substring(0,12)}...</div>
+                    <div class="session-meta">
+                        创建：${formatTime(s.created_at)} | 
+                        消息：${s.message_count||0} | 
+                        状态：${s.status||'active'}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function init() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            
+            if (!id) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 缺少 Agent ID 参数</div>';
+                return;
+            }
+            
+            try {
+                const [agent, sessionsData] = await Promise.all([loadAgentDetail(id), loadAgentSessions(id)]);
+                document.getElementById('content').innerHTML = renderAgent(agent);
+                renderSessions(sessionsData.sessions || []);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="loading">❌ 加载失败：' + e.message + '</div>';
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵犀 Dashboard - 详情页</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px; }
+        .back-btn {
+            display: inline-flex; align-items: center; padding: 8px 16px;
+            background: white; border: 1px solid #e0e0e0; border-radius: 8px;
+            cursor: pointer; margin-bottom: 20px; transition: all 0.3s;
+        }
+        .back-btn:hover { background: #f8f9fa; }
+        .back-btn::before { content: '←'; margin-right: 8px; font-size: 18px; }
+        
+        .detail-card {
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 25px; margin-bottom: 20px;
+        }
+        
+        .detail-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .detail-title { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 8px; }
+        .detail-subtitle { font-size: 14px; color: #666; }
+        
+        .info-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px; margin-bottom: 20px;
+        }
+        
+        .info-item { padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .info-value { font-size: 16px; color: #333; font-weight: 500; }
+        
+        .badge {
+            display: inline-block; padding: 4px 12px; border-radius: 12px;
+            font-size: 12px; font-weight: 500;
+        }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        
+        .stat-mini {
+            display: flex; flex-direction: column; padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border-radius: 8px;
+        }
+        .stat-mini-value { font-size: 28px; font-weight: bold; margin-bottom: 5px; }
+        .stat-mini-label { font-size: 12px; opacity: 0.9; }
+        
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td {
+            padding: 12px; text-align: left; border-bottom: 1px solid #eee;
+        }
+        .data-table th { background: #f8f9fa; font-weight: 600; color: #333; }
+        .data-table tr:hover { background: #f8f9fa; }
+        
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .timeline { position: relative; padding-left: 30px; }
+        .timeline-item {
+            position: relative; padding-bottom: 25px;
+            border-left: 2px solid #667eea; padding-left: 20px;
+        }
+        .timeline-item:last-child { border-left: 2px solid transparent; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: -6px; top: 0;
+            width: 10px; height: 10px; border-radius: 50%; background: #667eea;
+        }
+        .timeline-time { font-size: 12px; color: #999; margin-bottom: 5px; }
+        .timeline-content { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        .timeline-title { font-weight: 600; color: #333; margin-bottom: 5px; }
+        .timeline-desc { font-size: 13px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <div class="loading">加载中...</div>
+    </div>
+    <script>
+        function formatTime(ts) { if (!ts) return '-'; return new Date(ts * 1000).toLocaleString('zh-CN'); }
+        function formatDuration(ms) { if (ms < 1000) return ms + 'ms'; if (ms < 60000) return (ms/1000).toFixed(1) + 's'; return (ms/60000).toFixed(1) + 'min'; }
+        function getStatusBadge(s) {
+            const m = {completed:'success',success:'success',processing:'info',pending:'warning',failed:'danger',error:'danger'};
+            return '<span class="badge badge-'+(m[s]||'info')+'">'+s+'</span>';
+        }
+        async function loadTaskDetail(id) {
+            const r = await fetch('/api/tasks/'+id);
+            if (!r.ok) throw new Error('加载失败');
+            return await r.json();
+        }
+        function renderTaskDetail(task) {
+            return '<div class="back-btn" onclick="history.back()">← 返回列表</div>'+
+            '<div class="detail-card"><div class="detail-header"><div><div class="detail-title">任务详情</div><div class="detail-subtitle">ID: '+task.id+'</div></div>'+
+            '<div>'+getStatusBadge(task.status)+'</div></div>'+
+            '<div class="info-grid"><div class="info-item"><div class="info-label">用户输入</div><div class="info-value">'+task.user_input+'</div></div>'+
+            '<div class="info-item"><div class="info-label">渠道</div><div class="info-value">'+task.channel+'</div></div>'+
+            '<div class="info-item"><div class="info-label">阶段</div><div class="info-value">'+task.stage+'</div></div>'+
+            '<div class="info-item"><div class="info-label">得分</div><div class="info-value">'+task.score+'/10</div></div></div>'+
+            '<div class="info-grid"><div class="stat-mini"><div class="stat-mini-value">'+formatDuration(task.total_duration_ms)+'</div><div class="stat-mini-label">总耗时</div></div>'+
+            '<div class="stat-mini"><div class="stat-mini-value">'+(task.total_tokens_in+task.total_tokens_out)+'</div><div class="stat-mini-label">Token 使用</div></div>'+
+            '<div class="stat-mini"><div class="stat-mini-value">¥'+task.total_cost.toFixed(4)+'</div><div class="stat-mini-label">成本</div></div>'+
+            '<div class="stat-mini"><div class="stat-mini-value">'+task.subtask_count+'</div><div class="stat-mini-label">子任务数</div></div></div></div>'+
+            '<div class="detail-card"><h3>执行时间线</h3><div class="timeline" id="timeline"></div></div>'+
+            (task.subtasks.length>0?'<div class="detail-card"><h3>子任务 ('+task.subtask_count+')</h3><table class="data-table"><thead><tr><th>名称</th><th>状态</th><th>Agent</th><th>耗时</th><th>结果</th></tr></thead><tbody>'+
+            task.subtasks.map(st=>'<tr><td>'+st.name+'</td><td>'+getStatusBadge(st.status)+'</td><td>'+(st.agent||'-')+'</td><td>'+(st.duration_ms?formatDuration(st.duration_ms):'-')+'</td><td>'+(st.result?'✓':(st.error?'✗':'-'))+'</td></tr>').join('')+
+            '</tbody></table></div>':'')+
+            (task.llm_calls.length>0?'<div class="detail-card"><h3>LLM 调用</h3>'+task.llm_calls.map(c=>'<div class="info-grid" style="margin-bottom:15px"><div class="info-item"><div class="info-label">模型</div><div class="info-value">'+c.model+'</div></div>'+
+            '<div class="info-item"><div class="info-label">Token</div><div class="info-value">输入:'+c.tokens_in+'/输出:'+c.tokens_out+'</div></div>'+
+            '<div class="info-item"><div class="info-label">成本</div><div class="info-value">¥'+c.cost.toFixed(6)+'</div></div></div>').join('')+'</div>':'');
+        }
+        function renderTimeline(items) {
+            const c = document.getElementById('timeline'); if (!c) return;
+            c.innerHTML = items.map(i=>'<div class="timeline-item"><div class="timeline-time">'+formatTime(i.time)+'</div>'+
+            '<div class="timeline-content"><div class="timeline-title">'+i.label+'</div><div class="timeline-desc">'+i.description+'</div></div></div>').join('');
+        }
+        async function init() {
+            const p = new URLSearchParams(location.search), t = p.get('type'), id = p.get('id');
+            if (!t || !id) { document.getElementById('app').innerHTML = '<div class="loading">参数错误</div>'; return; }
+            try {
+                if (t === 'task') {
+                    const task = await loadTaskDetail(id);
+                    document.getElementById('app').innerHTML = renderTaskDetail(task);
+                    const tr = await fetch('/api/tasks/'+id+'/timeline'), td = await tr.json();
+                    renderTimeline(td.timeline);
+                }
+            } catch (e) { document.getElementById('app').innerHTML = '<div class="loading">加载失败：'+e.message+'</div>'; }
+        }
+        init();
+    </script>
+</body>
+</html>

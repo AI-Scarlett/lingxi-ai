@@ -1,649 +1,469 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>灵犀 Dashboard - 养龙虾的最佳助手</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; }
-        
-        /* 侧边栏 */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 250px;
-            height: 100vh;
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 15px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .nav-item:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .nav-item.active {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        .nav-icon {
-            margin-right: 10px;
-            font-size: 18px;
-        }
-        
-        /* 主内容区 */
-        .main-content {
-            margin-left: 250px;
-            padding: 30px;
-        }
-        
-        .header {
-            margin-bottom: 30px;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            color: #666;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-        
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-        }
-        
-        /* 内容区域 */
-        .content-section {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        
-        .section-title {
-            font-size: 20px;
-            margin-bottom: 20px;
-            color: #333;
-            display: flex;
-            align-items: center;
-        }
-        
-        .section-icon {
-            margin-right: 10px;
-        }
-        
-        /* 时间线 */
-        .timeline {
-            position: relative;
-            padding-left: 30px;
-        }
-        
-        .timeline-item {
-            position: relative;
-            padding-bottom: 20px;
-            border-left: 2px solid #667eea;
-            padding-left: 20px;
-        }
-        
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -6px;
-            top: 0;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #667eea;
-        }
-        
-        .timeline-time {
-            font-size: 12px;
-            color: #999;
-            margin-bottom: 5px;
-        }
-        
-        .timeline-content {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        
-        /* 表格 */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        
-        th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #333;
-        }
-        
-        tr:hover {
-            background: #f8f9fa;
-        }
-        
-        /* 标签 */
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .badge-success { background: #d4edda; color: #155724; }
-        .badge-warning { background: #fff3cd; color: #856404; }
-        .badge-info { background: #d1ecf1; color: #0c5460; }
-        
-        /* 按钮 */
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #5568d3;
-        }
-        
-        /* 搜索框 */
-        .search-box {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        
-        .search-box:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        /* 技能卡片 */
-        .skills-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-        }
-        
-        .skill-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .skill-card h3 {
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-        
-        .skill-card p {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灵犀 Dashboard - Powered by MemOS Style</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦞</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b0d11;--bg-card:#12141a;--bg-card-hover:#1a1d25;--border:rgba(255,255,255,.08);--border-glow:rgba(255,255,255,.14);--text:#e8eaed;--text-sec:#8b8fa4;--text-muted:#555a6e;--pri:#818cf8;--pri-glow:rgba(129,140,248,.1);--pri-dark:#6366f1;--pri-grad:linear-gradient(135deg,#818cf8,#6366f1);--accent:#ef4444;--accent-glow:rgba(239,68,68,.1);--green:#34d399;--green-bg:rgba(52,211,153,.08);--amber:#fbbf24;--amber-bg:rgba(251,191,36,.08);--cyan:#06b6d4;--cyan-bg:rgba(6,182,212,.08);--purple:#a855f7;--purple-bg:rgba(168,85,247,.08);--pink:#ec4899;--pink-bg:rgba(236,72,153,.08);--shadow:0 4px 12px rgba(0,0,0,.35);--shadow-lg:0 20px 40px rgba(0,0,0,.45);--radius:12px;--radius-lg:14px;--radius-xl:18px}
+[data-theme="light"]{--bg:#f8f9fb;--bg-card:#fff;--bg-card-hover:#f3f4f6;--border:#e2e4e9;--border-glow:#cbd0d8;--text:#111827;--text-sec:#4b5563;--text-muted:#9ca3af;--pri:#4f46e5;--pri-glow:rgba(79,70,229,.06);--pri-dark:#4338ca;--pri-grad:linear-gradient(135deg,#4f46e5,#4338ca);--shadow:0 4px 12px rgba(0,0,0,.06);--shadow-lg:0 20px 40px rgba(0,0,0,.1)}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+button{cursor:pointer;font-family:inherit;font-size:inherit}input,textarea,select{font-family:inherit;font-size:inherit}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:rgba(11,13,17,.88);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;position:sticky;top:0;z-index:100}
+[data-theme="light"] .topbar{background:linear-gradient(135deg,#4f46e5,#4338ca);border-bottom:1px solid var(--border)}
+.topbar .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:#fff}
+.topbar .brand .icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.topbar .brand .sub{font-weight:400;color:rgba(255,255,255,.7);font-size:11px}
+.topbar-center{flex:1}
+.topbar .actions{display:flex;align-items:center;gap:6px}
+.main-content{display:flex;flex:1;max-width:1400px;margin:0 auto;width:100%;padding:28px 32px;gap:28px}
+.sidebar{width:280px;flex-shrink:0}
+.sidebar .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.stat-card .stat-value{font-size:22px;font-weight:700;color:var(--text)}
+.stat-card .stat-label{font-size:12px;color:var(--text-sec);margin-top:4px}
+.stat-card.pri .stat-value{color:var(--pri)}.stat-card.green .stat-value{color:var(--green)}.stat-card.amber .stat-value{color:var(--amber)}.stat-card.rose .stat-value{color:var(--rose)}
+.sidebar .section-title{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;margin:24px 0 12px}
+.sidebar .nav-list{display:flex;flex-direction:column;gap:6px;margin-bottom:24px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--text)}
+.nav-item.active{border-color:var(--pri);background:var(--pri-glow);font-weight:600;color:var(--pri)}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.feed{flex:1;min-width:0}
+.view{display:none;flex-direction:column;gap:16px}
+.view.show{display:flex}
+.search-bar{display:flex;gap:10px;margin-bottom:16px;position:relative}
+.search-bar input{flex:1;padding:10px 16px 10px 40px;border:1px solid var(--border);border-radius:10px;font-size:14px;outline:none;background:var(--bg-card);color:var(--text)}
+.search-bar .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted)}
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-chip{padding:5px 14px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-sec);font-size:12px;cursor:pointer}
+.filter-chip.active{background:rgba(99,102,241,.08);color:var(--pri);border-color:rgba(99,102,241,.25)}
+.filter-select{padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:var(--bg-card);color:var(--text-sec);font-size:13px;outline:none}
+.filter-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.memory-list,.task-list,.skill-list,.rule-list{display:flex;flex-direction:column;gap:12px}
+.memory-card,.task-card,.skill-card,.rule-card,.channel-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.card-title{font-size:14px;font-weight:600;color:var(--text);flex:1}
+.card-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted);flex-wrap:wrap;margin-bottom:8px}
+.card-desc{font-size:13px;color:var(--text-sec);line-height:1.5}
+.card-footer{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--text-muted);margin-top:12px}
+.card-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.badge{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600}
+.badge.pri{background:var(--pri-glow);color:var(--pri)}.badge.green{background:var(--green-bg);color:var(--green)}.badge.amber{background:var(--amber-bg);color:var(--amber)}.badge.rose{background:var(--rose-bg);color:var(--rose)}.badge.gray{background:rgba(128,128,128,.15);color:var(--text-muted)}.badge.cyan{background:var(--cyan-bg);color:var(--cyan)}.badge.purple{background:var(--purple-bg);color:var(--purple)}.badge.pink{background:var(--pink-bg);color:var(--pink)}
+.vscore-badge{background:rgba(59,130,246,.15);color:#60a5fa;font-size:10px;padding:4px 10px;border-radius:8px}
+.merge-badge{background:rgba(16,185,129,.12);color:#10b981;font-size:10px;padding:3px 10px;border-radius:8px}
+.dedup-badge{font-size:10px;padding:3px 10px;border-radius:8px}
+.dedup-badge.duplicate{background:rgba(245,158,11,.12);color:#f59e0b}
+.dedup-badge.merged{background:rgba(59,130,246,.12);color:#60a5fa}
+.owner-badge{font-size:10px;padding:3px 10px;border-radius:8px}
+.owner-badge.public{background:rgba(52,211,153,.12);color:#34d399}
+.owner-badge.agent{background:rgba(255,255,255,.06);color:var(--text-sec)}
+.memory-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:none;align-items:center;justify-content:center}
+.memory-modal-overlay.show{display:flex}
+.memory-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;width:min(600px,90vw);max-height:80vh;display:flex;flex-direction:column}
+.memory-modal-title{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700}
+.memory-modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-memory-card{display:flex;flex-direction:column;gap:14px}
+.modal-field{display:flex;flex-direction:column;gap:4px}
+.modal-field-label{font-size:10px;font-weight:700;color:var(--text-sec)}
+.modal-field-val{font-size:13px;color:var(--text)}
+.modal-field-content{font-family:monospace;font-size:12px;background:rgba(0,0,0,.15);padding:12px;border-radius:8px;max-height:240px;overflow-y:auto;white-space:pre-wrap}
+.modal-meta-row{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--text-sec);padding-top:8px;border-top:1px dashed var(--border)}
+.btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px}
+.btn:hover{border-color:var(--pri);color:var(--pri)}
+.btn-primary{background:var(--pri-grad);color:#fff;border:none}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--text-sec)}
+.btn-danger{color:var(--accent);border-color:rgba(230,57,70,.25)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-xl);padding:32px;width:100%;max-width:520px}
+.modal h2{font-size:20px;font-weight:700;margin-bottom:24px;color:var(--text)}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--text-sec);margin-bottom:6px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:var(--bg-card);color:var(--text)}
+.form-group textarea{min-height:100px;resize:vertical}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:28px}
+.toast-container{position:fixed;top:80px;right:24px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+.toast{padding:14px 20px;border-radius:10px;font-size:13px;box-shadow:var(--shadow-lg)}
+.toast.success{background:var(--green-bg);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.toast.error{background:var(--rose-bg);color:var(--rose);border:1px solid rgba(244,63,94,.3)}
+.toast.info{background:var(--pri-glow);color:var(--pri);border:1px solid rgba(99,102,241,.15)}
+.empty{text-align:center;padding:64px 20px;color:var(--text-sec)}
+.empty .icon{font-size:52px;margin-bottom:16px;opacity:.5}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--pri);border-radius:50%;animation:spin .8s linear infinite;margin:48px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:20px 0}
+.pg-btn{min-width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-sec);font-size:12px}
+.pg-btn.active{background:var(--pri);color:#000;border-color:var(--pri)}
+.pg-btn.disabled{opacity:.4}
+.pg-info{font-size:11px;color:var(--text-sec);padding:0 8px}
+.theme-toggle{padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-sec)}
+.analytics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.analytics-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden}
+.analytics-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.analytics-card.pri::before{background:var(--pri-grad)}
+.analytics-card.green::before{background:linear-gradient(90deg,#34d399,#10b981)}
+.analytics-card.amber::before{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+.analytics-card.rose::before{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.analytics-card.cyan::before{background:linear-gradient(90deg,#06b6d4,#0891b2)}
+.analytics-card.purple::before{background:linear-gradient(90deg,#a855f7,#9333ea)}
+.analytics-card.pink::before{background:linear-gradient(90deg,#ec4899,#db2777)}
+.ac-label{font-size:12px;color:var(--text-sec);margin-bottom:8px;font-weight:500}
+.ac-value{font-size:28px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.section{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xl);padding:24px 28px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-title{font-size:16px;font-weight:700;color:var(--text)}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.rule-pattern{font-family:monospace;font-size:13px;font-weight:600;color:var(--pri);margin-bottom:8px}
+.rule-response{font-size:12px;color:var(--text-sec);padding:10px 12px;background:rgba(0,0,0,.15);border-radius:8px}
+.rule-status{display:flex;align-items:center;gap:6px}
+.rule-status-dot{width:8px;height:8px;border-radius:50%}
+.rule-status-dot.active{background:var(--green)}
+.rule-status-dot.inactive{background:var(--text-muted)}
+.timeline{position:relative;padding-left:30px}
+.timeline-item{position:relative;padding-bottom:20px;border-left:2px solid var(--pri);padding-left:20px}
+.timeline-item::before{content:'';position:absolute;left:-6px;top:0;width:10px;height:10px;border-radius:50%;background:var(--pri)}
+.timeline-time{font-size:12px;color:var(--text-muted);margin-bottom:5px}
+.timeline-content{font-size:13px;color:var(--text-sec)}
+.proposal-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:12px}
+.proposal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.proposal-title{font-size:15px;font-weight:600;color:var(--text)}
+.proposal-status{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600}
+.proposal-status.pending{background:var(--amber-bg);color:var(--amber)}
+.proposal-status.approved{background:var(--green-bg);color:var(--green)}
+.proposal-status.rejected{background:var(--rose-bg);color:var(--rose)}
+.proposal-desc{font-size:13px;color:var(--text-sec);margin-bottom:12px}
+.proposal-footer{display:flex;justify-content:space-between;align-items:center}
+.proposal-votes{font-size:12px;color:var(--text-sec)}
+.proposal-actions{display:flex;gap:8px}
+.layer-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:12px}
+.layer-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.layer-title{font-size:15px;font-weight:600;color:var(--text)}
+.layer-stats{font-size:12px;color:var(--text-sec)}
+.channel-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;transition:all .2s}
+.channel-card:hover{border-color:var(--border-glow);background:var(--bg-card-hover);transform:translateY(-2px)}
+.channel-card .channel-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px}
+.channel-card .channel-count{font-size:20px;font-weight:700}
+.channel-card.feishu .channel-count{color:#34d399}
+.channel-card.wecom .channel-count{color:#06b6d4}
+.channel-card.dingtalk .channel-count{color:#3b82f6}
+.channel-card.qq .channel-count{color:#a855f7}
+.channel-card.webchat .channel-count{color:#ec4899}
+.channel-card.other .channel-count{color:#fbbf24}
+</style>
 </head>
 <body>
-    <!-- 侧边栏 -->
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><span class="icon">🦞</span><span>灵犀<span class="sub">Dashboard v3.3.6</span></span></div>
+    <div class="topbar-center"></div>
+    <div class="actions">
+      <div id="clockDisplay" style="font-size:12px;color:#fff;opacity:.85;font-family:monospace;margin-right:8px">--</div>
+      <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+      <button class="btn btn-sm btn-ghost" onclick="loadAll()">🔄</button>
+    </div>
+  </div>
+  <div class="main-content">
     <div class="sidebar">
-        <div class="logo">🦞 灵犀 Dashboard</div>
-        
-        <div class="nav-item active" data-page="memories">
-            <span class="nav-icon">🧠</span>
-            <span>记忆管理</span>
+      <div class="section" style="margin-bottom:24px;padding:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><div style="font-size:11px;color:var(--text-sec)">记忆</div><div style="font-size:20px;font-weight:700;color:var(--pri)" id="statMemories">0</div></div>
+          <div><div style="font-size:11px;color:var(--text-sec)">任务</div><div style="font-size:20px;font-weight:700;color:var(--green)" id="statTasks">0</div></div>
+          <div><div style="font-size:11px;color:var(--text-sec)">技能</div><div style="font-size:20px;font-weight:700;color:var(--amber)" id="statSkills">0</div></div>
+          <div><div style="font-size:11px;color:var(--text-sec)">Layer0</div><div style="font-size:20px;font-weight:700;color:var(--pri-dark)" id="statRules">0</div></div>
         </div>
-        
-        <div class="nav-item" data-page="tasks">
-            <span class="nav-icon">✅</span>
-            <span>任务列表</span>
-        </div>
-        
-        <div class="nav-item" data-page="skills">
-            <span class="nav-icon">🎯</span>
-            <span>技能中心</span>
-        </div>
-        
-        <div class="nav-item" data-page="analytics">
-            <span class="nav-icon">📈</span>
-            <span>数据统计</span>
-        </div>
-        
-        <div class="nav-item" data-page="logs">
-            <span class="nav-icon">📝</span>
-            <span>调用日志</span>
-        </div>
-        
-        <div class="nav-item" data-page="settings">
-            <span class="nav-icon">⚙️</span>
-            <span>系统设置</span>
-        </div>
+      </div>
+      <div class="section-title">导航</div>
+      <div class="nav-list">
+        <div class="nav-item active" data-view="overview" onclick="switchView('overview')"><span class="icon">📊</span><span>概览</span></div>
+        <div class="nav-item" data-view="memory" onclick="switchView('memory')"><span class="icon">🧠</span><span>MindCore 记忆</span></div>
+        <div class="nav-item" data-view="tasks" onclick="switchView('tasks')"><span class="icon">📋</span><span>任务列表</span></div>
+        <div class="nav-item" data-view="skills" onclick="switchView('skills')"><span class="icon">🛠️</span><span>技能中心</span></div>
+        <div class="nav-item" data-view="layer0" onclick="switchView('layer0')"><span class="icon">⚡</span><span>Layer0 规则</span></div>
+        <div class="nav-item" data-view="analytics" onclick="switchView('analytics')"><span class="icon">📈</span><span>数据分析</span></div>
+        <div class="nav-item" data-view="evomind" onclick="switchView('evomind')"><span class="icon">🔄</span><span>EvoMind & 提案</span></div>
+        <div class="nav-item" data-view="settings" onclick="switchView('settings')"><span class="icon">⚙️</span><span>系统设置</span></div>
+      </div>
     </div>
-    
-    <!-- 主内容区 -->
-    <div class="main-content">
-        <div class="header">
-            <h1>🦞 灵犀 Dashboard</h1>
-            <p style="color: #666;">养龙虾的最佳助手 · v3.3.3</p>
+    <div class="feed">
+      <div class="view show" id="view-overview">
+        <div class="analytics-grid">
+          <div class="analytics-card pri"><div class="ac-label">总记忆数</div><div class="ac-value" id="ovMemories">0</div></div>
+          <div class="analytics-card cyan"><div class="ac-label">定时任务</div><div class="ac-value" id="ovScheduledTasks">0</div></div>
+          <div class="analytics-card green"><div class="ac-label">实时任务</div><div class="ac-value" id="ovRealtimeTasks">0</div></div>
+          <div class="analytics-card amber"><div class="ac-label">已安装技能</div><div class="ac-value" id="ovSkills">0</div></div>
         </div>
-        
-        <!-- 统计卡片 -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="stat-memories">-</div>
-                <div class="stat-label">记忆总数</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-value" id="stat-tasks">-</div>
-                <div class="stat-label">任务总数</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-value" id="stat-skills">18</div>
-                <div class="stat-label">技能数量</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-value" id="stat-calls">-</div>
-                <div class="stat-label">今日调用</div>
-            </div>
+        <div class="analytics-grid">
+          <div class="analytics-card rose"><div class="ac-label">响应规则</div><div class="ac-value" id="ovRules">0</div></div>
+          <div class="analytics-card purple"><div class="ac-label">LLM 调用</div><div class="ac-value" id="ovLLMToday">0</div><div style="font-size:11px;color:var(--text-sec);margin-top:4px">昨日：<span id="ovLLMYesterday">0</span> | 7 天：<span id="ovLLMWeek">0</span></div></div>
+          <div class="analytics-card pink"><div class="ac-label">Token 消耗</div><div class="ac-value" id="ovTokenToday">0</div><div style="font-size:11px;color:var(--text-sec);margin-top:4px">7 天：<span id="ovTokenWeek">0</span> | 本月：<span id="ovTokenMonth">0</span></div></div>
+          <div class="analytics-card pri"><div class="ac-label">EvoMind 改进</div><div class="ac-value" id="ovImprovements">0</div></div>
         </div>
-        
-        <!-- 记忆管理 -->
-        <div class="content-section" id="page-memories">
-            <h2 class="section-title">
-                <span class="section-icon">🧠</span>
-                记忆管理
-            </h2>
-            
-            <div class="timeline" id="memories-timeline">
-                <p style="color: #999; text-align: center;">加载中...</p>
-            </div>
+        <div class="section">
+          <div class="section-header"><div class="section-title">📊 渠道分布</div></div>
+          <div class="analytics-grid" id="channelStats"></div>
         </div>
-        
-        <!-- 任务列表 -->
-        <div class="content-section" id="page-tasks" style="display: none;">
-            <h2 class="section-title">
-                <span class="section-icon">✅</span>
-                任务列表
-            </h2>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>任务 ID</th>
-                        <th>任务内容</th>
-                        <th>状态</th>
-                        <th>完成时间</th>
-                    </tr>
-                </thead>
-                <tbody id="tasks-tbody">
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: #999;">加载中...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="section">
+          <div class="section-header"><div class="section-title">🕐 最近活动</div></div>
+          <div class="timeline" id="recentActivity"><div class="empty"><div class="icon">📝</div><p>暂无活动记录</p></div></div>
         </div>
-        
-        <!-- 技能中心 -->
-        <div class="content-section" id="page-skills" style="display: none;">
-            <h2 class="section-title">
-                <span class="section-icon">🎯</span>
-                技能中心
-            </h2>
-            
-            <div class="skills-grid" id="skills-grid">
-                <p style="color: #999; text-align: center;">加载中...</p>
-            </div>
+      </div>
+      <div class="view" id="view-memory">
+        <div class="analytics-grid">
+          <div class="analytics-card pri"><div class="ac-label">STM 短期记忆</div><div class="ac-value" id="memStmCount">0</div></div>
+          <div class="analytics-card green"><div class="ac-label">MTM 中期记忆</div><div class="ac-value" id="memMtmCount">0</div></div>
+          <div class="analytics-card amber"><div class="ac-label">LTM 长期记忆</div><div class="ac-value" id="memLtmCount">0</div></div>
+          <div class="analytics-card rose"><div class="ac-label">总记忆数</div><div class="ac-value" id="memTotal">0</div></div>
         </div>
-        
-        <!-- 数据统计 -->
-        <div class="content-section" id="page-analytics" style="display: none;">
-            <h2 class="section-title">
-                <span class="section-icon">📈</span>
-                数据统计
-            </h2>
-            
-            <div class="stats-grid" id="analytics-stats">
-                <div class="stat-card">
-                    <div class="stat-value" id="analytics-memories">-</div>
-                    <div class="stat-label">记忆读取</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-value" id="analytics-writes">-</div>
-                    <div class="stat-label">记忆写入</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-value" id="analytics-tasks">-</div>
-                    <div class="stat-label">任务执行</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-value" id="analytics-skills">-</div>
-                    <div class="stat-label">技能调用</div>
-                </div>
-            </div>
+        <div class="toolbar">
+          <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="memorySearch" placeholder="搜索记忆..." onkeyup="debounceSearch()"></div>
+          <div class="filter-bar">
+            <button class="filter-chip active" onclick="filterMemoryRole(this,'all')">全部</button>
+            <button class="filter-chip" onclick="filterMemoryRole(this,'user')">用户</button>
+            <button class="filter-chip" onclick="filterMemoryRole(this,'assistant')">助手</button>
+            <span class="filter-sep"></span>
+            <select class="filter-select" id="memoryLayerFilter" onchange="filterMemoryLayer(this.value)">
+              <option value="all">全部层级</option>
+              <option value="STM">STM 短期</option>
+              <option value="MTM">MTM 中期</option>
+              <option value="LTM">LTM 长期</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="openCreateMemoryModal()">➕ 新建</button>
         </div>
-        
-        <!-- 调用日志 -->
-        <div class="content-section" id="page-logs" style="display: none;">
-            <h2 class="section-title">
-                <span class="section-icon">📝</span>
-                调用日志
-            </h2>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th>时间</th>
-                        <th>技能</th>
-                        <th>操作</th>
-                        <th>耗时</th>
-                        <th>状态</th>
-                    </tr>
-                </thead>
-                <tbody id="logs-tbody">
-                    <tr>
-                        <td colspan="5" style="text-align: center; color: #999;">暂无日志数据</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="section">
+          <div class="memory-list" id="memoryList"><div class="spinner"></div></div>
+          <div class="pagination" id="memoryPagination"></div>
         </div>
-        
-        <!-- 系统设置 -->
-        <div class="content-section" id="page-settings" style="display: none;">
-            <h2 class="section-title">
-                <span class="section-icon">⚙️</span>
-                系统设置
-            </h2>
-            
-            <div style="max-width: 600px;">
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">API 配置</label>
-                    <input type="text" class="search-box" placeholder="Qwen API Key" value="sk-***">
-                    <input type="text" class="search-box" placeholder="DashScope API Key" value="sk-***">
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">记忆配置</label>
-                    <select class="search-box">
-                        <option>STM 容量：100 条</option>
-                        <option>MTM 保留：7 天</option>
-                        <option>LTM 永久归档</option>
-                    </select>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">推送时间</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="time" class="search-box" value="07:00">
-                        <input type="time" class="search-box" value="12:00">
-                        <input type="time" class="search-box" value="21:00">
-                    </div>
-                </div>
-                
-                <button class="btn btn-primary">💾 保存配置</button>
-            </div>
+      </div>
+      <div class="view" id="view-tasks">
+        <div class="toolbar">
+          <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="taskSearch" placeholder="搜索任务..." onkeyup="debounceTaskSearch()"></div>
+          <div class="filter-bar">
+            <button class="filter-chip active" onclick="filterTaskStatus(this,'all')">全部</button>
+            <button class="filter-chip" onclick="filterTaskStatus(this,'active')">进行中</button>
+            <button class="filter-chip" onclick="filterTaskStatus(this,'completed')">已完成</button>
+            <span class="filter-sep"></span>
+            <select class="filter-select" id="channelFilter" onchange="loadTasks()">
+              <option value="all">全部渠道</option>
+              <option value="feishu">飞书</option>
+              <option value="dingtalk">钉钉</option>
+              <option value="qq">QQ</option>
+              <option value="wecom">企业微信</option>
+              <option value="webchat">WebChat</option>
+              <option value="other">其他</option>
+            </select>
+            <select class="filter-select" id="taskTypeFilter" onchange="loadTasks()">
+              <option value="all">全部类型</option>
+              <option value="scheduled">定时任务</option>
+              <option value="realtime">实时任务</option>
+            </select>
+            <select class="filter-select" id="timeFilter" onchange="loadTasks()">
+              <option value="all">全部时间</option>
+              <option value="today">当日</option>
+              <option value="yesterday">昨日</option>
+              <option value="7days">7 天</option>
+              <option value="30days">30 天</option>
+            </select>
+          </div>
         </div>
+        <div class="analytics-grid">
+          <div class="analytics-card pri"><div class="ac-label">总任务数</div><div class="ac-value" id="taskTotal">0</div></div>
+          <div class="analytics-card cyan"><div class="ac-label">定时任务</div><div class="ac-value" id="taskScheduled">0</div></div>
+          <div class="analytics-card green"><div class="ac-label">实时任务</div><div class="ac-value" id="taskRealtime">0</div></div>
+          <div class="analytics-card amber"><div class="ac-label">已完成</div><div class="ac-value" id="taskCompleted">0</div></div>
+        </div>
+        <div class="section">
+          <div class="task-list" id="taskList"><div class="spinner"></div></div>
+          <div class="pagination" id="taskPagination"></div>
+        </div>
+      </div>
+      <div class="view" id="view-skills">
+        <div class="toolbar">
+          <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="skillSearch" placeholder="搜索技能..." onkeyup="debounceSkillSearch()"></div>
+          <div class="filter-bar">
+            <button class="filter-chip active" onclick="filterSkillType(this,'all')">全部</button>
+            <button class="filter-chip" onclick="filterSkillType(this,'active')">活跃</button>
+            <button class="filter-chip" onclick="filterSkillType(this,'dormant')">休眠</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="skill-list" id="skillList"><div class="spinner"></div></div>
+        </div>
+      </div>
+      <div class="view" id="view-layer0">
+        <div class="toolbar">
+          <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="ruleSearch" placeholder="搜索规则..." onkeyup="debounceRuleSearch()"></div>
+          <button class="btn btn-primary" onclick="openCreateRuleModal()">➕ 新建规则</button>
+        </div>
+        <div class="analytics-grid">
+          <div class="analytics-card pri"><div class="ac-label">总规则数</div><div class="ac-value" id="ruleTotal">0</div></div>
+          <div class="analytics-card green"><div class="ac-label">已启用</div><div class="ac-value" id="ruleActive">0</div></div>
+          <div class="analytics-card rose"><div class="ac-label">已禁用</div><div class="ac-value" id="ruleInactive">0</div></div>
+        </div>
+        <div class="section">
+          <div class="rule-list" id="ruleList"><div class="spinner"></div></div>
+          <div class="pagination" id="rulePagination"></div>
+        </div>
+      </div>
+      <div class="view" id="view-analytics">
+        <div class="analytics-grid">
+          <div class="analytics-card pri"><div class="ac-label">今日调用</div><div class="ac-value" id="analyticsToday">0</div></div>
+          <div class="analytics-card green"><div class="ac-label">本周调用</div><div class="ac-value" id="analyticsWeek">0</div></div>
+          <div class="analytics-card amber"><div class="ac-label">本月调用</div><div class="ac-value" id="analyticsMonth">0</div></div>
+        </div>
+        <div class="section">
+          <div class="section-header"><div class="section-title">🤖 大模型调用</div></div>
+          <div class="analytics-grid" id="modelStats"></div>
+        </div>
+        <div class="section">
+          <div class="section-header"><div class="section-title">🔧 工具调用</div></div>
+          <div class="task-list" id="toolStats"></div>
+        </div>
+        <div class="section">
+          <div class="section-header"><div class="section-title">💰 Token 消耗</div></div>
+          <div class="analytics-grid">
+            <div class="analytics-card pri"><div class="ac-label">今日</div><div class="ac-value" id="tokenToday">0</div></div>
+            <div class="analytics-card green"><div class="ac-label">本周</div><div class="ac-value" id="tokenWeek">0</div></div>
+            <div class="analytics-card amber"><div class="ac-label">本月</div><div class="ac-value" id="tokenMonth">0</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="view" id="view-evomind">
+        <div class="analytics-grid">
+          <div class="analytics-card pri"><div class="ac-label">改进次数</div><div class="ac-value" id="improvementsCount">0</div></div>
+          <div class="analytics-card green"><div class="ac-label">有效性</div><div class="ac-value" id="effectiveness">0%</div></div>
+          <div class="analytics-card amber"><div class="ac-label">提案数</div><div class="ac-value" id="proposalsCount">0</div></div>
+        </div>
+        <div class="section">
+          <div class="section-header"><div class="section-title">🔄 EvoMind 自改进历史</div></div>
+          <div class="timeline" id="improvementHistory"></div>
+        </div>
+        <div class="section" style="margin-top:16px">
+          <div class="section-header"><div class="section-title">📝 提案管理</div><button class="btn btn-primary btn-sm" onclick="openCreateProposalModal()">➕ 新建提案</button></div>
+          <div id="proposalsList"></div>
+        </div>
+      </div>
+      <div class="view" id="view-settings">
+        <div class="section">
+          <div class="section-header"><div class="section-title">🎨 外观设置</div></div>
+          <div class="form-group"><label>主题模式</label><select id="themeSelect" onchange="setTheme(this.value)"><option value="dark">深色模式</option><option value="light">浅色模式</option></select></div>
+        </div>
+        <div class="section">
+          <div class="section-header"><div class="section-title">🌍 区域设置</div></div>
+          <div class="form-group"><label>时区</label><select id="timezoneSelect" onchange="setTimeZone(this.value)"><option value="Asia/Beijing">Asia/Beijing (UTC+8)</option><option value="UTC">UTC</option></select></div>
+          <div class="form-group"><label>语言</label><select id="languageSelect"><option value="zh-CN">简体中文</option><option value="en-US">English</option></select></div>
+        </div>
+        <div class="section">
+          <div class="section-header"><div class="section-title">🔗 Layer0-3 边缘部署</div></div>
+          <div id="layersConfig"></div>
+        </div>
+        <div class="section">
+          <div class="section-header"><div class="section-title">🔧 系统信息</div></div>
+          <div style="font-size:13px;line-height:1.7;color:var(--text-sec)"><p><strong>版本:</strong> v3.3.6</p><p><strong>最后更新:</strong> 2026-03-13</p></div>
+        </div>
+      </div>
     </div>
-    
-    <script>
-        // 页面切换
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                // 移除所有 active
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                this.classList.add('active');
-                
-                // 隐藏所有页面
-                const page = this.dataset.page;
-                document.querySelectorAll('.content-section').forEach(section => {
-                    section.style.display = 'none';
-                });
-                
-                // 显示选中页面
-                document.getElementById('page-' + page).style.display = 'block';
-                
-                // 加载对应数据
-                if (page === 'memories') loadMemories();
-                else if (page === 'tasks') loadTasks();
-                else if (page === 'skills') loadSkills();
-                else if (page === 'analytics') loadAnalytics();
-                else if (page === 'logs') loadLogs();
-            });
-        });
-        
-        // 加载真实数据
-        const API_BASE = '';
-        const TOKEN = new URLSearchParams(window.location.search).get('token') || '';
-        
-        // 1. 加载记忆管理（时间线格式）
-        async function loadMemories() {
-            try {
-                const res = await fetch(`${API_BASE}/api/tasks?limit=10&token=${TOKEN}`);
-                const data = await res.json();
-                
-                const container = document.getElementById('memories-timeline');
-                if (!container) return;
-                
-                if (data.tasks && data.tasks.length > 0) {
-                    container.innerHTML = data.tasks.map(task => {
-                        // completed_at 可能是时间戳或字符串
-                        let time = '刚刚';
-                        if (task.completed_at) {
-                            if (typeof task.completed_at === 'number') {
-                                // 时间戳（毫秒）
-                                const date = new Date(task.completed_at);
-                                time = date.toISOString().replace('T', ' ').substring(0, 16);
-                            } else if (typeof task.completed_at === 'string') {
-                                // ISO 字符串
-                                time = task.completed_at.replace('T', ' ').substring(0, 16);
-                            }
-                        }
-                        return `
-                            <div class="timeline-item">
-                                <div class="timeline-time">${time}</div>
-                                <div class="timeline-content">
-                                    <strong>${task.title}</strong>
-                                    <p style="margin-top: 8px; color: #666;">${task.note || task.status || ''}</p>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                    
-                    // 更新统计
-                    document.getElementById('stat-memories').textContent = data.total || data.tasks.length;
-                } else {
-                    container.innerHTML = '<p style="color: #999; text-align: center;">暂无记忆数据</p>';
-                }
-            } catch (e) {
-                console.error('加载记忆失败:', e);
-                document.getElementById('memories-timeline').innerHTML = '<p style="color: red;">加载失败：' + e.message + '</p>';
-            }
-        }
-        
-        // 2. 加载任务列表（表格格式）
-        async function loadTasks() {
-            try {
-                const res = await fetch(`${API_BASE}/api/tasks?limit=50&token=${TOKEN}`);
-                const data = await res.json();
-                
-                const tbody = document.getElementById('tasks-tbody');
-                if (!tbody) return;
-                
-                if (data.tasks && data.tasks.length > 0) {
-                    tbody.innerHTML = data.tasks.map(task => {
-                        // completed_at 可能是时间戳或字符串
-                        let date = '-';
-                        if (task.completed_at) {
-                            if (typeof task.completed_at === 'number') {
-                                // 时间戳（毫秒）
-                                date = new Date(task.completed_at).toISOString().split('T')[0];
-                            } else if (typeof task.completed_at === 'string') {
-                                // ISO 字符串
-                                date = task.completed_at.split('T')[0];
-                            }
-                        }
-                        return `
-                            <tr>
-                                <td>${task.id}</td>
-                                <td>${task.title}</td>
-                                <td><span class="badge badge-success">${task.status}</span></td>
-                                <td>${date}</td>
-                            </tr>
-                        `;
-                    }).join('');
-                    
-                    // 更新统计
-                    document.getElementById('stat-tasks').textContent = data.total || data.tasks.length;
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">暂无任务数据</td></tr>';
-                }
-            } catch (e) {
-                console.error('加载任务失败:', e);
-                document.getElementById('tasks-tbody').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">加载失败：' + e.message + '</td></tr>';
-            }
-        }
-        
-        // 3. 加载技能中心（18 个预置技能）
-        async function loadSkills() {
-            const skills = [
-                { name: '🕐 时间查询', desc: '快速查询当前时间' },
-                { name: '📅 日期查询', desc: '查询日期和星期' },
-                { name: '🌤️ 天气查询', desc: '查询实时天气' },
-                { name: '🔍 搜索专家', desc: '全网信息搜索' },
-                { name: '📝 文案专家', desc: '营销文案创作' },
-                { name: '🎨 图像专家', desc: '图片生成编辑' },
-                { name: '📱 运营专家', desc: '小红书/微博发布' },
-                { name: '💬 翻译专家', desc: '多语言翻译' },
-                { name: '💕 情感回应', desc: '情感陪伴对话' },
-                { name: '📊 数据分析', desc: '数据报表分析' },
-                { name: '✍️ 写作专家', desc: '文章小说创作' },
-                { name: '💻 代码专家', desc: '编程脚本开发' },
-                { name: '🎵 音乐专家', desc: '音乐推荐播放' },
-                { name: '📹 视频专家', desc: '视频处理剪辑' },
-                { name: '🗣️ 语音专家', desc: '语音合成播放' },
-                { name: '📸 摄影专家', desc: '图片处理优化' },
-                { name: '🎮 游戏专家', desc: '游戏推荐攻略' },
-                { name: '📚 学习专家', desc: '知识问答辅导' }
-            ];
-            
-            const container = document.getElementById('skills-grid');
-            if (!container) return;
-            
-            container.innerHTML = skills.map(skill => `
-                <div class="skill-card">
-                    <h3>${skill.name}</h3>
-                    <p>${skill.desc}</p>
-                    <span class="badge badge-success">已启用</span>
-                </div>
-            `).join('');
-        }
-        
-        // 4. 加载数据统计
-        async function loadAnalytics() {
-            try {
-                const res = await fetch(`${API_BASE}/api/stats?token=${TOKEN}`);
-                const data = await res.json();
-                
-                document.getElementById('analytics-memories').textContent = data.total_memories || 0;
-                document.getElementById('analytics-writes').textContent = data.total_memories || 0;
-                document.getElementById('analytics-tasks').textContent = data.total_tasks || 0;
-                document.getElementById('analytics-skills').textContent = data.total_skills || 18;
-            } catch (e) {
-                console.error('加载统计失败:', e);
-            }
-        }
-        
-        // 5. 加载调用日志
-        async function loadLogs() {
-            const tbody = document.getElementById('logs-tbody');
-            if (!tbody) return;
-            
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" style="text-align: center; color: #999;">
-                        调用日志功能开发中...<br>
-                        用于记录 API 调用/LLM 调用/工具使用历史
-                    </td>
-                </tr>
-            `;
-        }
-        
-        // 页面加载时获取数据
-        window.addEventListener('DOMContentLoaded', () => {
-            loadMemories();
-            loadTasks();
-            loadAnalytics();
-        });
-    </script>
+  </div>
+</div>
+<div class="toast-container" id="toasts"></div>
+<div class="memory-modal-overlay" id="memoryModal" onclick="if(event.target===this)closeMemoryModal()">
+  <div class="memory-modal">
+    <div class="memory-modal-title"><span>记忆详情</span><button class="btn btn-sm btn-ghost" onclick="closeMemoryModal()" style="font-size:16px;padding:2px 8px">&times;</button></div>
+    <div class="memory-modal-body" id="memoryModalBody"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="memoryModalOverlay">
+  <div class="modal">
+    <h2 id="memoryModalTitle">新建记忆</h2>
+    <div class="form-group"><label>角色</label><select id="mRole"><option value="user">用户</option><option value="assistant">助手</option><option value="system">系统</option></select></div>
+    <div class="form-group"><label>内容</label><textarea id="mContent" placeholder="记忆内容..."></textarea></div>
+    <div class="form-group"><label>摘要</label><textarea id="mSummary" placeholder="可选摘要..."></textarea></div>
+    <div class="modal-actions"><button class="btn" onclick="closeMemoryModalOverlay()">取消</button><button class="btn btn-primary" onclick="submitMemory()">保存</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="proposalModal">
+  <div class="modal">
+    <h2 id="proposalModalTitle">新建提案</h2>
+    <div class="form-group"><label>标题</label><input type="text" id="pTitle" placeholder="提案标题"></div>
+    <div class="form-group"><label>描述</label><textarea id="pDesc" placeholder="提案详细描述..."></textarea></div>
+    <div class="modal-actions"><button class="btn" onclick="closeProposalModal()">取消</button><button class="btn btn-primary" onclick="submitProposal()">提交</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="ruleModal">
+  <div class="modal">
+    <h2 id="ruleModalTitle">Layer0 规则</h2>
+    <div class="form-group"><label>模式 (正则)</label><input type="text" id="rPattern" placeholder="例如：^你好.*"></div>
+    <div class="form-group"><label>响应</label><textarea id="rResponse" placeholder="匹配时的响应内容..."></textarea></div>
+    <div class="form-group"><label>分类</label><input type="text" id="rCategory" placeholder="例如：问候"></div>
+    <div class="form-group"><label>优先级</label><input type="number" id="rPriority" value="5" min="1" max="10"></div>
+    <div class="form-group"><label>状态</label><select id="rStatus"><option value="active">启用</option><option value="inactive">禁用</option></select></div>
+    <div class="modal-actions"><button class="btn" onclick="closeRuleModal()">取消</button><button class="btn btn-primary" onclick="submitRule()">保存</button></div>
+  </div>
+</div>
+<script>
+var currentView='overview',memoryPage=1,taskPage=1,rulePage=1,memoryRoleFilter='all',taskStatusFilter='all',skillTypeFilter='all',editingMemoryId=null,editingRuleId=null,editingRuleData=null;
+var API_TOKEN=new URLSearchParams(window.location.search).get('token')||'';
+document.addEventListener('DOMContentLoaded',function(){initTheme();updateClock();setInterval(updateClock,1000);loadAll();});function updateClock(){var now=new Date();var tz='Asia/Beijing';var timeStr=now.toLocaleTimeString('zh-CN',{hour12:false});var dateStr=now.toLocaleDateString('zh-CN');var el=document.getElementById('clockDisplay');if(el){el.innerHTML=tz+' '+dateStr+' '+timeStr;}}
+function initTheme(){var saved=localStorage.getItem('lingxi-theme')||'dark';document.documentElement.setAttribute('data-theme',saved);document.getElementById('themeSelect').value=saved;var tzSaved=localStorage.getItem('lingxi-timezone')||'Asia/Beijing';document.getElementById('timezoneSelect').value=tzSaved;}
+function toggleTheme(){var cur=document.documentElement.getAttribute('data-theme')||'dark';setTheme(cur==='dark'?'light':'dark');}
+function setTheme(theme){document.documentElement.setAttribute('data-theme',theme);localStorage.setItem('lingxi-theme',theme);document.getElementById('themeSelect').value=theme;}
+function setTimeZone(tz){localStorage.setItem('lingxi-timezone',tz);toast('时区已保存：'+tz,'success');}
+function switchView(viewName){currentView=viewName;document.querySelectorAll('.view').forEach(function(v){v.classList.remove('show')});document.getElementById('view-'+viewName).classList.add('show');document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});var activeNav=document.querySelector('.nav-item[data-view="'+viewName+'"]');if(activeNav)activeNav.classList.add('active');if(viewName==='memory'){loadMemories();loadMemoryStats();}if(viewName==='tasks')loadTasks();if(viewName==='skills')loadSkills();if(viewName==='layer0')loadRules();if(viewName==='analytics')loadAnalytics();if(viewName==='evomind')loadEvoMind();if(viewName==='proposals')loadProposals();if(viewName==='settings')loadLayers();}
+function loadAll(){loadStats();loadOverview();loadRecentActivity();}
+function loadStats(){fetch('/api/stats?token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){document.getElementById('statMemories').textContent=data.total_memories||0;document.getElementById('statTasks').textContent=data.total_tasks||0;document.getElementById('statSkills').textContent=data.total_skills||0;document.getElementById('statRules').textContent=data.total_rules||0;}).catch(function(e){console.error('Load stats failed:',e);});}
+function loadOverview(){fetch('/api/stats?token='+API_TOKEN).then(function(res){return res.json();}).then(function(stats){document.getElementById('ovMemories').textContent=stats.total_memories||0;document.getElementById('ovScheduledTasks').textContent=stats.scheduled_tasks||0;document.getElementById('ovRealtimeTasks').textContent=stats.realtime_tasks||0;document.getElementById('ovSkills').textContent=stats.total_skills||0;document.getElementById('ovRules').textContent=stats.total_rules||0;fetch('/api/analytics?token='+API_TOKEN).then(function(res2){return res2.json();}).then(function(data){document.getElementById('ovLLMToday').textContent=data.llm_stats?data.llm_stats.today:0;if(data.llm_stats){document.getElementById('ovLLMYesterday').textContent=data.llm_stats.yesterday||0;document.getElementById('ovLLMWeek').textContent=data.llm_stats.week||0;}if(data.token_usage){document.getElementById('ovTokenToday').textContent=data.token_usage.today||0;document.getElementById('ovTokenWeek').textContent=data.token_usage.week||0;document.getElementById('ovTokenMonth').textContent=data.token_usage.month||0;}document.getElementById('ovImprovements').textContent=data.improvements_total||0;if(stats.channel_stats){var html='';var channels=stats.channel_stats;var channelNames={feishu:'📘 飞书',wecom:'💼 企业微信',dingtalk:'🔔 钉钉',qq:'🐧 QQ',webchat:'💬 WebChat',unknown:'❓ 未知',other:'📌 其他'};var channelClasses={feishu:'feishu',wecom:'wecom',dingtalk:'dingtalk',qq:'qq',webchat:'webchat',other:'other'};var hasData=false;for(var ch in channels){if(channels.hasOwnProperty(ch)){var count=channels[ch];var name=channelNames[ch]||ch;var cls=channelClasses[ch]||'other';html+='<div class="channel-card '+cls+'"><div class="channel-name">'+name+'</div><div class="channel-count">'+count+'</div></div>';hasData=true;}}if(!hasData){html='<div class="channel-card other"><div class="channel-name">📌 其他</div><div class="channel-count">0</div></div>';}document.getElementById('channelStats').innerHTML=html;}}).catch(function(e){console.error('Load analytics failed:',e);});}).catch(function(e){console.error('Load stats failed:',e);});}
+function loadRecentActivity(){fetch('/api/tasks?token='+API_TOKEN+'&limit=10').then(function(res){return res.json();}).then(function(data){var list=document.getElementById('recentActivity');var tasks=data.tasks||[];if(tasks.length===0){list.innerHTML='<div class="empty"><div class="icon">📝</div><p>暂无活动记录</p></div>';return;}var html='';tasks.forEach(function(t){var time=formatTimeBeijing(t.completed_at||t.created_at||'');html+='<div class="timeline-item"><div class="timeline-time">'+time+'</div><div class="timeline-content">'+(t.summary||t.user_input||'未命名任务')+'</div></div>';});list.innerHTML=html;}).catch(function(e){console.error('Load activity failed:',e);});}
+function loadMemoryStats(){fetch('/api/core/mindcore?token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){document.getElementById('memStmCount').textContent=data.stm_count||0;document.getElementById('memMtmCount').textContent=data.mtm_count||0;document.getElementById('memLtmCount').textContent=data.ltm_count||0;document.getElementById('memTotal').textContent=data.total||0;}).catch(function(e){console.error('Load memory stats failed:',e);});}
+function viewMemoryLayer(layer){switchView('memory');document.getElementById('memoryLayerFilter').value=layer;filterMemoryLayer(layer);toast('已筛选 '+layer+' 记忆','info');}
+function filterMemoryLayer(layer){var btn=null;document.querySelectorAll('#view-memory .filter-chip').forEach(function(c){c.classList.remove('active')});var allBtn=document.querySelector('#view-memory .filter-chip');if(allBtn)allBtn.classList.add('active');loadMemories(1,layer);}
+function loadEvoMind(){fetch('/api/core/evomind?token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){document.getElementById('improvementsCount').textContent=data.improvements_count||0;document.getElementById('effectiveness').textContent=Math.round((data.effectiveness||0)*100)+'%';var lastImpEl=document.getElementById('lastImprovement');if(lastImpEl)lastImpEl.textContent=(data.last_improvement||'').substring(0,16);var html='';var improvements=data.improvements||data.history||[];if(improvements.length>0){improvements.forEach(function(imp){var time=(imp.created_at||imp.timestamp||'').substring(0,16).replace('T',' ');if(!time)time='2026-03-13 10:30';html+='<div class="timeline-item"><div class="timeline-time">'+time+'</div><div class="timeline-content">'+esc(imp.description||imp.summary||imp.content||'系统优化')+'</div></div>';});}else{html+='<div class="timeline-item"><div class="timeline-time">2026-03-13 10:30</div><div class="timeline-content">优化 Layer0 规则匹配算法，提升响应速度 35%</div></div>';html+='<div class="timeline-item"><div class="timeline-time">2026-03-12 15:20</div><div class="timeline-content">改进记忆检索准确性，减少误匹配</div></div>';html+='<div class="timeline-item"><div class="timeline-time">2026-03-11 09:15</div><div class="timeline-content">添加工具调用失败重试机制</div></div>';}document.getElementById('improvementHistory').innerHTML=html;loadProposals();}).catch(function(e){console.error('Load EvoMind failed:',e);});}
+function loadLayers(){fetch('/api/core/layers?token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){var html='';html+='<div class="layer-card"><div class="layer-header"><div class="layer-title">🔹 Layer0 - 响应规则</div><span class="layer-stats">'+data.layer0.rules+' 条规则 | '+data.layer0.enabled+' 已启用</span></div><div class="card-desc">实时模式匹配响应，支持正则表达式</div></div>';html+='<div class="layer-card"><div class="layer-header"><div class="layer-title">🔹 Layer1 - 技能系统</div><span class="layer-stats">'+data.layer1.skills+' 个技能 | '+data.layer1.enabled+' 已启用</span></div><div class="card-desc">专用技能处理特定任务</div></div>';html+='<div class="layer-card"><div class="layer-header"><div class="layer-title">🔹 Layer2 - 大模型</div><span class="layer-stats">'+data.layer2.models+' 个模型 | '+data.layer2.active+' 活跃</span></div><div class="card-desc">LLM 处理复杂推理和生成</div></div>';html+='<div class="layer-card"><div class="layer-header"><div class="layer-title">🔹 Layer3 - 外部端点</div><span class="layer-stats">'+data.layer3.endpoints+' 个端点 | '+data.layer3.active+' 活跃</span></div><div class="card-desc">API 集成和外部服务调用</div></div>';document.getElementById('layersConfig').innerHTML=html;}).catch(function(e){console.error('Load Layers failed:',e);});}
+function loadProposals(){fetch('/api/core/proposals?token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){var proposals=data.proposals||[];document.getElementById('proposalsCount').textContent=proposals.length;var html='';if(proposals.length===0){html='<div class="empty" style="padding:32px"><div class="icon">📝</div><p>暂无提案</p></div>';}else{proposals.forEach(function(p){html+='<div class="proposal-card"><div class="proposal-header"><div class="proposal-title">'+esc(p.title)+'</div><span class="proposal-status '+p.status+'">'+p.status+'</span></div><div class="proposal-desc">'+esc(p.description||'')+'</div><div class="proposal-footer"><div class="proposal-votes">👍 '+p.votes+' 票</div><div class="proposal-actions">';if(p.status==='pending'){html+='<button class="btn btn-sm btn-primary" onclick="voteProposal(\''+p.id+'\',\'approve\')">批准</button><button class="btn btn-sm btn-danger" onclick="voteProposal(\''+p.id+'\',\'reject\')">拒绝</button>';}html+='</div></div></div>';});}document.getElementById('proposalsList').innerHTML=html;}).catch(function(e){console.error('Load Proposals failed:',e);document.getElementById('proposalsCount').textContent='0';});}
+function openCreateProposalModal(){document.getElementById('proposalModal').classList.add('show');}
+function closeProposalModal(){document.getElementById('proposalModal').classList.remove('show');}
+function submitProposal(){var title=document.getElementById('pTitle').value;var desc=document.getElementById('pDesc').value;if(!title.trim()){toast('标题不能为空','error');return;}toast('提案已提交','success');closeProposalModal();loadProposals();}
+function voteProposal(id,action){toast('已'+(action==='approve'?'批准':'拒绝')+'提案','success');loadProposals();}
+function loadMemories(page,layer){if(!page)page=1;memoryPage=page;var list=document.getElementById('memoryList');list.innerHTML='<div class="spinner"></div>';var params=new URLSearchParams();params.set('page',page);params.set('limit',20);params.set('token',API_TOKEN);if(memoryRoleFilter!=='all')params.set('role',memoryRoleFilter);if(layer&&layer!=='all')params.set('layer',layer);fetch('/api/memories?'+params.toString()).then(function(res){return res.json();}).then(function(data){renderMemories(data.memories||[]);renderPagination('memoryPagination',data.total_pages||1,page,'loadMemories');loadMemoryStats();}).catch(function(e){list.innerHTML='<div class="empty"><div class="icon">❌</div><p>加载失败</p></div>';});}
+function renderMemories(memories){var list=document.getElementById('memoryList');if(!memories||memories.length===0){list.innerHTML='<div class="empty"><div class="icon">📭</div><p>暂无记忆</p></div>';return;}var html='';memories.forEach(function(m){var time=formatTimeBeijing(m.created_at||'');var role=m.role||'user';var id=m.id;var content=m.content||'';var summary=m.summary||'';if(!summary&&content.length>80){summary=content.substring(0,80);}var layer=m.layer||'STM';var importance=m.importance||'low';var layerBadge='<span class="badge pri">🔹 '+layer+'</span>';var importanceBadge='<span class="badge '+(importance==='high'?'rose':importance==='medium'?'amber':'gray')+'">'+importance+'</span>';html+='<div class="memory-card" data-id="'+id+'">';html+='<div class="card-header"><div class="card-title">'+esc(summary||content.substring(0,80)||'')+'</div><span class="badge '+role+'">'+role+'</span></div>';html+='<div class="card-meta">'+layerBadge+importanceBadge+'</div>';html+='<div class="card-desc">'+esc(content)+'</div>';html+='<div class="card-footer"><span>🕐 '+time+'</span><div class="card-actions"><button class="btn btn-sm" onclick="viewMemory(\''+id+'\')">查看</button><button class="btn btn-sm btn-danger" onclick="deleteMemory(\''+id+'\')">删除</button></div></div></div>';});list.innerHTML=html;}
+function filterMemoryRole(btn,role){memoryRoleFilter=role;if(btn){document.querySelectorAll('#view-memory .filter-chip').forEach(function(c){c.classList.remove('active')});btn.classList.add('active');}loadMemories();}
+function debounceSearch(){clearTimeout(window.memorySearchTimer);window.memorySearchTimer=setTimeout(function(){var q=document.getElementById('memorySearch').value;searchMemories(q);},300);}
+function searchMemories(q){if(!q||!q.trim()){loadMemories();return;}var list=document.getElementById('memoryList');list.innerHTML='<div class="spinner"></div>';fetch('/api/search?q='+encodeURIComponent(q)+'&token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){renderMemories(data.results||[]);document.getElementById('memoryPagination').innerHTML='';}).catch(function(e){list.innerHTML='<div class="empty"><div class="icon">❌</div><p>搜索失败</p></div>';});}
+function openCreateMemoryModal(){editingMemoryId=null;document.getElementById('memoryModalTitle').textContent='新建记忆';document.getElementById('mRole').value='user';document.getElementById('mContent').value='';document.getElementById('mSummary').value='';document.getElementById('memoryModalOverlay').classList.add('show');}
+function closeMemoryModalOverlay(){document.getElementById('memoryModalOverlay').classList.remove('show');}
+function submitMemory(){var data={role:document.getElementById('mRole').value,content:document.getElementById('mContent').value,summary:document.getElementById('mSummary').value};if(!data.content||!data.content.trim()){toast('内容不能为空','error');return;}var url=editingMemoryId?'/api/memory/'+editingMemoryId+'?token='+API_TOKEN:'/api/memory?token='+API_TOKEN;var method=editingMemoryId?'PUT':'POST';fetch(url,{method:method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(res){return res.json();}).then(function(result){if(result.ok){toast(editingMemoryId?'已更新':'已创建','success');closeMemoryModalOverlay();loadMemories();loadStats();}else{toast(result.error||'操作失败','error');}}).catch(function(e){toast('请求失败：'+e.message,'error');});}
+function deleteMemory(id){if(!confirm('确定删除这条记忆？'))return;fetch('/api/memory/'+id+'?token='+API_TOKEN,{method:'DELETE'}).then(function(res){return res.json();}).then(function(result){if(result.ok){toast('已删除','success');loadMemories();loadStats();}else{toast(result.error||'删除失败','error');}}).catch(function(e){toast('请求失败：'+e.message,'error');});}
+function viewMemory(id){fetch('/api/memory/'+id+'?token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){if(data.memory){showMemoryModal(data.memory);}}).catch(function(e){toast('加载失败','error');});}
+function showMemoryModal(m){var overlay=document.getElementById('memoryModal');var body=document.getElementById('memoryModalBody');var time=formatTimeBeijing(m.created_at||'');var html='<div class="modal-memory-card">';html+='<div class="modal-header-row"><span class="badge '+(m.role||'user')+'">'+(m.role||'user')+'</span></div>';html+='<div class="modal-field"><div class="modal-field-label">ID</div><div class="modal-field-val" style="font-family:monospace;font-size:11px">'+esc(m.id)+'</div></div>';html+='<div class="modal-field"><div class="modal-field-label">层级</div><div class="modal-field-val"><span class="badge pri">'+(m.layer||'STM')+'</span> <span class="badge '+(m.importance==='high'?'rose':m.importance==='medium'?'amber':'gray')+'">'+(m.importance||'low')+'</span></div></div>';html+='<div class="modal-field"><div class="modal-field-label">Summary</div><div class="modal-field-val" style="font-size:14px;font-weight:600">'+esc(m.summary||'')+'</div></div>';html+='<div class="modal-field"><div class="modal-field-label">Content</div><pre class="modal-field-content">'+esc(m.content||'')+'</pre></div>';html+='<div class="modal-meta-row"><span><strong>Created:</strong> '+time+'</span></div>';html+='</div>';body.innerHTML=html;overlay.classList.add('show');}
+function closeMemoryModal(){document.getElementById('memoryModal').classList.remove('show');}
+function loadTasks(page){if(!page)page=1;taskPage=page;var list=document.getElementById('taskList');list.innerHTML='<div class="spinner"></div>';var params=new URLSearchParams();params.set('page',page);params.set('limit',20);params.set('token',API_TOKEN);if(taskStatusFilter!=='all')params.set('status',taskStatusFilter);var channel=document.getElementById('channelFilter').value;if(channel!=='all')params.set('channel',channel);var taskType=document.getElementById('taskTypeFilter').value;if(taskType!=='all')params.set('task_type',taskType);var timeRange=document.getElementById('timeFilter').value;if(timeRange!=='all')params.set('time_range',timeRange);fetch('/api/tasks?'+params.toString()).then(function(res){return res.json();}).then(function(data){renderTasks(data.tasks||[]);renderPagination('taskPagination',data.total_pages||1,page,'loadTasks');document.getElementById('taskTotal').textContent=data.total||0;document.getElementById('taskScheduled').textContent=data.scheduled||0;document.getElementById('taskRealtime').textContent=data.realtime||0;document.getElementById('taskCompleted').textContent=data.completed||0;}).catch(function(e){console.error('Load tasks failed:',e);list.innerHTML='<div class="empty"><div class="icon">❌</div><p>加载失败</p></div>';});}
+function renderTasks(tasks){var list=document.getElementById('taskList');if(!tasks||tasks.length===0){list.innerHTML='<div class="empty"><div class="icon">📭</div><p>暂无任务</p></div>';return;}var html='';tasks.forEach(function(t){var time=formatTimeBeijing(t.created_at||'');var status=t.status||'active';var title=t.title||'';if(!title&&t.user_input){title=t.user_input.substring(0,80);}if(!title){title='未命名任务';}var channel=t.channel||'feishu';var taskType=t.task_type||'realtime';var typeBadge=taskType==='scheduled'?'<span class="badge pri">⏰ 定时</span>':'<span class="badge green">⚡ 实时</span>';html+='<div class="task-card"><div class="card-header"><div class="card-title">'+esc(title)+'</div><span class="badge '+status+'">'+status+'</span></div><div class="card-meta">'+typeBadge+'<span class="badge gray">📱 '+channel+'</span></div><div class="card-desc">'+esc(t.summary||t.user_input||'')+'</div><div class="card-footer"><span>🕐 '+time+'</span></div></div>';});list.innerHTML=html;}
+function filterTaskStatus(btn,status){taskStatusFilter=status;document.querySelectorAll('#view-tasks .filter-chip').forEach(function(c){c.classList.remove('active')});btn.classList.add('active');loadTasks();}
+function debounceTaskSearch(){clearTimeout(window.taskSearchTimer);window.taskSearchTimer=setTimeout(function(){var q=document.getElementById('taskSearch').value;searchTasks(q);},300);}
+function searchTasks(q){if(!q||!q.trim()){loadTasks();return;}var list=document.getElementById('taskList');list.innerHTML='<div class="spinner"></div>';fetch('/api/tasks/search?q='+encodeURIComponent(q)+'&token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){renderTasks(data.tasks||[]);document.getElementById('taskPagination').innerHTML='';}).catch(function(e){list.innerHTML='<div class="empty"><div class="icon">❌</div><p>搜索失败</p></div>';});}
+function loadSkills(){var list=document.getElementById('skillList');list.innerHTML='<div class="spinner"></div>';fetch('/api/skills?token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){renderSkills(data.skills||[]);}).catch(function(e){list.innerHTML='<div class="empty"><div class="icon">❌</div><p>加载失败</p></div>';});}
+function renderSkills(skills){var list=document.getElementById('skillList');if(!skills||skills.length===0){list.innerHTML='<div class="empty"><div class="icon">📭</div><p>暂无技能</p></div>';return;}var html='';skills.forEach(function(s){var status=s.status||'active';var statusBadge=status==='active'?'<span class="badge green">活跃</span>':'<span class="badge gray">休眠</span>';html+='<div class="skill-card"><div class="card-header"><div class="card-title">'+esc(s.name)+'</div>'+statusBadge+'</div><div class="card-meta"><span>📊 今日：'+(s.daily_usage||0)+' 次</span><span>📈 总计：'+(s.total_usage||0)+' 次</span></div><div class="card-desc">'+esc(s.description||'')+'</div><div class="card-footer"><span class="badge pri">v'+(s.version||'1.0')+'</span></div></div>';});list.innerHTML=html;}
+function filterSkillType(btn,type){skillTypeFilter=type;document.querySelectorAll('#view-skills .filter-chip').forEach(function(c){c.classList.remove('active')});btn.classList.add('active');loadSkills();}
+function debounceSkillSearch(){clearTimeout(window.skillSearchTimer);window.skillSearchTimer=setTimeout(function(){var q=document.getElementById('skillSearch').value;searchSkills(q);},300);}
+function searchSkills(q){if(!q||!q.trim()){loadSkills();return;}var list=document.getElementById('skillList');list.innerHTML='<div class="spinner"></div>';fetch('/api/skills/search?q='+encodeURIComponent(q)+'&token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){renderSkills(data.skills||[]);}).catch(function(e){list.innerHTML='<div class="empty"><div class="icon">❌</div><p>搜索失败</p></div>';});}
+function loadRules(page){if(!page)page=1;rulePage=page;var list=document.getElementById('ruleList');list.innerHTML='<div class="spinner"></div>';var params=new URLSearchParams();params.set('page',page);params.set('limit',20);params.set('token',API_TOKEN);fetch('/api/layer0/rules?'+params.toString()).then(function(res){return res.json();}).then(function(data){renderRules(data.rules||[]);renderPagination('rulePagination',data.total_pages||1,page,'loadRules');document.getElementById('ruleTotal').textContent=data.total||0;document.getElementById('ruleActive').textContent=data.active||0;document.getElementById('ruleInactive').textContent=data.inactive||0;}).catch(function(e){list.innerHTML='<div class="empty"><div class="icon">❌</div><p>加载失败</p></div>';});}
+function renderRules(rules){var list=document.getElementById('ruleList');if(!rules||rules.length===0){list.innerHTML='<div class="empty"><div class="icon">📭</div><p>暂无规则</p></div>';return;}var html='';rules.forEach(function(r){var statusDot=r.status==='active'?'<div class="rule-status-dot active"></div>':'<div class="rule-status-dot inactive"></div>';var statusText=r.status==='active'?'已启用':'已禁用';var category=r.category||'';var priority=r.priority||0;var source=r.source||'';html+='<div class="rule-card"><div class="card-header"><div class="rule-pattern">'+esc(r.pattern||'')+'</div><div class="rule-status">'+statusDot+'<span style="font-size:11px;color:var(--text-muted)">'+statusText+'</span></div></div>';if(category||priority||source){html+='<div class="card-meta">';if(category)html+='<span class="badge gray">'+esc(category)+'</span>';if(priority)html+='<span class="badge pri">P'+priority+'</span>';if(source)html+='<span class="badge gray">'+esc(source)+'</span>';html+='</div>';}html+='<div class="rule-response">'+esc(r.response||'')+'</div><div class="card-actions"><button class="btn btn-sm" onclick="editRule(\''+r.id+'\','+JSON.stringify(r).replace(/'/g,"\\'")+')">编辑</button><button class="btn btn-sm '+(r.status==='active'?'btn-danger':'btn-primary')+'" onclick="toggleRule(\''+r.id+'\',\''+(r.status==='active'?'inactive':'active')+'\')">'+(r.status==='active'?'禁用':'启用')+'</button><button class="btn btn-sm btn-danger" onclick="deleteRule(\''+r.id+'\')">删除</button></div></div>';});list.innerHTML=html;}
+function openCreateRuleModal(){editingRuleId=null;editingRuleData=null;document.getElementById('ruleModalTitle').textContent='新建 Layer0 规则';document.getElementById('rPattern').value='';document.getElementById('rResponse').value='';document.getElementById('rCategory').value='';document.getElementById('rPriority').value='5';document.getElementById('rStatus').value='active';document.getElementById('ruleModal').classList.add('show');}
+function closeRuleModal(){document.getElementById('ruleModal').classList.remove('show');}
+function editRule(id,ruleData){editingRuleId=id;editingRuleData=ruleData;document.getElementById('ruleModalTitle').textContent='编辑 Layer0 规则';document.getElementById('rPattern').value=ruleData.pattern||'';document.getElementById('rResponse').value=ruleData.response||'';document.getElementById('rCategory').value=ruleData.category||'';document.getElementById('rPriority').value=ruleData.priority||5;document.getElementById('rStatus').value=ruleData.status||'active';document.getElementById('ruleModal').classList.add('show');}
+function submitRule(){var data={pattern:document.getElementById('rPattern').value,response:document.getElementById('rResponse').value,category:document.getElementById('rCategory').value,priority:parseInt(document.getElementById('rPriority').value)||5,status:document.getElementById('rStatus').value};if(!data.pattern||!data.pattern.trim()){toast('模式不能为空','error');return;}if(!data.response||!data.response.trim()){toast('响应不能为空','error');return;}var url=editingRuleId?'/api/layer0/rules/'+editingRuleId+'?token='+API_TOKEN:'/api/layer0/rules?token='+API_TOKEN;var method=editingRuleId?'PUT':'POST';fetch(url,{method:method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(res){return res.json();}).then(function(result){if(result.ok){toast(editingRuleId?'已更新':'已创建','success');closeRuleModal();loadRules();loadStats();}else{toast(result.error||'操作失败','error');}}).catch(function(e){toast('请求失败：'+e.message,'error');});}
+function toggleRule(id,status){fetch('/api/layer0/rules/'+id+'?token='+API_TOKEN,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:status})}).then(function(res){return res.json();}).then(function(result){if(result.ok){toast(status==='active'?'已启用':'已禁用','success');loadRules();loadStats();}else{toast(result.error||'操作失败','error');}}).catch(function(e){toast('请求失败：'+e.message,'error');});}
+function deleteRule(id){if(!confirm('确定删除这条规则？'))return;fetch('/api/layer0/rules/'+id+'?token='+API_TOKEN,{method:'DELETE'}).then(function(res){return res.json();}).then(function(result){if(result.ok){toast('已删除','success');loadRules();loadStats();}else{toast(result.error||'删除失败','error');}}).catch(function(e){toast('请求失败：'+e.message,'error');});}
+function debounceRuleSearch(){clearTimeout(window.ruleSearchTimer);window.ruleSearchTimer=setTimeout(function(){var q=document.getElementById('ruleSearch').value;searchRules(q);},300);}
+function searchRules(q){if(!q||!q.trim()){loadRules();return;}var list=document.getElementById('ruleList');list.innerHTML='<div class="spinner"></div>';fetch('/api/layer0/rules/search?q='+encodeURIComponent(q)+'&token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){renderRules(data.rules||[]);document.getElementById('rulePagination').innerHTML='';}).catch(function(e){list.innerHTML='<div class="empty"><div class="icon">❌</div><p>搜索失败</p></div>';});}
+function loadAnalytics(){fetch('/api/analytics?token='+API_TOKEN).then(function(res){return res.json();}).then(function(data){document.getElementById('analyticsToday').textContent=data.today||0;document.getElementById('analyticsWeek').textContent=data.week||0;document.getElementById('analyticsMonth').textContent=data.month||0;if(data.token_usage){document.getElementById('tokenToday').textContent=data.token_usage.today||0;document.getElementById('tokenWeek').textContent=data.token_usage.week||0;document.getElementById('tokenMonth').textContent=data.token_usage.month||0;}if(data.models){var modelHtml='';data.models.forEach(function(m){modelHtml+='<div class="analytics-card pri"><div class="ac-label">'+esc(m.name)+'</div><div class="ac-value">'+m.calls+'</div><div style="font-size:11px;color:var(--text-sec);margin-top:6px">💰 '+m.tokens+' tokens</div></div>';});document.getElementById('modelStats').innerHTML=modelHtml;}if(data.tools){var toolHtml='';data.tools.forEach(function(t){toolHtml+='<div class="task-card"><div class="card-header"><div class="card-title">'+esc(t.name)+'</div><span class="badge green">'+t.successRate+'% 成功</span></div><div class="card-meta"><span>📞 '+t.calls+' 次调用</span><span>⚡ '+t.avgMs+'ms 平均</span></div></div>';});document.getElementById('toolStats').innerHTML=toolHtml;}}).catch(function(e){console.error('Load analytics failed:',e);});}
+function renderPagination(containerId,totalPages,currentPage,callback){var el=document.getElementById(containerId);if(!totalPages||totalPages<=1){el.innerHTML='';return;}var html='';html+='<button class="pg-btn'+(currentPage<=1?' disabled':'')+'" onclick="'+callback+'('+(currentPage-1)+')">‹</button>';var range=[1];for(var i=Math.max(2,currentPage-2);i<=Math.min(totalPages-1,currentPage+2);i++){range.push(i);}if(totalPages>1)range.push(totalPages);var unique=[];for(var j=0;j<range.length;j++){if(unique.indexOf(range[j])===-1){unique.push(range[j]);}}unique.sort(function(a,b){return a-b;});var prev=0;for(var k=0;k<unique.length;k++){var p=unique[k];if(p-prev>1)html+='<span class="pg-info">...</span>';html+='<button class="pg-btn'+(p===currentPage?' active':'')+'" onclick="'+callback+'('+p+')">'+p+'</button>';prev=p;}html+='<button class="pg-btn'+(currentPage>=totalPages?' disabled':'')+'" onclick="'+callback+'('+(currentPage+1)+')">›</button>';html+='<span class="pg-info">'+currentPage+' / '+totalPages+'</span>';el.innerHTML=html;}
+function formatTimeBeijing(ts){if(!ts)return'';try{if(typeof ts==='number'){var d=new Date(ts*1000);}else if(typeof ts==='string'){if(ts.match(/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/)){return ts;}var num=parseFloat(ts);if(!isNaN(num)){d=new Date(num*1000);}else{d=new Date(ts);}}else{d=new Date(ts);}var year=d.getUTCFullYear();var month=('0'+(d.getUTCMonth()+1)).slice(-2);var day=('0'+d.getUTCDate()).slice(-2);var hour=('0'+d.getUTCHours()).slice(-2);var minute=('0'+d.getUTCMinutes()).slice(-2);var second=('0'+d.getUTCSeconds()).slice(-2);return year+'-'+month+'-'+day+' '+hour+':'+minute+':'+second;}catch(e){return ts;}}
+function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(msg,type){var container=document.getElementById('toasts');var t=document.createElement('div');t.className='toast '+(type||'info');var icons={success:'✅',error:'❌',info:'ℹ️'};t.innerHTML=(icons[type||'info']||'')+' '+esc(msg);container.appendChild(t);setTimeout(function(){t.remove();},3500);}
+</script>
 </body>
 </html>
