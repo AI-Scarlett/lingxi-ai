@@ -112,15 +112,8 @@ def scan_sessions() -> List[Dict]:
                     channel = 'unknown'
                     if 'channel' in msg:
                         channel = msg['channel']
-                    else:
-                        # 从内容中判断
-                        content_str = str(content_list)
-                        if 'feishu' in content_str.lower():
-                            channel = 'feishu'
-                        elif 'qqbot' in content_str.lower():
-                            channel = 'qqbot'
-                        elif 'telegram' in content_str.lower():
-                            channel = 'telegram'
+                    # 不要从内容中判断渠道，因为系统 prompt 包含渠道关键字会导致误判
+                    # 如果没有明确的 channel 字段，使用 'unknown'
                     
                     # 提取用户 ID
                     user_id = message_data.get('user_id', 'unknown')
