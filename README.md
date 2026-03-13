@@ -7,6 +7,32 @@
 
 ---
 
+## 🔐 安全与配置声明
+
+**⚠️ 重要提示：** 灵犀需要配置外部凭证才能完整运行。详细信息请阅读 [SECURITY_AND_CONFIG.md](SECURITY_AND_CONFIG.md)
+
+### 无需凭证即可运行的功能
+- ✅ 本地 Dashboard 访问（http://localhost:8765）
+- ✅ 记忆管理、任务记录、技能管理
+- ✅ Layer0 规则管理
+- ✅ SQLite 数据库操作
+
+### 需要外部凭证的功能（可选）
+| 功能 | 凭证 | 存储位置 | 风险等级 |
+|------|------|---------|---------|
+| Dashboard 公开访问 | Dashboard Token | `~/.openclaw/workspace/.lingxi/dashboard_token.txt` | 🟢 低 |
+| GitHub 推送 | GitHub Token | `~/.github_token` | 🔴 高 |
+| 飞书/钉钉/QQ 机器人 | 各自平台 Token | 各平台后台配置 | 🟡 中 |
+| 大模型调用 | 阿里云 API Key | 环境变量 | 🔴 高 |
+
+**安全承诺：**
+- ✅ 明确声明所有外部依赖
+- ✅ 不隐藏任何网络请求
+- ✅ 不收集用户隐私数据
+- ✅ 提供完整的凭证管理指南
+
+---
+
 ## 📋 简介
 
 灵犀是一个基于 OpenClaw 的 AI 智能调度系统，专为多渠道消息处理和智能任务管理设计。

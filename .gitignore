@@ -1,59 +1,84 @@
-# Git 忽略文件
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-.venv
+env/
 venv/
 ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# 环境变量（包含敏感信息）
+# 凭证和密钥（高优先级）
+.github_token
+.git_token
+*.key
+*.secret
+*.pem
+*.crt
+*.p12
+*.pfx
+dashboard_token.txt
+*_token.txt
+*.credentials
+*.password
+*.secret.json
+
+# 灵犀特定
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+logs/
+tmp/
+data/*.db
+data/*.sqlite
+!data/.gitkeep
+
+# 配置文件（包含敏感信息）
+config.local.json
+settings.local.json
+*.local.py
 .env
 .env.local
 .env.*.local
 
-# 数据库和配置
-*.db
-*.sqlite
-*.json
-!.gitignore
-!.env.example
-
-# 日志
-*.log
-
-# 临时文件
-*.bak
-*.tmp
-*.broken
-
-# Dashboard
-dashboard/*.bak
-dashboard/*.broken
-dashboard/index.html.v2
-
-# 敏感信息
-authorized_users.json
-task-state.json
-companies/
-cookie_pool.json
-remote_access.json
-improvement_config.json
-dashboard_token.txt
-
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
-
-# OS
+*~
 .DS_Store
 Thumbs.db
-*.sh
-*.patch
-*.bundle
-*.tar.gz
+
+# 测试
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# 文档生成
+*.pdf
+*.log
+security_report.txt
+
+# 备份
+*.bak
+*.backup
+*.old
