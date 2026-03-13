@@ -131,7 +131,7 @@ ROLE_CONFIG = {
 SPECIAL_CONTACTS = {
     "emotional_companion": {
         "name": "情感伴侣+拍照专家",
-        "qq": "3694666763",
+        "qq": "YOUR_QQ_NUMBER",  # 请替换为真实的 QQ 号
         "description": "情感陪伴、自拍生成，可直接联系",
         "bypass_orchestrator": True
     }
