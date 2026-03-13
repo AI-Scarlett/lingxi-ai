@@ -672,13 +672,11 @@ async def get_tasks(page: int = 1, limit: int = 20, status: str = "", channel: s
                 created_at_beijing = ""
                 completed_at_beijing = ""
                 if row[6]:
-                    # 先按本地时间解析，然后 +8 小时修正灵犀的时区 bug
-                    dt_local = datetime.fromtimestamp(row[6])
-                    dt_beijing = dt_local + timedelta(hours=8)
+                    # 服务器时区已是 CST (UTC+8)，直接使用
+                    dt_beijing = datetime.fromtimestamp(row[6])
                     created_at_beijing = dt_beijing.strftime('%Y-%m-%d %H:%M:%S')
                 if row[7]:
-                    dt_local = datetime.fromtimestamp(row[7])
-                    dt_beijing = dt_local + timedelta(hours=8)
+                    dt_beijing = datetime.fromtimestamp(row[7])
                     completed_at_beijing = dt_beijing.strftime('%Y-%m-%d %H:%M:%S')
                 
                 tasks.append({
