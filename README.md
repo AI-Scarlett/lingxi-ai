@@ -2,7 +2,7 @@
 
 > 基于 OpenClaw 的企业级 AI 助手系统 - 完整集成记忆管理、任务调度、技能系统、安全巡察和 Agent 积分体系
 
-[![Version](https://img.shields.io/badge/version-v3.3.6-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
+[![Version](https://img.shields.io/badge/version-v3.3.7-blue.svg)](https://github.com/AI-Scarlett/lingxi-ai/releases)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-v2026.3.8-green.svg)](https://openclaw.ai)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
@@ -272,6 +272,14 @@ async def get_custom(token: str = ""):
 ```
 
 ## 📝 更新日志
+
+### v3.3.7 (2026-03-14)
+- ✅ **systemd 守护进程**: 永久稳定运行，自动重启
+- ✅ **Layer0 渠道多选**: 支持自由选择多个渠道
+- ✅ **万能回复配置**: 任何消息立即响应
+- ✅ **显示优化**: 修复任务和记忆列表显示
+- ✅ **Q&A 文档**: 18 个常见问题解答
+- ✅ **性能优化**: 每页 50 条数据，分页加载
 
 ### v3.3.6 (2026-03-14)
 - ✅ 新增 Agent 积分体系（7 级等级）
