@@ -1,0 +1,28 @@
+# 灵犀 AI 助手 - Python 依赖
+
+# Web 框架
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# HTTP 请求
+requests>=2.31.0
+httpx>=0.26.0
+
+# 数据处理
+pydantic>=2.5.0
+
+# 数据库
+sqlite3
+
+# 工具
+python-dotenv>=1.0.0
+click>=8.1.0
+
+# 安全
+secrets
+hashlib
+
+# 系统
+pathlib
+datetime

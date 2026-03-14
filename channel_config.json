@@ -1,0 +1,11 @@
+{
+  "report_interval_hours": 1,
+  "max_history_days": 7,
+  "channels": ["feishu"],
+  "report_format": "detailed",
+  "include_agent_health": true,
+  "include_performance_metrics": true,
+  "include_task_details": true,
+  "max_tasks_in_report": 10,
+  "feishu_target": "oc_3b59d82ca45054a18dd07e82cbd1ca57"
+}
