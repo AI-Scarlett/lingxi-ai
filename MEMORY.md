@@ -26,13 +26,11 @@ feishu_doc(action="write", doc_token="返回的document_id", content="完整Mark
 
 **GitHub:**
 - 用户名：AI-Scarlett
-- Token: 已移除
-- 位置：/root/.github_token
+- Token: 已保存到 `/root/.github_token` (600 权限)
 - 仓库：hunter-daily-report
 
 **阿里云百炼:**
-- API Key 1: sk-d84ce7d711c14942af76aa5722cbd037 (自拍)
-- API Key 2: sk-871c8e233cbf4ce997b728b3a76b9dce (备用)
+- API Key: 已保存到 CREDENTIALS.md
 
 **微信公众号:**
 - AppID: wxd04bcd7faf50af4b
