@@ -2581,6 +2581,52 @@
       "enabled": true,
       "priority": 8,
       "source": "extended"
+    },
+    {
+      "id": "L0_0192",
+      "patterns": [
+        "^测试.*"
+      ],
+      "response": "测试回复",
+      "enabled": true,
+      "category": "测试",
+      "priority": 5,
+      "source": "dashboard",
+      "channel": "feishu",
+      "auto_reply": true,
+      "created_at": "2026-03-14T21:49:02.762153"
+    },
+    {
+      "id": "L0_0193",
+      "patterns": [
+        "任何消息"
+      ],
+      "response": "boss稍等，马上安排！",
+      "enabled": true,
+      "category": "任何消息",
+      "priority": 10,
+      "source": "dashboard",
+      "channel": "all",
+      "auto_reply": true,
+      "created_at": "2026-03-14T21:50:51.534389"
+    },
+    {
+      "id": "L0_0194",
+      "patterns": [
+        "^测试.*"
+      ],
+      "response": "测试多选",
+      "enabled": true,
+      "category": "",
+      "priority": 5,
+      "source": "dashboard",
+      "channel": [
+        "feishu",
+        "dingtalk",
+        "qq"
+      ],
+      "auto_reply": true,
+      "created_at": "2026-03-14T21:55:09.005621"
     }
   ]
 }

@@ -1115,6 +1115,89 @@ async def get_scheduled_tasks(token: str = ""):
     return {"tasks": scheduled, "total": len(scheduled)}
 
 
+@app.get("/api/sessions")
+async def get_sessions(active: int = 60, token: str = ""):
+    """获取活跃 Agent 会话列表"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    try:
+        import subprocess
+        # 调用 OpenClaw CLI 获取会话列表
+        cmd = ["openclaw", "sessions", "list", "--all-agents", "--active", str(active), "--json"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            return data
+        else:
+            # 降级：直接读取会话文件
+            sessions = []
+            if Config.SESSIONS_DIR.exists():
+                for session_file in Config.SESSIONS_DIR.glob("*.jsonl"):
+                    try:
+                        # 读取最后一行获取最新状态
+                        with open(session_file, 'r') as f:
+                            lines = f.readlines()
+                            if lines:
+                                last_line = json.loads(lines[-1])
+                                sessions.append({
+                                    "key": session_file.stem,
+                                    "sessionId": session_file.stem,
+                                    "channel": "feishu",
+                                    "model": "qwen3.5-plus",
+                                    "updatedAt": session_file.stat().st_mtime * 1000,
+                                    "contextTokens": len(lines) * 100,
+                                    "messages": lines[-5:]  # 最近 5 条消息
+                                })
+                    except Exception as e:
+                        continue
+            
+            return {"sessions": sessions, "count": len(sessions)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取会话失败：{str(e)}")
+
+
+@app.get("/api/subagents")
+async def get_subagents(recent: int = 60, token: str = ""):
+    """获取子代理列表"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    try:
+        import subprocess
+        # 调用 OpenClaw CLI 获取子代理列表
+        cmd = ["openclaw", "subagents", "list", "--recent", str(recent)]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        
+        if result.returncode == 0:
+            # 解析文本输出
+            output = result.stdout
+            active = []
+            recent = []
+            
+            lines = output.split('\n')
+            current_section = None
+            
+            for line in lines:
+                if 'active subagents:' in line.lower():
+                    current_section = 'active'
+                elif 'recent' in line.lower():
+                    current_section = 'recent'
+                elif line.strip() and current_section and not line.startswith('('):
+                    agent_info = {"info": line.strip(), "uptime": 0}
+                    if current_section == 'active':
+                        active.append(agent_info)
+                    else:
+                        recent.append(agent_info)
+            
+            return {"active": active, "recent": recent, "total": len(active)}
+        else:
+            return {"active": [], "recent": [], "total": 0}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取子代理失败：{str(e)}")
+
+
 @app.get("/api/features")
 async def get_features(token: str = ""):
     """获取核心功能状态"""

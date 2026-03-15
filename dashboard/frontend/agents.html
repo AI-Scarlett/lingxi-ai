@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵犀 Dashboard - Agent 活动监控</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        [v-cloak] { display: none; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div id="app" v-cloak>
+        <!-- 顶部导航栏 -->
+        <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16">
+            <div class="h-full px-6 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-2xl hover:opacity-75">🚀</a>
+                    <h1 class="text-xl font-bold">灵犀 Dashboard <span class="text-primary-500">v3.3.6</span></h1>
+                    <span class="text-sm text-gray-500">·</span>
+                    <span class="text-sm text-primary-500 font-medium">Agent 活动监控</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button @click="refreshData" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" title="刷新">
+                        <i class="ph ph-refresh" :class="{'animate-spin': loading}"></i>
+                    </button>
+                    <button @click="toggleDarkMode" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" title="切换主题">
+                        <i :class="darkMode ? 'ph ph-sun' : 'ph ph-moon'"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="p-6 max-w-7xl mx-auto">
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">活跃 Agent</p>
+                            <p class="text-3xl font-bold mt-2">{{ stats.activeAgents }}</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                            <i class="ph ph-robot text-2xl text-green-600 dark:text-green-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">活跃会话</p>
+                            <p class="text-3xl font-bold mt-2">{{ stats.activeSessions }}</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                            <i class="ph ph-chats-circle text-2xl text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">子代理</p>
+                            <p class="text-3xl font-bold mt-2">{{ stats.subagents }}</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+                            <i class="ph ph-users text-2xl text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">最后更新</p>
+                            <p class="text-lg font-bold mt-2">{{ lastUpdateTime }}</p>
+                        </div>
+                        <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
+                            <i class="ph ph-clock text-2xl text-orange-600 dark:text-orange-400"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent 列表 -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold flex items-center">
+                        <i class="ph ph-robot mr-2"></i>
+                        Agent 列表
+                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <input 
+                            v-model="searchQuery" 
+                            type="text" 
+                            placeholder="搜索 Agent..." 
+                            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm"
+                        >
+                        <select v-model="timeFilter" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm">
+                            <option value="30">最近 30 分钟</option>
+                            <option value="60">最近 1 小时</option>
+                            <option value="120">最近 2 小时</option>
+                            <option value="360">最近 6 小时</option>
+                            <option value="1440">最近 24 小时</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agent ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">渠道</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">模型</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">最后活跃</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">消息数</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr v-for="agent in filteredAgents" :key="agent.key" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium">{{ truncateId(agent.key) }}</div>
+                                    <div class="text-xs text-gray-500">{{ agent.sessionId }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                                        {{ agent.channel }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">{{ agent.model }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span :class="getStatusClass(agent)">
+                                        <span class="w-2 h-2 rounded-full mr-1" :class="getStatusDotClass(agent)"></span>
+                                        {{ getStatusText(agent) }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">{{ formatTimeAgo(agent.updatedAt) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">{{ agent.contextTokens }} tokens</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <button @click="viewHistory(agent)" class="text-primary-500 hover:text-primary-600 mr-2">
+                                        <i class="ph ph-history"></i>
+                                    </button>
+                                    <button @click="copySessionKey(agent)" class="text-gray-500 hover:text-gray-600" title="复制 Session Key">
+                                        <i class="ph ph-copy"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="filteredAgents.length === 0">
+                                <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                                    <i class="ph ph-robot text-4xl mb-2"></i>
+                                    <p>暂无活跃 Agent</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 子代理列表 -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold flex items-center">
+                        <i class="ph ph-users mr-2"></i>
+                        子代理 (Subagents)
+                    </h2>
+                    <button @click="refreshSubagents" class="text-sm text-primary-500 hover:text-primary-600">
+                        <i class="ph ph-refresh mr-1"></i>刷新
+                    </button>
+                </div>
+
+                <div class="p-6">
+                    <div v-if="subagents.active.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div v-for="sub in subagents.active" :key="sub.id" 
+                             class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-500 transition-colors">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium">{{ sub.target || '子代理' }}</span>
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                    活跃
+                                </span>
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                运行时长：{{ formatDuration(sub.uptime) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center py-8 text-gray-500">
+                        <i class="ph ph-users text-4xl mb-2"></i>
+                        <p>当前无活跃子代理</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 历史弹窗 -->
+        <div v-if="showHistory" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="showHistory = false">
+            <div class="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold">会话历史</h3>
+                    <button @click="showHistory = false" class="text-gray-500 hover:text-gray-600">
+                        <i class="ph ph-x text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto max-h-[60vh]">
+                    <div v-for="(msg, idx) in historyMessages" :key="idx" 
+                         :class="['mb-4 p-4 rounded-lg', msg.role === 'assistant' ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-700']">
+                        <div class="flex items-center mb-2">
+                            <i :class="msg.role === 'assistant' ? 'ph ph-robot text-blue-500' : 'ph ph-user text-gray-500'" class="mr-2"></i>
+                            <span class="text-xs text-gray-500">{{ formatTimestamp(msg.timestamp) }}</span>
+                        </div>
+                        <div class="text-sm">{{ truncateText(msg.content, 500) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    loading: false,
+                    darkMode: false,
+                    sessions: [],
+                    subagents: { active: [], recent: [] },
+                    searchQuery: '',
+                    timeFilter: '60',
+                    showHistory: false,
+                    historyMessages: [],
+                    stats: {
+                        activeAgents: 0,
+                        activeSessions: 0,
+                        subagents: 0
+                    },
+                    lastUpdate: null
+                }
+            },
+            computed: {
+                filteredAgents() {
+                    let filtered = this.sessions;
+                    if (this.searchQuery) {
+                        const query = this.searchQuery.toLowerCase();
+                        filtered = filtered.filter(s => 
+                            s.key.toLowerCase().includes(query) ||
+                            s.channel.toLowerCase().includes(query) ||
+                            s.model.toLowerCase().includes(query)
+                        );
+                    }
+                    return filtered;
+                },
+                lastUpdateTime() {
+                    if (!this.lastUpdate) return '-';
+                    return new Date(this.lastUpdate).toLocaleTimeString('zh-CN');
+                }
+            },
+            mounted() {
+                this.darkMode = localStorage.getItem('darkMode') === 'true';
+                if (this.darkMode) {
+                    document.documentElement.classList.add('dark');
+                }
+                this.refreshData();
+                // 每 30 秒自动刷新
+                setInterval(this.refreshData, 30000);
+            },
+            methods: {
+                async refreshData() {
+                    this.loading = true;
+                    try {
+                        // 获取会话列表
+                        const sessionsRes = await fetch('/api/sessions?active=' + this.timeFilter);
+                        const sessionsData = await sessionsRes.json();
+                        this.sessions = sessionsData.sessions || [];
+                        
+                        // 获取子代理列表
+                        const subagentsRes = await fetch('/api/subagents?recent=' + this.timeFilter);
+                        const subagentsData = await subagentsRes.json();
+                        this.subagents = subagentsData;
+
+                        // 更新统计
+                        this.stats.activeAgents = new Set(this.sessions.map(s => s.agentId || 'main')).size;
+                        this.stats.activeSessions = this.sessions.length;
+                        this.stats.subagents = this.subagents.active ? this.subagents.active.length : 0;
+                        this.lastUpdate = Date.now();
+                    } catch (e) {
+                        console.error('刷新数据失败:', e);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                async refreshSubagents() {
+                    await this.refreshData();
+                },
+                toggleDarkMode() {
+                    this.darkMode = !this.darkMode;
+                    document.documentElement.classList.toggle('dark');
+                    localStorage.setItem('darkMode', this.darkMode);
+                },
+                truncateId(key) {
+                    const parts = key.split(':');
+                    return parts.slice(0, 3).join(':') + '...';
+                },
+                getStatusClass(agent) {
+                    const minutes = (Date.now() - agent.updatedAt) / 60000;
+                    if (minutes < 5) return 'px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+                    if (minutes < 30) return 'px-2 py-1 text-xs rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+                    return 'px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+                },
+                getStatusDotClass(agent) {
+                    const minutes = (Date.now() - agent.updatedAt) / 60000;
+                    if (minutes < 5) return 'bg-green-500';
+                    if (minutes < 30) return 'bg-yellow-500';
+                    return 'bg-gray-500';
+                },
+                getStatusText(agent) {
+                    const minutes = (Date.now() - agent.updatedAt) / 60000;
+                    if (minutes < 5) return '活跃';
+                    if (minutes < 30) return '空闲';
+                    return '离线';
+                },
+                formatTimeAgo(timestamp) {
+                    const minutes = Math.floor((Date.now() - timestamp) / 60000);
+                    if (minutes < 1) return '刚刚';
+                    if (minutes < 60) return minutes + '分钟前';
+                    const hours = Math.floor(minutes / 60);
+                    if (hours < 24) return hours + '小时前';
+                    return Math.floor(hours / 24) + '天前';
+                },
+                formatDuration(ms) {
+                    if (!ms) return '-';
+                    const minutes = Math.floor(ms / 60000);
+                    if (minutes < 60) return minutes + '分钟';
+                    const hours = Math.floor(minutes / 60);
+                    return hours + '小时';
+                },
+                formatTimestamp(timestamp) {
+                    return new Date(timestamp).toLocaleString('zh-CN');
+                },
+                truncateText(text, maxLen) {
+                    if (!text) return '';
+                    if (text.length <= maxLen) return text;
+                    return text.substring(0, maxLen) + '...';
+                },
+                async viewHistory(agent) {
+                    this.showHistory = true;
+                    this.historyMessages = agent.messages || [];
+                },
+                copySessionKey(agent) {
+                    navigator.clipboard.writeText(agent.key);
+                    alert('Session Key 已复制');
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

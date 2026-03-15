@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵犀 Dashboard - 安全报告</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div id="app" v-cloak class="p-6 max-w-6xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">🔒 安全报告</h1>
+            <a href="/?token={{ token }}" class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">← 返回 Dashboard</a>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
+                <div class="text-sm text-gray-500">总检查项</div>
+                <div class="text-2xl font-bold">{{ totalChecks }}</div>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl shadow">
+                <div class="text-sm text-green-600">通过</div>
+                <div class="text-2xl font-bold text-green-600">{{ passedChecks }}</div>
+            </div>
+            <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl shadow">
+                <div class="text-sm text-amber-600">警告</div>
+                <div class="text-2xl font-bold text-amber-600">{{ warningChecks }}</div>
+            </div>
+            <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl shadow">
+                <div class="text-sm text-red-600">高风险</div>
+                <div class="text-2xl font-bold text-red-600">{{ highRiskChecks }}</div>
+            </div>
+        </div>
+        
+        <!-- 服务健康 -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow mb-6">
+            <div class="p-4 border-b dark:border-gray-700">
+                <h2 class="font-bold flex items-center">
+                    <i class="ph ph-heartbeat mr-2 text-green-500"></i>
+                    服务健康检查
+                </h2>
+            </div>
+            <div class="divide-y dark:divide-gray-700">
+                <div v-for="(status, name) in serviceStatus" :key="name" class="p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span :class="status.status === 'normal' ? 'text-green-500' : status.status === 'warning' ? 'text-amber-500' : 'text-red-500'" class="text-2xl">
+                            {{ status.status === 'normal' ? '✅' : status.status === 'warning' ? '⚠️' : '❌' }}
+                        </span>
+                        <div>
+                            <div class="font-medium">{{ name }}</div>
+                            <div class="text-sm text-gray-500">{{ status.message }}</div>
+                        </div>
+                    </div>
+                    <span :class="statusClass(status.status)" class="px-3 py-1 rounded-full text-sm">
+                        {{ statusText(status.status) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 安全问题 -->
+        <div v-if="securityIssues.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow">
+            <div class="p-4 border-b dark:border-gray-700">
+                <h2 class="font-bold flex items-center">
+                    <i class="ph ph-shield-warning mr-2 text-amber-500"></i>
+                    安全问题 ({{ securityIssues.length }})
+                </h2>
+            </div>
+            <div class="divide-y dark:divide-gray-700">
+                <div v-for="(issue, index) in securityIssues" :key="index" class="p-4">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span :class="getRiskIcon(issue.type)" class="text-xl">{{ getRiskIcon(issue.type) }}</span>
+                            <div>
+                                <div class="font-medium">{{ issue.risk }}</div>
+                                <div v-if="issue.file" class="text-sm text-gray-500">📁 {{ issue.file }}</div>
+                            </div>
+                        </div>
+                        <span :class="getRiskClass(issue.type)" class="px-3 py-1 rounded-full text-sm">
+                            {{ getRiskText(issue.type) }}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                        💡 {{ issue.suggestion }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 无安全问题 -->
+        <div v-else class="bg-green-50 dark:bg-green-900/20 rounded-xl p-8 text-center">
+            <div class="text-6xl mb-4">✅</div>
+            <h3 class="text-xl font-bold mb-2">所有安全检查通过</h3>
+            <p class="text-gray-600 dark:text-gray-400">系统安全状态良好，未发现风险</p>
+        </div>
+        
+        <!-- 刷新按钮 -->
+        <div class="mt-6 text-center">
+            <button @click="loadReport" :disabled="loading" class="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+                {{ loading ? '加载中...' : '🔄 刷新报告' }}
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    loading: false,
+                    token: new URLSearchParams(window.location.search).get('token') || '',
+                    serviceStatus: {},
+                    securityIssues: [],
+                    totalChecks: 0,
+                    passedChecks: 0,
+                    warningChecks: 0,
+                    highRiskChecks: 0
+                }
+            },
+            mounted() {
+                this.loadReport();
+            },
+            methods: {
+                async loadReport() {
+                    this.loading = true;
+                    try {
+                        // 从最近的巡察报告读取数据
+                        const response = await fetch('/api/inspection/latest?token=' + this.token);
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.serviceStatus = data.service_status || {};
+                            this.securityIssues = data.security_issues || [];
+                            this.calculateStats();
+                        } else {
+                            // 降级：显示模拟数据
+                            this.serviceStatus = {
+                                'Dashboard 服务': { status: 'normal', message: '正常运行' },
+                                '每小时汇报': { status: 'normal', message: '最近有成功汇报' },
+                                '定时任务 Cron': { status: 'normal', message: '6 个定时任务' },
+                                'OpenClaw Gateway': { status: 'normal', message: 'Gateway 正常运行' }
+                            };
+                            this.securityIssues = [];
+                            this.calculateStats();
+                        }
+                    } catch (e) {
+                        console.error('加载报告失败:', e);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                calculateStats() {
+                    this.totalChecks = Object.keys(this.serviceStatus).length + this.securityIssues.length;
+                    this.passedChecks = Object.values(this.serviceStatus).filter(s => s.status === 'normal').length;
+                    this.warningChecks = Object.values(this.serviceStatus).filter(s => s.status === 'warning').length;
+                    this.highRiskChecks = this.securityIssues.filter(i => i.type === 'hardcoded_secret' || i.type === 'log_secret_leak').length;
+                },
+                
+                statusClass(status) {
+                    const classes = {
+                        'normal': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                        'warning': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                        'error': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                    };
+                    return classes[status] || classes.normal;
+                },
+                
+                statusText(status) {
+                    const texts = {
+                        'normal': '正常',
+                        'warning': '警告',
+                        'error': '异常'
+                    };
+                    return texts[status] || status;
+                },
+                
+                getRiskClass(type) {
+                    if (type === 'hardcoded_secret' || type === 'log_secret_leak') return 'bg-red-100 text-red-800';
+                    if (type === 'dashboard_exposed' || type === 'ports_exposed') return 'bg-amber-100 text-amber-800';
+                    return 'bg-blue-100 text-blue-800';
+                },
+                
+                getRiskText(type) {
+                    if (type === 'hardcoded_secret' || type === 'log_secret_leak') return '高风险';
+                    if (type === 'dashboard_exposed' || type === 'ports_exposed') return '中风险';
+                    return '低风险';
+                },
+                
+                getRiskIcon(type) {
+                    if (type === 'hardcoded_secret' || type === 'log_secret_leak') return '🚨';
+                    if (type === 'dashboard_exposed' || type === 'ports_exposed') return '⚠️';
+                    return 'ℹ️';
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

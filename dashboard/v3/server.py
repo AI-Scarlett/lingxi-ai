@@ -5,10 +5,12 @@
 完整 API 支持：记忆管理/任务列表/技能中心/Layer0 规则/数据分析/核心功能
 """
 
-from fastapi import FastAPI, HTTPException, Query, Body
+from fastapi import FastAPI, HTTPException, Query, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
+from typing import Optional, Dict
+import sys
 import json
 import re
 import os
@@ -79,10 +81,14 @@ CORE_DIR = LINGXI_AI_DIR / "core"
 
 
 def verify_token(token: str) -> bool:
-    """验证访问令牌"""
+    """验证访问令牌（强制验证，无 token 拒绝访问）"""
+    if not token:
+        return False
+    
     token_file = WORKSPACE_DIR / ".lingxi" / "dashboard_token.txt"
     if not token_file.exists():
-        return True
+        return False
+    
     saved_token = token_file.read_text().strip()
     return token == saved_token
 
@@ -196,7 +202,7 @@ def get_skills_from_directory():
 
 
 def get_layer0_rules():
-    """从灵犀后端读取 Layer0 规则"""
+    """从灵犀后端读取 Layer0 规则（支持渠道配置和万能回复）"""
     rules_data = load_json_file(LAYER0_RULES_FILE, {})
     rules = rules_data.get('rules', [])
     
@@ -217,6 +223,8 @@ def get_layer0_rules():
             "category": rule.get('category', ''),
             "priority": rule.get('priority', 0),
             "source": rule.get('source', ''),
+            "channel": rule.get('channel', 'all'),  # 新增：渠道配置
+            "auto_reply": rule.get('auto_reply', False),  # 新增：万能回复
             "created_at": rule.get('created_at', datetime.now().isoformat()),
             "editable": True
         })
@@ -297,91 +305,180 @@ def get_sessions_data():
 
 
 def get_memories_from_sessions():
-    """从 OpenClaw 每日记忆文件中读取真实记忆数据（最近 30 天）"""
+    """从 OpenClaw 每日记忆文件 + 会话文件中读取真实记忆数据（最近 30 天）"""
     memories = []
     memory_dir = Path.home() / ".openclaw" / "workspace" / "memory"
+    sessions_dir = Path.home() / ".openclaw" / "agents" / "main" / "sessions"
     
-    if not memory_dir.exists():
-        return memories
-    
+    # 1. 先从 memory 目录读取每日记忆文件
     import re
     from datetime import datetime, timedelta
     
-    # 只读取最近 30 天的每日记忆文件
-    cutoff_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-    
     daily_files = []
-    for md_file in memory_dir.glob("*.md"):
-        # 只处理每日记忆文件（2026-XX-XX.md 格式）
-        date_match = re.match(r'(\d{4}-\d{2}-\d{2})\.md$', md_file.name)
-        if not date_match:
-            continue
+    if memory_dir.exists():
+        # 只读取最近 30 天的每日记忆文件
+        cutoff_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         
-        date_str = date_match.group(1)
-        
-        # 跳过太旧的文件（只保留最近 30 天）
-        if date_str < cutoff_date:
-            continue
-        
-        # 跳过特殊文件
-        if 'HEARTBEAT' in md_file.name or 'CREDENTIALS' in md_file.name:
-            continue
-        
-        daily_files.append((date_str, md_file))
-    
-    # 按日期倒序排序（最新的在前）
-    daily_files.sort(reverse=True)
-    
-    # 读取记忆
-    for date_str, md_file in daily_files:
-        try:
-            content = md_file.read_text(encoding='utf-8')
+        for md_file in memory_dir.glob("*.md"):
+            # 只处理每日记忆文件（2026-XX-XX.md 格式）
+            date_match = re.match(r'(\d{4}-\d{2}-\d{2})\.md$', md_file.name)
+            if not date_match:
+                continue
             
-            # 提取 ## 标题和对应内容
-            sections = re.split(r'\n##+ ', content)
-            for i, section in enumerate(sections[1:], 1):  # 跳过第一个空章节
-                lines = section.split('\n')
-                title = lines[0].strip() if lines else '无标题'
-                content_text = '\n'.join(lines[1:]).strip()
+            date_str = date_match.group(1)
+            
+            # 跳过太旧的文件（只保留最近 30 天）
+            if date_str < cutoff_date:
+                continue
+            
+            # 跳过特殊文件
+            if 'HEARTBEAT' in md_file.name or 'CREDENTIALS' in md_file.name:
+                continue
+            
+            daily_files.append((date_str, md_file))
+    
+        # 按日期倒序排序（最新的在前）
+        daily_files.sort(reverse=True)
+        
+        # 读取记忆
+        for date_str, md_file in daily_files:
+            try:
+                content = md_file.read_text(encoding='utf-8')
                 
-                if len(content_text) < 10:  # 跳过太短的内容
-                    continue
-                
-                # 根据内容长度判断记忆层级
-                importance = 'low'
-                memory_layer = 'STM'
-                if len(content_text) > 500:
-                    importance = 'high'
-                    memory_layer = 'LTM'
-                elif len(content_text) > 200:
-                    importance = 'medium'
-                    memory_layer = 'MTM'
-                
-                memories.append({
-                    "id": f"{date_str}_{i:04d}",
-                    "session_key": date_str,
-                    "role": "system",
-                    "content": content_text[:1000],  # 限制长度
-                    "summary": title[:100],
-                    "kind": "daily_memory",
-                    "created_at": f"{date_str}T23:59:59",
-                    "updated_at": f"{date_str}T23:59:59",
-                    "dedup_status": "active",
-                    "merge_count": 0,
-                    "merge_history": [],
-                    "owner": "openclaw",
-                    "importance": importance,
-                    "layer": memory_layer,
-                    "source_file": md_file.name
-                })
-        except Exception as e:
-            print(f"读取记忆文件失败 {md_file}: {e}")
-            continue
+                # 提取 ## 标题和对应内容
+                sections = re.split(r'\n##+ ', content)
+                for i, section in enumerate(sections[1:], 1):  # 跳过第一个空章节
+                    lines = section.split('\n')
+                    title = lines[0].strip() if lines else '无标题'
+                    content_text = '\n'.join(lines[1:]).strip()
+                    
+                    if len(content_text) < 10:  # 跳过太短的内容
+                        continue
+                    
+                    # 根据内容长度判断记忆层级
+                    importance = 'low'
+                    memory_layer = 'STM'
+                    if len(content_text) > 500:
+                        importance = 'high'
+                        memory_layer = 'LTM'
+                    elif len(content_text) > 200:
+                        importance = 'medium'
+                        memory_layer = 'MTM'
+                    
+                    # 使用文件实际修改时间作为时间戳
+                    file_mtime = md_file.stat().st_mtime
+                    file_time = datetime.fromtimestamp(file_mtime).isoformat()
+                    
+                    memories.append({
+                        "id": f"{date_str}_{i:04d}",
+                        "session_key": date_str,
+                        "role": "system",
+                        "content": content_text[:1000],  # 限制长度
+                        "summary": title[:100],
+                        "kind": "daily_memory",
+                        "created_at": file_time,
+                        "updated_at": file_time,
+                        "dedup_status": "active",
+                        "merge_count": 0,
+                        "merge_history": [],
+                        "owner": "openclaw",
+                        "importance": importance,
+                        "layer": memory_layer,
+                        "source_file": md_file.name
+                    })
+            except Exception as e:
+                print(f"读取记忆文件失败 {md_file}: {e}")
+                continue
     
     # 按时间倒序排序（已经是倒序，这里确保）
     memories.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     
-    return memories  # 返回最近 30 天的真实记忆
+    # 2. 从会话文件中提取最新记忆（补充 memory 文件的不足）
+    if sessions_dir and sessions_dir.exists():
+        # 读取最近 5 个活跃会话
+        session_files = sorted(sessions_dir.glob("*.jsonl"), key=lambda x: x.stat().st_mtime, reverse=True)[:5]
+        
+        for session_file in session_files:
+            try:
+                with open(session_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    if len(lines) < 2:
+                        continue
+                    
+                    # 提取最近一次用户输入和助手回复
+                    last_user_msg = None
+                    last_assistant_msg = None
+                    
+                    for line in reversed(lines[-20:]):  # 只看最后 20 条
+                        try:
+                            msg = json.loads(line)
+                            if msg.get('type') == 'message':
+                                role = msg.get('message', {}).get('role')
+                                content = msg.get('message', {}).get('content', [])
+                                
+                                if role == 'user' and last_user_msg is None:
+                                    # 提取用户输入
+                                    for item in content:
+                                        if item.get('type') == 'text':
+                                            last_user_msg = item.get('text', '')[:500]
+                                            break
+                                
+                                elif role == 'assistant' and last_assistant_msg is None:
+                                    # 提取助手回复
+                                    for item in content:
+                                        if item.get('type') == 'text':
+                                            last_assistant_msg = item.get('text', '')[:500]
+                                            break
+                        except:
+                            continue
+                    
+                    # 创建记忆条目
+                    if last_user_msg or last_assistant_msg:
+                        session_key = session_file.stem
+                        updated_at = session_file.stat().st_mtime
+                        created_at_str = datetime.fromtimestamp(updated_at).isoformat()
+                        
+                        # 用户输入作为记忆
+                        if last_user_msg and len(last_user_msg) > 20:
+                            memories.append({
+                                "id": f"session_{session_key}_user",
+                                "session_key": session_key,
+                                "role": "user",
+                                "content": last_user_msg,
+                                "summary": f"会话 {session_key[:8]}... 的用户输入",
+                                "kind": "session_memory",
+                                "created_at": created_at_str,
+                                "updated_at": created_at_str,
+                                "dedup_status": "active",
+                                "layer": "STM",
+                                "importance": "medium",
+                                "source_file": f"sessions/{session_file.name}"
+                            })
+                        
+                        # 助手回复作为记忆
+                        if last_assistant_msg and len(last_assistant_msg) > 20:
+                            memories.append({
+                                "id": f"session_{session_key}_assistant",
+                                "session_key": session_key,
+                                "role": "assistant",
+                                "content": last_assistant_msg,
+                                "summary": f"会话 {session_key[:8]}... 的助手回复",
+                                "kind": "session_memory",
+                                "created_at": created_at_str,
+                                "updated_at": created_at_str,
+                                "dedup_status": "active",
+                                "layer": "STM",
+                                "importance": "low",
+                                "source_file": f"sessions/{session_file.name}"
+                            })
+            except Exception as e:
+                print(f"读取会话文件失败 {session_file}: {e}")
+                continue
+    
+    # 重新按时间倒序排序
+    memories.sort(key=lambda x: x.get('updated_at', x.get('created_at', '')), reverse=True)
+    
+    return memories  # 返回合并后的记忆（memory 文件 + 会话文件）
 
 
 def get_core_features():
@@ -413,12 +510,107 @@ def get_core_features():
 
 
 @app.get("/")
-async def root(token: str = ""):
-    """根路径"""
+async def root(req: Request, token: str = ""):
+    """根路径 - IP+ 端口+token 直接访问"""
+    # 直接从 URL 参数获取 token
     index_file = DASHBOARD_DIR / "index.html"
     if index_file.exists():
         return FileResponse(str(index_file))
     return {"error": "Dashboard 页面不存在"}
+
+
+@app.get("/pages/{page_name}")
+async def get_page(page_name: str, token: str = ""):
+    """获取子页面（如 Agent 监控页面）"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    pages_dir = DASHBOARD_DIR / "pages"
+    page_file = pages_dir / page_name
+    
+    if page_file.exists() and page_file.is_file():
+        return FileResponse(str(page_file))
+    
+    return {"error": f"页面 {page_name} 不存在"}
+
+
+@app.get("/api/inspection/latest")
+async def get_latest_inspection(token: str = ""):
+    """获取最新巡察报告"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    try:
+        # 读取最新的巡察报告
+        inspection_dir = Path.home() / ".openclaw" / "workspace" / "data" / "inspections"
+        if not inspection_dir.exists():
+            return {"service_status": {}, "security_issues": []}
+        
+        reports = sorted(inspection_dir.glob("inspection_*.json"), reverse=True)
+        if not reports:
+            return {"service_status": {}, "security_issues": []}
+        
+        latest_report = json.loads(reports[0].read_text(encoding='utf-8'))
+        
+        # 提取服务状态和安全问题
+        service_status = latest_report.get("service_status", {})
+        security_issues = []
+        
+        # 从日志中提取安全问题
+        for log_entry in latest_report.get("log", []):
+            if log_entry.get("type") == "security_issue":
+                security_issues.extend(log_entry.get("issues", []))
+        
+        return {
+            "service_status": service_status,
+            "security_issues": security_issues,
+            "inspection_time": latest_report.get("inspection_time", "")
+        }
+    except Exception as e:
+        return {"service_status": {}, "security_issues": [], "error": str(e)}
+
+
+# ============ 原有 API ============
+
+@app.get("/api/agent-credit")
+async def get_agent_credit(token: str = ""):
+    """获取 Agent 积分数据"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    try:
+        # 从积分管理模块读取数据
+        sys.path.insert(0, str(Path.home() / ".openclaw" / "workspace" / "core"))
+        from agent_credit import AgentCreditManager
+        
+        manager = AgentCreditManager()
+        stats = manager.get_stats()
+        ranking = manager.get_ranking(10)
+        
+        return {
+            **stats,
+            "ranking": [
+                {
+                    "agent_id": a.agent_id,
+                    "score": a.score,
+                    "level": a.level,
+                    "tasks_completed": a.tasks_completed,
+                    "perfect_days": a.perfect_days,
+                }
+                for a in ranking
+            ]
+        }
+    except Exception as e:
+        # 降级返回 mock 数据
+        return {
+            "total_agents": 1,
+            "average_score": 40,
+            "highest_score": 40,
+            "lowest_score": 40,
+            "ranking": [
+                {"agent_id": "main", "score": 40, "level": "观察", "tasks_completed": 0, "perfect_days": 0}
+            ]
+        }
 
 
 # ─── Stats API ───
@@ -891,14 +1083,147 @@ async def get_rules(page: int = 1, limit: int = 20, token: str = ""):
     }
 
 
-@app.put("/api/layer0/rules/{rule_id}")
-async def update_rule(rule_id: str, rule: dict, token: str = ""):
-    """更新 Layer0 规则"""
+@app.post("/api/layer0/rules")
+async def create_rule(rule: dict, token: str = ""):
+    """创建 Layer0 规则（支持渠道和万能回复）"""
     if not verify_token(token):
         raise HTTPException(status_code=401, detail="Token 无效")
     
-    # 允许更新状态
+    # 读取现有规则
+    rules_data = load_json_file(LAYER0_RULES_FILE, {})
+    rules = rules_data.get('rules', [])
+    
+    # 创建新规则
+    channel_value = rule.get('channel', 'all')
+    if isinstance(channel_value, str) and channel_value != 'all':
+        channel_value = channel_value.split(',')  # 支持多选：feishu,dingtalk,qq
+    
+    new_rule = {
+        "id": f'L0_{len(rules)+1:04d}',
+        "patterns": [rule.get('pattern', '')],
+        "response": rule.get('response', ''),
+        "enabled": rule.get('status', 'active') == 'active',
+        "category": rule.get('category', ''),
+        "priority": rule.get('priority', 5),
+        "source": rule.get('source', 'dashboard'),
+        "channel": channel_value,  # 渠道配置（支持数组）
+        "auto_reply": rule.get('auto_reply', False),  # 万能回复
+        "skill_name": rule.get('skill_name', ''),  # 关联技能
+        "created_at": datetime.now().isoformat()
+    }
+    
+    rules.append(new_rule)
+    rules_data['rules'] = rules
+    
+    # 保存
+    LAYER0_RULES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    LAYER0_RULES_FILE.write_text(json.dumps(rules_data, indent=2, ensure_ascii=False), encoding='utf-8')
+    
+    return {"ok": True, "message": "规则已创建", "rule_id": new_rule['id']}
+
+
+@app.put("/api/layer0/rules/{rule_id}")
+async def update_rule(rule_id: str, rule: dict, token: str = ""):
+    """更新 Layer0 规则（支持渠道和万能回复）"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    # 读取现有规则
+    rules_data = load_json_file(LAYER0_RULES_FILE, {})
+    rules = rules_data.get('rules', [])
+    
+    # 查找并更新规则
+    for r in rules:
+        if r.get('id') == rule_id:
+            r['response'] = rule.get('response', r.get('response'))
+            r['enabled'] = rule.get('status', 'active') == 'active'
+            channel_value = rule.get('channel', r.get('channel', 'all'))
+            if isinstance(channel_value, str) and channel_value != 'all':
+                channel_value = channel_value.split(',')
+            r['channel'] = channel_value  # 渠道配置（支持数组）
+            r['auto_reply'] = rule.get('auto_reply', False)  # 万能回复
+            r['skill_name'] = rule.get('skill_name', r.get('skill_name', ''))  # 关联技能
+            break
+    
+    # 保存
+    rules_data['rules'] = rules
+    LAYER0_RULES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    LAYER0_RULES_FILE.write_text(json.dumps(rules_data, indent=2, ensure_ascii=False), encoding='utf-8')
+    
     return {"ok": True, "message": "规则已更新"}
+
+
+@app.post("/api/layer0/channel-config")
+async def save_channel_config(config: dict, token: str = ""):
+    """保存渠道配置（万能回复）"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    # 渠道配置保存到文件
+    config_file = LINGXI_AI_DIR / "data" / "layer0_channel_config.json"
+    config_file.parent.mkdir(parents=True, exist_ok=True)
+    config_file.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding='utf-8')
+    
+    return {"ok": True, "message": "渠道配置已保存"}
+
+
+@app.get("/api/layer0/channel-config")
+async def get_channel_config(token: str = ""):
+    """获取渠道配置"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    config_file = LINGXI_AI_DIR / "data" / "layer0_channel_config.json"
+    if config_file.exists():
+        config = json.loads(config_file.read_text(encoding='utf-8'))
+    else:
+        # 默认配置
+        config = {
+            "channels": {
+                "feishu": {"enabled": True, "auto_reply": "收到，正在处理...", "priority": 1},
+                "dingtalk": {"enabled": True, "auto_reply": "收到，马上处理", "priority": 2},
+                "qq": {"enabled": True, "auto_reply": "好的，我知道了", "priority": 3},
+                "wecom": {"enabled": True, "auto_reply": "收到，请稍候", "priority": 4},
+                "webchat": {"enabled": True, "auto_reply": "嗯嗯，我在听", "priority": 5},
+                "other": {"enabled": True, "auto_reply": "已收到消息", "priority": 6}
+            }
+        }
+    
+    return config
+
+
+@app.get("/api/skills/list")
+async def get_skills_list(token: str = ""):
+    """获取技能列表（用于 Layer0 规则关联）"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    skills_dir = WORKSPACE_DIR / "skills"
+    skills = []
+    
+    if skills_dir.exists():
+        for skill_folder in skills_dir.iterdir():
+            if skill_folder.is_dir() and not skill_folder.name.startswith('.'):
+                # 读取 SKILL.md 获取技能信息
+                skill_file = skill_folder / "SKILL.md"
+                skill_name = skill_folder.name
+                skill_desc = ""
+                
+                if skill_file.exists():
+                    content = skill_file.read_text(encoding='utf-8')
+                    # 提取技能描述
+                    for line in content.split('\n')[:10]:
+                        if line.startswith('#') or line.startswith('##'):
+                            skill_desc = line.replace('#', '').strip()
+                            break
+                
+                skills.append({
+                    "name": skill_name,
+                    "description": skill_desc,
+                    "path": str(skill_folder)
+                })
+    
+    return {"skills": skills, "total": len(skills)}
 
 
 @app.delete("/api/layer0/rules/{rule_id}")
@@ -1068,33 +1393,43 @@ async def get_evomind(token: str = ""):
     if not verify_token(token):
         raise HTTPException(status_code=401, detail="Token 无效")
     
-    # 从 HEARTBEAT.md 读取改进历史
-    heartbeat_path = Path.home() / ".openclaw" / "workspace" / "HEARTBEAT.md"
-    improvements = []
     try:
-        if heartbeat_path.exists():
-            content = heartbeat_path.read_text(encoding='utf-8')
-            # 解析已完成的改进任务
-            import re
-            matches = re.findall(r'- ✅ .*?\*\*完成时间：\*\*(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}).*?(优化 | 改进 | 添加 | 修复 | 更新).*?(?=✅|$)', content, re.DOTALL)
-            for match in matches[:10]:
-                improvements.append({
-                    "created_at": match[0],
-                    "description": match[1] + match[2][:50] if len(match) > 2 else "系统优化"
-                })
+        # 直接从数据文件读取
+        evomind_file = Path.home() / ".openclaw" / "workspace" / "data" / "evomind_history.json"
+        if evomind_file.exists():
+            data = json.loads(evomind_file.read_text(encoding='utf-8'))
+            
+            # 转换为前端格式
+            improvements = [
+                {
+                    "created_at": imp.get("created_at", ""),
+                    "description": imp.get("description", ""),
+                    "type": imp.get("type", ""),
+                    "impact": imp.get("impact", ""),
+                    "priority": imp.get("priority", ""),
+                }
+                for imp in data.get("improvements", [])[:10]
+            ]
+            
+            return {
+                "improvements_count": data.get("total_count", 0),
+                "last_improvement": data.get("last_improvement", ""),
+                "effectiveness": data.get("effectiveness", 0.85),
+                "improvements": improvements,
+                "history": improvements
+            }
     except Exception as e:
-        print(f"读取 HEARTBEAT.md 失败：{e}")
+        print(f"读取 EvoMind 数据失败：{e}")
     
-    if not improvements:
-        improvements = [
-            {"created_at": "2026-03-13T10:30:00", "description": "优化 Layer0 规则匹配算法，提升响应速度 35%"},
-            {"created_at": "2026-03-12T15:20:00", "description": "改进记忆检索准确性，减少误匹配"},
-            {"created_at": "2026-03-11T09:15:00", "description": "添加工具调用失败重试机制"}
-        ]
-    
+    # 降级返回假数据
+    improvements = [
+        {"created_at": "2026-03-13T10:30:00", "description": "优化 Layer0 规则匹配算法，提升响应速度 35%"},
+        {"created_at": "2026-03-12T15:20:00", "description": "改进记忆检索准确性，减少误匹配"},
+        {"created_at": "2026-03-11T09:15:00", "description": "添加工具调用失败重试机制"}
+    ]
     return {
-        "improvements_count": len(improvements) + 22,
-        "last_improvement": improvements[0]["created_at"] if improvements else "2026-03-13T10:30:00",
+        "improvements_count": 3,
+        "last_improvement": "2026-03-13T10:30:00",
         "effectiveness": 0.85,
         "improvements": improvements,
         "history": improvements
@@ -1140,6 +1475,86 @@ async def vote_proposal(proposal_id: str, action: str = "approve", token: str = 
 
 
 # ─── Settings APIs ───
+@app.get("/api/sessions")
+async def get_sessions(active: int = 60, token: str = ""):
+    """获取活跃 Agent 会话列表"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    try:
+        import subprocess
+        # 调用 OpenClaw CLI 获取会话列表
+        cmd = ["openclaw", "sessions", "list", "--all-agents", "--active", str(active), "--json"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            return data
+        else:
+            # 降级：直接读取会话文件
+            sessions = []
+            sessions_dir = Path.home() / ".openclaw" / "agents" / "main" / "sessions"
+            if sessions_dir.exists():
+                for session_file in sessions_dir.glob("*.jsonl"):
+                    try:
+                        with open(session_file, 'r') as f:
+                            lines = f.readlines()
+                            if lines:
+                                sessions.append({
+                                    "key": session_file.stem,
+                                    "sessionId": session_file.stem,
+                                    "channel": "feishu",
+                                    "model": "qwen3.5-plus",
+                                    "updatedAt": session_file.stat().st_mtime * 1000,
+                                    "contextTokens": len(lines) * 100,
+                                    "messages": lines[-5:]
+                                })
+                    except Exception:
+                        continue
+            
+            return {"sessions": sessions, "count": len(sessions)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取会话失败：{str(e)}")
+
+
+@app.get("/api/subagents")
+async def get_subagents(recent: int = 60, token: str = ""):
+    """获取子代理列表"""
+    if not verify_token(token):
+        raise HTTPException(status_code=401, detail="Token 无效")
+    
+    try:
+        import subprocess
+        cmd = ["openclaw", "subagents", "list", "--recent", str(recent)]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        
+        if result.returncode == 0:
+            output = result.stdout
+            active = []
+            recent_list = []
+            
+            lines = output.split('\n')
+            current_section = None
+            
+            for line in lines:
+                if 'active subagents:' in line.lower():
+                    current_section = 'active'
+                elif 'recent' in line.lower():
+                    current_section = 'recent'
+                elif line.strip() and current_section and not line.startswith('('):
+                    agent_info = {"info": line.strip(), "uptime": 0}
+                    if current_section == 'active':
+                        active.append(agent_info)
+                    else:
+                        recent_list.append(agent_info)
+            
+            return {"active": active, "recent": recent_list, "total": len(active)}
+        else:
+            return {"active": [], "recent": [], "total": 0}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取子代理失败：{str(e)}")
+
+
 @app.get("/api/settings")
 async def get_settings(token: str = ""):
     """获取系统设置"""

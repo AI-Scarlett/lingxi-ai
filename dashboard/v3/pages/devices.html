@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵犀 Dashboard - 设备管理</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div id="app" v-cloak class="p-6 max-w-6xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">📱 设备管理</h1>
+            <a href="/" class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">← 返回 Dashboard</a>
+        </div>
+        
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
+                <div class="text-sm text-gray-500">总设备数</div>
+                <div class="text-2xl font-bold">{{ stats.total || 0 }}</div>
+            </div>
+            <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl shadow">
+                <div class="text-sm text-green-600">已审批</div>
+                <div class="text-2xl font-bold text-green-600">{{ stats.approved || 0 }}</div>
+            </div>
+            <div class="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl shadow">
+                <div class="text-sm text-amber-600">待审批</div>
+                <div class="text-2xl font-bold text-amber-600">{{ stats.pending || 0 }}</div>
+            </div>
+            <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl shadow">
+                <div class="text-sm text-red-600">已撤销</div>
+                <div class="text-2xl font-bold text-red-600">{{ stats.revoked || 0 }}</div>
+            </div>
+        </div>
+        
+        <!-- 设备列表 -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
+            <div class="p-4 border-b dark:border-gray-700 flex items-center justify-between">
+                <h2 class="font-bold">设备列表</h2>
+                <button @click="loadDevices" class="text-primary-500 hover:text-primary-600">🔄 刷新</button>
+            </div>
+            
+            <div class="divide-y dark:divide-gray-700">
+                <div v-for="device in devices" :key="device.id" 
+                     class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="text-2xl">
+                                <span v-if="device.status === 'approved'">✅</span>
+                                <span v-else-if="device.status === 'pending'">⏳</span>
+                                <span v-else>❌</span>
+                            </div>
+                            <div>
+                                <div class="font-bold">{{ device.name }}</div>
+                                <div class="text-sm text-gray-500">{{ device.id }}</div>
+                                <div class="text-xs text-gray-400 mt-1">
+                                    IP: {{ device.ip_address }} | 
+                                    访问：{{ device.access_count }}次 | 
+                                    最后：{{ formatTime(device.last_access) }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <span :class="statusClass(device.status)" class="px-3 py-1 rounded-full text-sm">
+                                {{ statusText(device.status) }}
+                            </span>
+                            
+                            <button v-if="device.status === 'pending'" @click="approveDevice(device.id)" 
+                                    class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                                审批
+                            </button>
+                            
+                            <button v-if="device.status !== 'revoked'" @click="revokeDevice(device.id)" 
+                                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">
+                                撤销
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div v-if="device.notes" class="mt-2 text-sm text-red-500">
+                        {{ device.notes }}
+                    </div>
+                </div>
+                
+                <div v-if="devices.length === 0" class="p-8 text-center text-gray-500">
+                    暂无设备
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    devices: [],
+                    stats: {},
+                    token: new URLSearchParams(window.location.search).get('token') || ''
+                }
+            },
+            mounted() {
+                this.loadDevices();
+            },
+            methods: {
+                async loadDevices() {
+                    try {
+                        const response = await fetch(`/api/device/list?token=${this.token}`);
+                        const data = await response.json();
+                        
+                        if (data.ok) {
+                            this.devices = data.devices.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                            this.stats = data.stats;
+                        }
+                    } catch (e) {
+                        console.error('加载失败:', e);
+                    }
+                },
+                
+                async approveDevice(deviceId) {
+                    if (!confirm('确认审批此设备？')) return;
+                    
+                    try {
+                        const response = await fetch('/api/device/approve', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ device_id: deviceId })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.ok) {
+                            alert('设备已审批');
+                            this.loadDevices();
+                        } else {
+                            alert('审批失败：' + data.error);
+                        }
+                    } catch (e) {
+                        alert('审批失败：' + e.message);
+                    }
+                },
+                
+                async revokeDevice(deviceId) {
+                    const reason = prompt('请输入撤销原因（可选）:', '安全风险');
+                    if (!reason) return;
+                    
+                    if (!confirm('确认撤销此设备？设备将无法访问 Dashboard。')) return;
+                    
+                    try {
+                        const response = await fetch('/api/device/revoke', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ device_id: deviceId, reason: reason })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.ok) {
+                            alert('设备已撤销');
+                            this.loadDevices();
+                        } else {
+                            alert('撤销失败：' + data.error);
+                        }
+                    } catch (e) {
+                        alert('撤销失败：' + e.message);
+                    }
+                },
+                
+                statusClass(status) {
+                    const classes = {
+                        'approved': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                        'pending': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                        'revoked': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                    };
+                    return classes[status] || classes.pending;
+                },
+                
+                statusText(status) {
+                    const texts = {
+                        'approved': '已审批',
+                        'pending': '待审批',
+                        'revoked': '已撤销'
+                    };
+                    return texts[status] || status;
+                },
+                
+                formatTime(iso) {
+                    if (!iso) return '未知';
+                    const date = new Date(iso);
+                    const now = new Date();
+                    const diff = (now - date) / 1000;
+                    
+                    if (diff < 60) return '刚刚';
+                    if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+                    if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+                    return date.toLocaleDateString('zh-CN');
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
